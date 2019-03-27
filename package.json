@@ -1,0 +1,36 @@
+{
+  "name": "node-s-ftp",
+  "version": "0.0.1",
+  "description": "An API wrapper around ssh2 and node-ftp for building FTP/SFTP clients.",
+  "keywords": [
+    "ftp",
+    "sftp",
+    "ftps",
+    "nodejs",
+    "typescript",
+    "ssh2",
+    "node-ftp"
+  ],
+  "author": {
+    "name": "Mikołaj Palkiewicz",
+    "email": "xnerhu@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xnerhu/node-s-ftp.git"
+  },
+  "homepage": "https://github.com/xnerhu/node-s-ftp#readme",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "prepare": "npm run build"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "11.12.0",
+    "typescript": "3.3.4000"
+  }
+}
