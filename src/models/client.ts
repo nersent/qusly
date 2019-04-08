@@ -1,4 +1,5 @@
 const jsftp = require('jsftp');
+import { Client as sshClient } from 'ssh2';
 
 import { IConfig } from "../interfaces";
 
@@ -13,16 +14,15 @@ export class Client {
     this.config = { ...{
       protocol: 'ftp',
       port: 21,
-      user: 'anonymous',
+      username: 'anonymous',
       password: '@anonymous'
     }, ...config };
 
     return new Promise((resolve, reject) => {
-      this.client = new jsftp();
-
+      this.client = this.config.protocol === 'ftp' ? new jsftp() : new sshClient();
       this.client.connect(this.config);
       // TODO: Error handling
-      this.client.on('connect', () => {
+      this.client.on('ready', () => {
         resolve();
         this.connected = true;
       })
@@ -34,6 +34,8 @@ export class Client {
 
     if (protocol === 'ftp') {
       this.client.destroy();
+    } else {
+      this.client.end();
     }
 
     this.connected = false;
