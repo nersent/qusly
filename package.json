@@ -1,5 +1,5 @@
 {
-  "name": "node-s-ftp",
+  "name": "node-all-ftps",
   "version": "0.0.1",
   "description": "An API wrapper around ssh2 and node-ftp for building FTP/SFTP clients.",
   "keywords": [
@@ -30,7 +30,11 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@types/node": "11.12.0",
-    "typescript": "3.3.4000"
+    "@types/jsftp": "2.1.0",
+    "@types/node": "11.13.1",
+    "@types/ssh2": "0.5.38",
+    "jsftp": "https://github.com/xnerhu/jsftp",
+    "ssh2": "0.8.2",
+    "typescript": "3.4.2"
   }
 }

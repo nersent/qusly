@@ -1,1 +1,2 @@
-console.log('test');
+export * from './interfaces';
+export * from './models';
