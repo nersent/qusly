@@ -85,7 +85,7 @@ isarray@0.0.1:
 
 "jsftp@https://github.com/xnerhu/jsftp":
   version "2.1.3"
-  resolved "https://github.com/xnerhu/jsftp#d121389f6f1dbde060d0392d9516e6f14ab144b1"
+  resolved "https://github.com/xnerhu/jsftp#0fae5746638820a7ce3d2f26c138f9dbe669f0ca"
   dependencies:
     debug "^3.1.0"
     ftp-response-parser "^1.0.1"

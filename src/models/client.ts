@@ -1,5 +1,6 @@
 const jsftp = require('jsftp');
-import { Client as sshClient } from 'ssh2';
+import { Client as sshClient, SFTPWrapper } from 'ssh2';
+import { SFTPStream } from 'ssh2-streams';
 
 import { IConfig } from "../interfaces";
 
@@ -8,8 +9,11 @@ export class Client {
 
   public connected = false;
 
-  private client: any;
+  public client: any;
 
+  public sshConnection: sshClient;
+
+  // TODO: Error handling
   public connect(config: IConfig) {
     this.config = { ...{
       protocol: 'ftp',
@@ -17,27 +21,46 @@ export class Client {
       username: 'anonymous',
       password: '@anonymous'
     }, ...config };
+    
 
     return new Promise((resolve, reject) => {
-      this.client = this.config.protocol === 'ftp' ? new jsftp() : new sshClient();
-      this.client.connect(this.config);
-      // TODO: Error handling
-      this.client.on('ready', () => {
-        resolve();
-        this.connected = true;
-      })
+      const { protocol } = this.config;
+
+      if (protocol === 'sftp') {
+        this.sshConnection = new sshClient();
+
+        this.sshConnection.once('ready', () => {
+          this.sshConnection.sftp((err, sftp) => {
+            if (err) throw err;
+            this.client = sftp;
+            this.connected = true;
+            resolve();
+          })
+        });
+
+        this.sshConnection.connect(config);
+      } else {
+        this.client = new jsftp();
+
+        this.client.once('connect', (err) => {
+          if (err) throw err;
+          this.connected = true;
+          resolve();
+        });
+
+        this.client.connect(config);
+      }
     });
   }
 
+  // TODO: Error handling
   public disconnect() {
     const { protocol } = this.config;
-
-    if (protocol === 'ftp') {
-      this.client.destroy();
-    } else {
+    if (protocol === 'sftp') {
+      this.sshConnection.end();
       this.client.end();
+    } else {
+      this.client.destroy();
     }
-
-    this.connected = false;
   }
 } 
