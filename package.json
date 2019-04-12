@@ -28,7 +28,9 @@
     "build": "tsc",
     "prepare": "npm run build"
   },
-  "dependencies": {},
+  "dependencies": {
+    "parse-listing": "1.1.3"
+  },
   "devDependencies": {
     "@types/jsftp": "2.1.0",
     "@types/node": "11.13.1",

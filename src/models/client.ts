@@ -1,8 +1,10 @@
-const jsftp = require('jsftp');
 import { Client as sshClient, SFTPWrapper, ExecOptions } from 'ssh2';
 import { SFTPStream } from 'ssh2-streams';
+const jsftp = require('jsftp');
+const Parser = require("parse-listing");
 
 import { IConfig, IFile } from "../interfaces";
+import { parseLongName } from '../utils';
 
 export class Client {
   public config: IConfig;
@@ -109,6 +111,43 @@ export class Client {
         if (err) throw new Error(err);     
         resolve(data.text);
       })
+    });
+  }
+
+  public ls(path: string) {
+    const { protocol } = this.config;
+
+    // SFTP
+    if (protocol === 'sftp') {
+      return new Promise((resolve) => {
+        (this.client as SFTPWrapper).readdir(path, (err, list) => {
+          if (err) throw new Error(err);
+          
+          const arr: IFile[] = list.map((item) => {
+            const { permissions, owner, group } = parseLongName(item.longname);
+            return {
+              type: (item.attrs as any).isDirectory() ? 'folder' : 'file',
+              name: item.filename,
+              longname: item.longname,
+              attrs: {
+                size: item.attrs.size,
+                lastModified: item.attrs.atime,
+                permissions,
+                owner,
+                group,
+              }
+            } as IFile;
+          });
+
+          resolve(arr);
+        });
+      });
+    }
+
+    return new Promise((resolve) => {
+      this.client.list('.', (err, res) => {
+        console.log(res);
+      });
     });
   }
 } 
