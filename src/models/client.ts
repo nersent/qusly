@@ -2,7 +2,7 @@ const jsftp = require('jsftp');
 import { Client as sshClient, SFTPWrapper, ExecOptions } from 'ssh2';
 import { SFTPStream } from 'ssh2-streams';
 
-import { IConfig } from "../interfaces";
+import { IConfig, IFile } from "../interfaces";
 
 export class Client {
   public config: IConfig;
@@ -86,7 +86,6 @@ export class Client {
 
           stream.on('close', () => {
             resolve(data);
-            stream.removeAllListeners();
             stream.destroy();
           })
 
@@ -96,7 +95,6 @@ export class Client {
           
           stream.stderr.on('close', () => {
             if (errorData.trim().length) {
-              stream.removeAllListeners();
               stream.destroy();
               throw new Error(errorData);
             }
