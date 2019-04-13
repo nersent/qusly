@@ -1,0 +1,9 @@
+language: node_js
+node_js: '10'
+sudo: enabled
+dist: trusty
+os:
+  - linux
+  - osx
+script:
+  - yarn build
