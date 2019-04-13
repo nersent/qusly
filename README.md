@@ -8,6 +8,8 @@ A wrapper around [ssh2](https://github.com/mscdex/ssh2) and [jsftp](https://gith
 $ npm install qusly-core
 ```
 
+### [Examples](/examples/)
+
 ### Quick start
 
 An example of listing all files in given directory.
@@ -27,6 +29,7 @@ client.connect({
 
 client.ls('./').then(files => {
   console.log(files);
+  client.disconnect();
 });
 ```
 
