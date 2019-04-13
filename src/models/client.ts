@@ -1,9 +1,11 @@
+import { Writable, Readable } from 'stream';
+import { EventEmitter } from 'events';
 import { Client as FtpClient } from 'basic-ftp';
 import {  Client as SshClient, SFTPWrapper } from 'ssh2';
 
-import { IConfig, IConnectRes, IProtocol } from '.';
+import { IConfig, IProtocol, IResponse, ISizeResponse } from '.';
 
-export class Client {
+export class Client extends EventEmitter {
   private protocol: IProtocol;
 
   private _ftpClient: FtpClient;
@@ -12,7 +14,7 @@ export class Client {
 
   private _sshClient: SshClient;
 
-  public connect(config: IConfig): Promise<IConnectRes> {
+  public connect(config: IConfig): Promise<IResponse> {
     return new Promise(async (resolve) => {
       const { protocol } = config;
       this.protocol = protocol;
@@ -74,5 +76,35 @@ export class Client {
     } else {
       this._ftpClient.close();
     }
+  }
+
+  public getSize(remotePath: string): Promise<ISizeResponse> {
+    return new Promise(async (resolve) => {
+      if (this.protocol === 'sftp') {
+        this._sftpClient.stat(remotePath, (err, stats) => {
+          if (err) {          
+            return resolve({
+              success: false,
+              error: err.message,
+            });
+          }
+          
+          resolve({ success: true, value: stats.size })
+        })
+      } else {
+        try {
+          const size = await this._ftpClient.size(remotePath);
+          resolve({ success: true, value: size });
+        } catch (err) {
+          resolve({
+            success: false,
+            error: {
+              code: err.code,
+              message: err.message,
+            }
+          });
+        }
+      }
+    });
   }
 };
