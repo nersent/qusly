@@ -1,11 +1,10 @@
 import { Writable, Readable } from 'stream';
-import { EventEmitter } from 'events';
 import { Client as FtpClient } from 'basic-ftp';
 import {  Client as SshClient, SFTPWrapper } from 'ssh2';
 
-import { IConfig, IProtocol, IResponse, ISizeResponse } from '.';
+import { IConfig, IProtocol, IResponse, ISizeResponse, IProgressEvent, IProgressEventData } from '.';
 
-export class Client extends EventEmitter {
+export class Client {
   private protocol: IProtocol;
 
   private _ftpClient: FtpClient;
@@ -13,6 +12,10 @@ export class Client extends EventEmitter {
   private _sftpClient: SFTPWrapper;
 
   private _sshClient: SshClient;
+
+  private buffered = 0;
+
+  public onProgress: IProgressEvent;
 
   public connect(config: IConfig): Promise<IResponse> {
     return new Promise(async (resolve) => {
@@ -76,6 +79,12 @@ export class Client extends EventEmitter {
     } else {
       this._ftpClient.close();
     }
+    this.protocol = null
+    this._ftpClient = null;
+    this._sshClient = null;
+    this._sftpClient = null;
+    this.onProgress = null;
+    this.buffered = 0;
   }
 
   public getSize(remotePath: string): Promise<ISizeResponse> {
@@ -106,5 +115,81 @@ export class Client extends EventEmitter {
         }
       }
     });
+  }
+
+  public download(remotePath: string, local: Writable, offset = 0): Promise<IResponse> {
+    return new Promise(async (resolve) => {
+      const size = await this.getSize(remotePath);
+      if (!size.success) return resolve(size);
+
+      this.buffered = 0;
+
+      if (this.protocol === 'sftp') {
+        const stream = this._sftpClient.createReadStream(remotePath, { start: offset });
+
+        stream.on('data', (chunk) => {
+          this.buffered += chunk.length;
+          this._onProgress({
+            bytes: this.buffered,
+            size: size.value,
+            type: 'download',
+          });
+        });
+
+        stream.on('error', (err) => {
+          stream.removeAllListeners();
+          stream.destroy();
+
+          resolve({
+            success: false,
+            error: {
+              message: err.message
+            }
+          })
+        });
+
+        stream.on('close', () => {
+          stream.removeAllListeners();
+          stream.destroy();
+
+          resolve({ success: true });
+        });
+
+        stream.pipe(local);
+      } else {
+        try {
+          this._ftpClient.trackProgress(info => {
+            this.buffered = info.bytes;
+
+            this._onProgress({
+              bytes: info.bytes,
+              size: size.value,
+              type: 'download'
+            });
+          });
+
+          await this._ftpClient.download(local, remotePath, offset);
+          this._ftpClient.trackProgress(undefined);
+
+          resolve({ success: true });
+        } catch (err) {
+          this._ftpClient.trackProgress(undefined);
+
+          resolve({
+            success: false,
+            error: {
+              code: err.code,
+              message: err.message,
+            }
+          });
+        }
+      }
+    });
+  }
+
+  private _onProgress(data: IProgressEventData) {
+    if (typeof this.onProgress === 'function') {
+      this.onProgress(data);
+    }
   }
 };
