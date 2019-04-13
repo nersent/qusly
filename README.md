@@ -1,9 +1,9 @@
 ## qusly-core
 
-A wrapper around [ssh2](https://github.com/mscdex/ssh2) and [jsftp](https://github.com/xnerhu/jsftp) for building **FTP/SFTP** clients with clear and consistent api. It's used in [Qusly](https://www.github.com/xnerhu/qusly).
-
 [![Travis](https://img.shields.io/travis/xnerhu/qusly-core.svg?style=flat-square)](https://travis-ci.org/xnerhu/qusly-core.svg)
 [![NPM](https://img.shields.io/npm/v/qusly-core.svg?style=flat-square)](https://www.npmjs.com/package/qusly-core)
+
+A wrapper around [ssh2](https://github.com/mscdex/ssh2) and [basic-ftp](https://github.com/patrickjuchli/basic-ftp) for building **FTP/SFTP** clients with clear and consistent api. It's used in [Qusly](https://www.github.com/xnerhu/qusly).
 
 ### Installing
 

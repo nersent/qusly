@@ -1,7 +1,7 @@
 {
   "name": "qusly-core",
   "version": "1.0.0",
-  "description": "A wrapper around ssh2 and jsftp for building FTP/SFTP clients with clear and consistent api.",
+  "description": "A wrapper around ssh2 and basic-ftp for building FTP/SFTP clients with clear and consistent api.",
   "keywords": [
     "ftp",
     "sftp",
@@ -10,7 +10,7 @@
     "typescript",
     "ssh2",
     "node-ftp",
-    "jsftp",
+    "basic-ftp",
     "qusly"
   ],
   "author": {
@@ -30,12 +30,13 @@
     "build": "tsc",
     "prepare": "npm run build"
   },
-  "dependencies": {
-    "@types/jsftp": "2.1.0",
+  "devDependencies": {
     "@types/node": "11.13.1",
     "@types/ssh2": "0.5.38",
-    "jsftp": "https://github.com/xnerhu/jsftp",
-    "ssh2": "0.8.2",
     "typescript": "3.4.2"
+  },
+  "dependencies": {
+    "basic-ftp": "3.4.4",
+    "ssh2": "0.8.2"
   }
 }
