@@ -1,11 +1,12 @@
-import { Writable, Readable } from 'stream';
+import { Writable, Readable, Stream } from 'stream';
 import { Client as FtpClient } from 'basic-ftp';
 import {  Client as SshClient, SFTPWrapper } from 'ssh2';
 
 import { IConfig, IProtocol, IResponse, ISizeResponse, IProgressEvent, IProgressEventData } from '.';
+import { ProgressTracker } from 'basic-ftp/dist/ProgressTracker';
 
 export class Client {
-  private protocol: IProtocol;
+  private _protocol: IProtocol;
 
   private _ftpClient: FtpClient;
 
@@ -13,14 +14,18 @@ export class Client {
 
   private _sshClient: SshClient;
 
-  private buffered = 0;
+  private _buffered = 0;
+
+  private sftpStream: Readable;
+  
+  private _localWritable: Writable;
 
   public onProgress: IProgressEvent;
 
   public connect(config: IConfig): Promise<IResponse> {
     return new Promise(async (resolve) => {
       const { protocol } = config;
-      this.protocol = protocol;
+      this._protocol = protocol;
 
       if (protocol === 'sftp') {
         this._sshClient = new SshClient();
@@ -56,7 +61,7 @@ export class Client {
         this._sshClient.connect({ username: config.user, ...config })
       } else {
         this._ftpClient = new FtpClient();
-
+  
         try {
           await this._ftpClient.access({ secure: true, ...config });
           resolve({ success: true });
@@ -74,22 +79,22 @@ export class Client {
   }
 
   public disconnect() {
-    if (this.protocol === 'sftp') {
+    if (this._protocol === 'sftp') {
       this._sshClient.end();
     } else {
       this._ftpClient.close();
     }
-    this.protocol = null
+    this._protocol = null
     this._ftpClient = null;
     this._sshClient = null;
     this._sftpClient = null;
+    this._buffered = 0;
     this.onProgress = null;
-    this.buffered = 0;
   }
 
   public getSize(remotePath: string): Promise<ISizeResponse> {
     return new Promise(async (resolve) => {
-      if (this.protocol === 'sftp') {
+      if (this._protocol === 'sftp') {
         this._sftpClient.stat(remotePath, (err, stats) => {
           if (err) {          
             return resolve({
@@ -122,44 +127,45 @@ export class Client {
       const size = await this.getSize(remotePath);
       if (!size.success) return resolve(size);
 
-      this.buffered = 0;
+      this._buffered = 0;
 
-      if (this.protocol === 'sftp') {
-        const stream = this._sftpClient.createReadStream(remotePath, { start: offset });
+      if (this._protocol === 'sftp') {
+        this.sftpStream = this._sftpClient.createReadStream(remotePath, { start: offset });
 
-        stream.on('data', (chunk) => {
-          this.buffered += chunk.length;
+        this.sftpStream.on('data', (chunk) => {
+          this._buffered += chunk.length;
           this._onProgress({
-            bytes: this.buffered,
+            bytes: this._buffered,
             size: size.value,
             type: 'download',
           });
         });
 
-        stream.on('error', (err) => {
-          stream.removeAllListeners();
-          stream.destroy();
-
+        this.sftpStream.on('error', (err) => {
+          this.sftpStream.destroy();
           resolve({
             success: false,
             error: {
               message: err.message
             }
-          })
+          });
         });
 
-        stream.on('close', () => {
-          stream.removeAllListeners();
-          stream.destroy();
-
+        this.sftpStream.on('close', () => {
+          this.sftpStream.removeAllListeners();
+          this.sftpStream.unpipe(local);
+          this.sftpStream = null;
+          local.end();
           resolve({ success: true });
-        });
-
-        stream.pipe(local);
+         });
+ 
+        this.sftpStream.pipe(local);
       } else {
+        this._localWritable = local;
+
         try {
           this._ftpClient.trackProgress(info => {
-            this.buffered = info.bytes;
+            this._buffered = info.bytes;
 
             this._onProgress({
               bytes: info.bytes,
@@ -168,8 +174,10 @@ export class Client {
             });
           });
 
-          await this._ftpClient.download(local, remotePath, offset);
+          await this._ftpClient.download(this._localWritable, remotePath, offset);
           this._ftpClient.trackProgress(undefined);
+          this._localWritable.end();
+          this._localWritable = null;
 
           resolve({ success: true });
         } catch (err) {
@@ -185,6 +193,30 @@ export class Client {
         }
       }
     });
+  }
+
+  public async abort() { 
+    if (this._protocol === 'sftp') {
+      this.sftpStream.emit('error', new Error('Aborted'));
+    } else {
+      const tracker: ProgressTracker = (this._ftpClient as any).progressTracker;
+      tracker.stop();
+      (tracker as any).onHandle = undefined;
+      (this._ftpClient.ftp as any).task = undefined;
+      this._ftpClient.trackProgress(undefined);
+      this._ftpClient.ftp.dataSocket.unpipe(this._localWritable);
+      this._localWritable.end();
+      this._localWritable = null;
+
+      await this._ftpClient.ftp.handle("ABOR", (res, task) => {
+        if (res instanceof Error) {
+        } else if (res.code === 226) {
+          task.resolve(res);
+        }
+      })
+    }
+
+    return this._buffered;
   }
 
   private _onProgress(data: IProgressEventData) {
