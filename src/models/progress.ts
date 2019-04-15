@@ -1,7 +1,6 @@
 export interface IProgressEventData {
-  bytes: number;
-  size: number;
   type: 'download' | 'upload';
+  path: string;
+  bytes: number;
+  fileSize: number;
 }
-
-export type IProgressEvent = (data: IProgressEventData) => void;
