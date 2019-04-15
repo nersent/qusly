@@ -245,6 +245,12 @@ export class Client extends EventEmitter {
     }
   }
 
+  public set debuger(value: boolean) {
+    if (!this._isSFTP) {
+      this._ftpClient.ftp.verbose = value;
+    }
+  }
+
   protected get _isSFTP() {
     return this._config.protocol === 'sftp';
   }
