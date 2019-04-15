@@ -9,3 +9,7 @@ export interface IResponse {
 export interface ISizeResponse extends IResponse {
   value?: number;
 }
+
+export interface IAbortResponse extends IResponse {
+  bytes?: number;
+}
