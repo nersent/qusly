@@ -5,7 +5,6 @@ import {  Client as SshClient, SFTPWrapper } from 'ssh2';
 
 import { IConfig, IProtocol, IResponse, ISizeResponse } from '.';
 import { getResponseData } from '../utils';
-import { IDownloadOptions } from './options';
 import { IProgressEventData } from './progress';
 
 export declare interface Client {
@@ -27,18 +26,43 @@ export class Client extends EventEmitter {
 
   protected _sshClient: SshClient;
 
-  protected get isSFTP() {
+  protected _writable: Writable;
+  
+  protected _readable: Readable;
+
+  protected get _isSFTP() {
     return this._config.protocol === 'sftp';
+  }
+
+  protected _flushStreams() {
+    if (this._readable != null) {
+      this._readable.removeAllListeners();
+      this._readable.unpipe(this._writable);
+      this._readable.destroy();
+      this._readable = null;
+    }
+
+    if (this._writable != null) {
+      if (!this._isSFTP) {
+        this._ftpClient.ftp.dataSocket.unpipe(this._writable);
+      }
+
+      this._writable.removeAllListeners();
+      this._writable.uncork();
+      this._writable.end();
+      this._writable.destroy();
+      this._writable = null;
+    }
   }
 
   /**
    * Connects to a server.
-   * @param config Connection config
+   * @param config - Connection config
    */
   public async connect(config: IConfig): Promise<IResponse> {
     this._config = config;
 
-    if (this.isSFTP) {
+    if (this._isSFTP) {
       return new Promise((resolve) => {
         if (this.connected) this.disconnect();
 
@@ -84,7 +108,8 @@ export class Client extends EventEmitter {
    * To reconnect call `connect` method.
    */
   public disconnect() {
-    if (this.isSFTP) this._sshClient.end();
+    this._flushStreams();
+    if (this._isSFTP) this._sshClient.end();
     else this._ftpClient.close();
     this._ftpClient = null;
     this._sshClient = null;
@@ -95,12 +120,12 @@ export class Client extends EventEmitter {
 
   /**
    * Gets size of a file.
-   * @param path Remote path of a file
+   * @param path - Remote path of a file
    */
   public async getSize(path: string): Promise<ISizeResponse> {
     if (!this.connected) return getResponseData(new Error('Client is not connected'));
 
-    if (this.isSFTP) {
+    if (this._isSFTP) {
       return new Promise((resolve) => {
         this._sftpClient.stat(path, (err, stats) => {
           resolve(getResponseData(err, stats && { value: stats.size }));
@@ -118,22 +143,23 @@ export class Client extends EventEmitter {
 
   /**
    * Downloads a file.
-   * @param path Remote path of a file
-   * @param destination Writable stream of a local file
-   * @param options Additional options e.g. start offset
+   * @param path - Remote path of a file
+   * @param destination - Writable stream of a local file
+   * @param startAt - The offset to start at
    */
-  public async download(path: string, destination: Writable, options?: IDownloadOptions) {
+  public async download(path: string, destination: Writable, startAt = 0) {
     if (!this.connected) return getResponseData(new Error('Client is not connected'));
 
     const sizeRes = await this.getSize(path);
     if (!sizeRes.success) return sizeRes;
 
-    if (this.isSFTP) {
+    if (this._isSFTP) {
       return new Promise((resolve) => {
-        const stream = this._sftpClient.createReadStream(path, options);
+        this._writable = destination;
+        this._readable = this._sftpClient.createReadStream(path, { start: startAt });
         let buffered = 0;
 
-        stream.on('data', (chunk) => {
+        this._readable.on('data', (chunk) => {
           buffered += chunk.length;
 
           this.emit('progress', {
@@ -144,23 +170,22 @@ export class Client extends EventEmitter {
           } as IProgressEventData);
         });
 
-        stream.once('error', (err) => {
-          stream.destroy();
+        this._readable.once('error', (err) => {
+          this._readable.destroy();
           resolve(getResponseData(err));
         });
 
-        stream.once('close', () => {
-          stream.removeAllListeners();
-          stream.unpipe(destination);
-          destination.end();
+        this._readable.once('close', () => {
+          this._flushStreams();
           resolve(getResponseData());
          });
  
-         stream.pipe(destination);
+         this._readable.pipe(this._writable);
       });
     }
 
     try {
+      this._writable = destination;
       this._ftpClient.trackProgress(info => {
         this.emit('progress', {
           type: 'download',
@@ -170,14 +195,21 @@ export class Client extends EventEmitter {
         } as IProgressEventData);
       });
 
-      const { start } = options;
-      await this._ftpClient.download(destination, path, start);
+      await this._ftpClient.download(this._writable, path, startAt);
 
       this._ftpClient.trackProgress(undefined);
+      this._flushStreams();
+
       return getResponseData();
     } catch (err) {
       this._ftpClient.trackProgress(undefined);
+      this._flushStreams();
       return getResponseData(err); 
     }
+  }
+
+  public async abort() {
+    this.disconnect();
+    await this.connect(this._config);
   }
 };
