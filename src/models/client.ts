@@ -1,9 +1,9 @@
 import { EventEmitter } from 'events';
-import { Writable, Readable, Stream } from 'stream';
+import { Writable, Readable } from 'stream';
 import { Client as FtpClient } from 'basic-ftp';
 import {  Client as SshClient, SFTPWrapper } from 'ssh2';
 
-import { IConfig, IProtocol, IResponse, ISizeResponse, IAbortResponse, IExecResponse } from '.';
+import { IConfig, IResponse, ISizeResponse, IAbortResponse, IExecResponse } from '.';
 import { getResponseData } from '../utils';
 import { IProgressEventData } from './progress';
 import { IHandlerData } from './handler-data';
@@ -217,6 +217,28 @@ export class Client extends EventEmitter {
 
     try {
       const res = await this._ftpClient.send(command);
+      return getResponseData(null, { message: res.message });
+    } catch (err) {
+      return getResponseData(err);
+    }
+  }
+
+  /**
+   * Moves/Renames a file.
+   * @param srcPath - Source path
+   * @param destPath - Destination path
+   */
+  public async move(srcPath: string, destPath: string): Promise<IResponse> {
+    if (this._isSFTP) {
+      return new Promise((resolve) => {
+        this._sftpClient.rename(srcPath, destPath, (err) => {
+          resolve(getResponseData(err));
+        });
+      });
+    }
+
+    try {
+      const res = await this._ftpClient.rename(srcPath, destPath);
       return getResponseData(null, { message: res.message });
     } catch (err) {
       return getResponseData(err);
