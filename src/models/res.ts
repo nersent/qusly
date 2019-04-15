@@ -13,3 +13,7 @@ export interface ISizeResponse extends IResponse {
 export interface IAbortResponse extends IResponse {
   bytes?: number;
 }
+
+export interface IExecResponse extends IResponse {
+  message?: string;
+}

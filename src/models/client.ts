@@ -3,7 +3,7 @@ import { Writable, Readable, Stream } from 'stream';
 import { Client as FtpClient } from 'basic-ftp';
 import {  Client as SshClient, SFTPWrapper } from 'ssh2';
 
-import { IConfig, IProtocol, IResponse, ISizeResponse, IAbortResponse } from '.';
+import { IConfig, IProtocol, IResponse, ISizeResponse, IAbortResponse, IExecResponse } from '.';
 import { getResponseData } from '../utils';
 import { IProgressEventData } from './progress';
 import { IHandlerData } from './handler-data';
@@ -151,16 +151,14 @@ export class Client extends EventEmitter {
 
     const sizeResponse = await this.getSize(path);
     if (!sizeResponse.success) return sizeResponse;
-
     const fileSize = sizeResponse.value - startAt;
-
-    this._writable = destination;
 
     if (this._isSFTP) {
       this._buffered = 0;
       this._readable = this._sftpClient.createReadStream(path, { start: startAt });
     }
-
+    this._writable = destination;
+    
     return this._handleStream({
       type: 'download',
       fileSize,
@@ -175,18 +173,54 @@ export class Client extends EventEmitter {
    * @param source - Source file
    */
   public async upload(path: string, source: Readable, fileSize?: number): Promise<IResponse> {
-    this._readable = source;
-
     if (this._isSFTP) {
       this._buffered = 0;
       this._writable = this._sftpClient.createWriteStream(path);
     }
-   
+    this._readable = source;
+    
     return this._handleStream({
       type: 'upload',
       fileSize,
       path,
     });
+  }
+
+  /**
+   * Send a command.
+   * @param command - Command to send
+   */
+  public async send(command: string): Promise<IExecResponse> {
+    if (this._isSFTP) {
+      return new Promise((resolve) => {
+        this._sshClient.exec(command, (err, stream): any => {
+          if (err) return getResponseData(err);
+
+          let data = '';
+
+          stream.once('error', (err: Error) => {
+            stream.close();
+            resolve(getResponseData(err));
+          });
+          
+          stream.on('data', (chunk) => {
+            data += chunk;
+          });
+          
+          stream.once('close', () => {
+            stream.close();
+            resolve(getResponseData(null, { message: data }));
+          })
+        })
+      });
+    }
+
+    try {
+      const res = await this._ftpClient.send(command);
+      return getResponseData(null, { message: res.message });
+    } catch (err) {
+      return getResponseData(err);
+    }
   }
 
   protected get _isSFTP() {
