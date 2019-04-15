@@ -238,13 +238,37 @@ export class Client extends EventEmitter {
     }
 
     try {
-      const res = await this._ftpClient.rename(srcPath, destPath);
-      return getResponseData(null, { message: res.message });
+      await this._ftpClient.rename(srcPath, destPath);
+      return getResponseData();
     } catch (err) {
       return getResponseData(err);
     }
   }
 
+  /**
+   * Removes a file
+   * @param path - Source path
+   */
+  public async remove(path: string): Promise<IResponse> {
+    if (this._isSFTP) {
+      return new Promise((resolve) => {
+        this._sftpClient.unlink(path, (err) => {
+          resolve(getResponseData(err));
+        })
+      });
+    }
+
+    try {
+      await this._ftpClient.remove(path);
+      return getResponseData(null);
+    } catch (err) {
+      return getResponseData(err);
+    }
+  }
+  
+  /**
+   * Sets debugging mode __(currently only FTP)__
+   */
   public set debuger(value: boolean) {
     if (!this._isSFTP) {
       this._ftpClient.ftp.verbose = value;
@@ -271,7 +295,7 @@ export class Client extends EventEmitter {
   
         this._readable.destroy();
       }
-    } else {
+    } else if (this._writable) {
       this._writable.end();
     }
 
