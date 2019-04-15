@@ -6,6 +6,7 @@ import {  Client as SshClient, SFTPWrapper } from 'ssh2';
 import { IConfig, IProtocol, IResponse, ISizeResponse, IAbortResponse } from '.';
 import { getResponseData } from '../utils';
 import { IProgressEventData } from './progress';
+import { IHandlerData } from './handler-data';
 
 export declare interface Client {
   on(event: 'connect', listener: Function): this;
@@ -35,35 +36,6 @@ export class Client extends EventEmitter {
   protected _aborting = false;
   
   protected _buffered = 0;
-
-  protected get _isSFTP() {
-    return this._config.protocol === 'sftp';
-  }
-
-  protected _cleanStreams() {
-    if (this._readable != null) {
-      this._readable.removeAllListeners();
-      this._readable.unpipe(this._writable);
-      
-      if (this._writable != null) {
-        this._writable.removeAllListeners();
-
-        this._readable.once('close', () => {
-          this._writable.end();
-          this._writable = null;
-          this._readable = null;
-        });
-  
-        this._readable.destroy();
-      }
-    } else {
-      this._writable.end();
-    }
-
-    if (!this._isSFTP && this._ftpClient.ftp.dataSocket != null) {
-      this._ftpClient.ftp.dataSocket.unpipe(this._writable);
-    }
-  }
 
   /**
    * Connects to a server.
@@ -130,6 +102,22 @@ export class Client extends EventEmitter {
 
 
   /**
+   * Aborts current data transfer like download and upload.
+   */
+  public async abort(): Promise<IAbortResponse> {
+    this._aborting = true;
+    this._cleanStreams();
+    this.disconnect();
+  
+    const res = await this.connect(this._config);
+
+    this._aborting = false;
+    this.emit('abort');   
+
+    return res.success ? getResponseData(null, { bytes: this._buffered }) : res;
+  }
+  
+  /**
    * Gets size of a file.
    * @param path - Remote path of a file
    */
@@ -153,22 +141,6 @@ export class Client extends EventEmitter {
   }
 
   /**
-   * Aborts current data transfer like download and upload.
-   */
-  public async abort(): Promise<IAbortResponse> {
-    this._aborting = true;
-    this._cleanStreams();
-    this.disconnect();
-  
-    const res = await this.connect(this._config);
-
-    this._aborting = false;
-    this.emit('abort');   
-
-    return res.success ? getResponseData(null, { bytes: this._buffered }) : res;
-  }
-  
-  /**
    * Downloads a file.
    * @param path - Remote path of a file
    * @param destination - Destination file
@@ -177,66 +149,24 @@ export class Client extends EventEmitter {
   public async download(path: string, destination: Writable, startAt = 0): Promise<IResponse> {
     if (!this.connected) return getResponseData(new Error('Client is not connected'));
 
-    const sizeRes = await this.getSize(path);
-    if (!sizeRes.success) return sizeRes;
+    const sizeResponse = await this.getSize(path);
+    if (!sizeResponse.success) return sizeResponse;
 
-    const fileSize = sizeRes.value - startAt;
+    const fileSize = sizeResponse.value - startAt;
 
     this._writable = destination;
 
     if (this._isSFTP) {
-      return new Promise((resolve) => {
-        this._buffered = 0;
-        this._readable = this._sftpClient.createReadStream(path, { start: startAt });
-
-        this._readable.on('data', (chunk) => {
-          this._buffered += chunk.length;
-
-          this.emit('progress', {
-            type: 'download',
-            bytes: this._buffered,
-            fileSize,
-            path,
-          } as IProgressEventData);
-        });
-
-        this._readable.once('error', (err) => {
-          this._cleanStreams();
-          resolve(getResponseData(err));
-        });
-
-        this._readable.once('close', () => {
-          this._cleanStreams();
-          resolve(getResponseData());
-         });
- 
-         this._readable.pipe(this._writable);
-      });
+      this._buffered = 0;
+      this._readable = this._sftpClient.createReadStream(path, { start: startAt });
     }
 
-    try {
-      this._ftpClient.trackProgress(info => {
-        this._buffered = info.bytes;
-
-        this.emit('progress', {
-          type: 'download',
-          bytes: info.bytes,
-          fileSize,
-          path,
-        } as IProgressEventData);
-      });
-
-      await this._ftpClient.download(this._writable, path, startAt);
-
-      this._ftpClient.trackProgress(undefined);
-      this._cleanStreams();
-
-      return getResponseData();
-    } catch (err) {
-      this._ftpClient.trackProgress(undefined);
-      this._cleanStreams();
-      return getResponseData(err);
-    }
+    return this._handleStream({
+      type: 'download',
+      fileSize,
+      path,
+      startAt
+    });
   }
 
   /**
@@ -248,50 +178,102 @@ export class Client extends EventEmitter {
     this._readable = source;
 
     if (this._isSFTP) {
-      return new Promise((resolve) => {
-        this._buffered = 0;
-        this._writable = this._sftpClient.createWriteStream(path, { flags: 'r+' });
-
-        this._readable.on('data', (chunk) => {
-          this._buffered += chunk.length;
-
-          this.emit('progress', {
-            type: 'upload',
-            bytes: this._buffered,
-            fileSize,
-            path,
-          } as IProgressEventData);
-        });
-
-        this._readable.once('error', (err) => {
-          this._cleanStreams();
-          resolve(getResponseData(err));
-        });
-
-        this._readable.once('close', () => {
-          this._cleanStreams();
-          resolve(getResponseData());
-        });
-
-        this._readable.pipe(this._writable);
-      });
+      this._buffered = 0;
+      this._writable = this._sftpClient.createWriteStream(path);
     }
    
-    try {
-      // await this._ftpClient.send(`REST ${startAt}`);
+    return this._handleStream({
+      type: 'upload',
+      fileSize,
+      path,
+    });
+  }
 
+  protected get _isSFTP() {
+    return this._config.protocol === 'sftp';
+  }
+
+  protected _cleanStreams() {
+    if (this._readable != null) {
+      this._readable.removeAllListeners();
+      this._readable.unpipe(this._writable);
+      
+      if (this._writable != null) {
+        this._writable.removeAllListeners();
+
+        this._readable.once('close', () => {
+          this._writable.end();
+          this._writable = null;
+          this._readable = null;
+        });
+  
+        this._readable.destroy();
+      }
+    } else {
+      this._writable.end();
+    }
+
+    if (!this._isSFTP && this._ftpClient.ftp.dataSocket != null) {
+      this._ftpClient.ftp.dataSocket.unpipe(this._writable);
+    }
+  }
+
+  protected _handleStream(data: IHandlerData): Promise<IResponse> {
+    if (this._isSFTP) {
+      return this._handleSftpStream(data);
+    }
+    return this._handleFtpStream(data);
+  }
+
+  protected _handleSftpStream(data: IHandlerData): Promise<IResponse> {
+    const { fileSize, path, type } = data;
+
+    return new Promise((resolve) => {
+      this._readable.on('data', (chunk) => {
+        this._buffered += chunk.length;
+
+        this.emit('progress', {
+          bytes: this._buffered,
+          fileSize,
+          path,
+          type,
+        } as IProgressEventData);
+      });
+
+      this._readable.once('error', (err) => {
+        this._cleanStreams();
+        resolve(getResponseData(err));
+      });
+
+      this._readable.once('close', () => {
+        this._cleanStreams();
+        resolve(getResponseData());
+      });
+
+      this._readable.pipe(this._writable);
+    });
+  }
+
+  protected async _handleFtpStream(data: IHandlerData): Promise<IResponse> {
+    const { fileSize, path, type, startAt } = data;
+
+    try {
       this._ftpClient.trackProgress(info => {
         this._buffered = info.bytes;
 
         this.emit('progress', {
-          type: 'upload',
           bytes: info.bytes,
           fileSize,
           path,
+          type,
         } as IProgressEventData);
       });
 
-      await this._ftpClient.upload(this._readable, path);
+      if (type === 'download') {
+        await this._ftpClient.download(this._writable, path, startAt);
+      } else {
+        await this._ftpClient.upload(this._readable, path);
+      }
 
       this._ftpClient.trackProgress(undefined);
       this._cleanStreams();
@@ -300,7 +282,7 @@ export class Client extends EventEmitter {
     } catch (err) {
       this._ftpClient.trackProgress(undefined);
       this._cleanStreams();
-      return getResponseData(err); 
+      return getResponseData(err);
     }
   }
 };
