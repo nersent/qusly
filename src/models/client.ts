@@ -360,7 +360,7 @@ export class Client extends EventEmitter {
         this._readable.once('close', onClose);
       } else {
         this._writable.once('error', onError);
-        this._writable.once('close', onClose);
+        this._writable.once('finish', onClose);
       }
 
       this._readable.pipe(this._writable);
