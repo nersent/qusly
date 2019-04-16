@@ -154,7 +154,7 @@ export class Client extends EventEmitter {
 
     const sizeResponse = await this.getSize(path);
     if (!sizeResponse.success) return sizeResponse;
-    const fileSize = sizeResponse.value - startAt;
+    const fileSize = sizeResponse.size - startAt;
 
     if (this._isSFTP) {
       this._buffered = 0;
