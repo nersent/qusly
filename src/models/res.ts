@@ -9,14 +9,14 @@ export interface IResponse {
 }
 
 export interface ISizeResponse extends IResponse {
-  value?: number;
+  size?: number;
 }
 
 export interface IAbortResponse extends IResponse {
   bytes?: number;
 }
 
-export interface IExecResponse extends IResponse {
+export interface ISendResponse extends IResponse {
   message?: string;
 }
 

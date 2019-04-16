@@ -1,20 +1,20 @@
 import { EventEmitter } from 'events';
 import { Writable, Readable } from 'stream';
-import { Client as FtpClient, parseList, FileInfo } from 'basic-ftp';
+import { Client as FtpClient, parseList } from 'basic-ftp';
 import {  Client as SshClient, SFTPWrapper } from 'ssh2';
 import { FileEntry } from 'ssh2-streams';
 
-import { IResponse, IAbortResponse, ISizeResponse, IExecResponse, ILsResponse } from './res';
+import { IResponse, IAbortResponse, ISizeResponse, ISendResponse, ILsResponse } from './res';
 import { getResponseData } from '../utils';
-import { IProgressEventData } from './progress';
+import { IProgressEvent } from './progress';
 import { IHandler } from './handler';
-import { IConfig } from './config';
+import { IConnectionConfig } from './config';
 import { formatFile } from '../utils/file';
 
 export declare interface Client {
   on(event: 'connect', listener: Function): this;
   on(event: 'disconnect', listener: Function): this;
-  on(event: 'progress', listener: (data?: IProgressEventData) => void): this;
+  on(event: 'progress', listener: (data?: IProgressEvent) => void): this;
   on(event: 'abort', listener: Function): this;
   once(event: 'connect', listener: Function): this;
   once(event: 'disconnect', listener: Function): this;
@@ -24,7 +24,7 @@ export declare interface Client {
 export class Client extends EventEmitter {
   public connected = false;
 
-  protected _config: IConfig;
+  protected _config: IConnectionConfig;
 
   protected _ftpClient: FtpClient;
 
@@ -44,7 +44,7 @@ export class Client extends EventEmitter {
    * Connects to a server.
    * @param config - Connection config
    */
-  public async connect(config: IConfig): Promise<IResponse> {
+  public async connect(config: IConnectionConfig): Promise<IResponse> {
     this._config = config;
 
     if (this._isSFTP) {
@@ -130,14 +130,14 @@ export class Client extends EventEmitter {
     if (this._isSFTP) {
       return new Promise((resolve) => {
         this._sftpClient.stat(path, (err, stats) => {
-          resolve(getResponseData(err, stats && { value: stats.size }));
+          resolve(getResponseData(err, stats && { size: stats.size }));
         })
       });
     }
 
     try {
       const size = await this._ftpClient.size(path);
-      return getResponseData(null, { value: size });
+      return getResponseData(null, { size });
     } catch (err) {
       return getResponseData(err);
     }
@@ -193,7 +193,7 @@ export class Client extends EventEmitter {
    * Send a command.
    * @param command - Command to send
    */
-  public async send(command: string): Promise<IExecResponse> {
+  public async send(command: string): Promise<ISendResponse> {
     if (this._isSFTP) {
       return new Promise((resolve) => {
         this._sshClient.exec(command, (err, stream): any => {
@@ -288,19 +288,19 @@ export class Client extends EventEmitter {
   }
 
   /**
-   * Creates a directory at `dirPath`.
+   * Creates a directory at `path`.
    */
-  public async createDir(dirPath: string): Promise<IResponse> {
+  public async createDir(path: string): Promise<IResponse> {
     if (this._isSFTP) {
       return new Promise((resolve) => {
-        this._sftpClient.mkdir(dirPath, (err) => {
+        this._sftpClient.mkdir(path, (err) => {
           resolve(getResponseData(err));
         })
       });
     }
 
     try {
-      await this._ftpClient.send("MKD " + dirPath, true);
+      await this._ftpClient.send("MKD " + path, true);
       return getResponseData(null);
     } catch (err) {
       return getResponseData(err);
@@ -308,12 +308,12 @@ export class Client extends EventEmitter {
   };
 
   /**
-   * Lists all files in a directory at `dirPath`
+   * Lists all files in a directory at `path`
    */
-  public async ls(dirPath: string): Promise<ILsResponse> {
+  public async ls(path: string): Promise<ILsResponse> {
     if (this._isSFTP) {
       return new Promise((resolve) => {
-        this._sftpClient.readdir(dirPath, (err, files) => {
+        this._sftpClient.readdir(path, (err, files) => {
           resolve(getResponseData(err, {
             files: files.map(file => formatFile(parseList(file.longname)[0]))
           }));
@@ -322,7 +322,7 @@ export class Client extends EventEmitter {
     }
 
     try {
-      await this._ftpClient.cd(dirPath);
+      await this._ftpClient.cd(path);
       const files = await this._ftpClient.list();
 
       return getResponseData(null, {
@@ -397,7 +397,7 @@ export class Client extends EventEmitter {
           fileSize,
           path,
           type,
-        } as IProgressEventData);
+        } as IProgressEvent);
       });
 
       const onError = (err) => {
@@ -434,7 +434,7 @@ export class Client extends EventEmitter {
           fileSize,
           path,
           type,
-        } as IProgressEventData);
+        } as IProgressEvent);
       });
 
       if (type === 'download') {
