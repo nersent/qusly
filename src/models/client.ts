@@ -268,7 +268,7 @@ export class Client extends EventEmitter {
   }
 
   /**
-   * Removes a directory.
+   * Remove a directory and all of its content.
    * @param path - Directory path
    */
   public async removeDir(path: string): Promise<IResponse> {
@@ -345,15 +345,23 @@ export class Client extends EventEmitter {
         } as IProgressEventData);
       });
 
-      this._readable.once('error', (err) => {
+      const onError = (err) => {
         this._cleanStreams();
         resolve(getResponseData(err));
-      });
+      }
 
-      this._readable.once('close', () => {
+      const onClose = () => {
         this._cleanStreams();
         resolve(getResponseData());
-      });
+      }
+
+      if (type === 'download') {
+        this._readable.once('error', onError);
+        this._readable.once('close', onClose);
+      } else {
+        this._writable.once('error', onError);
+        this._writable.once('close', onClose);
+      }
 
       this._readable.pipe(this._writable);
     });
