@@ -285,6 +285,26 @@ export class Client extends EventEmitter {
       return getResponseData(err);
     }
   }
+
+  /**
+   * Creates a directory at `dirPath`.
+   */
+  public async createDir(dirPath: string): Promise<IResponse> {
+    if (this._isSFTP) {
+      return new Promise((resolve) => {
+        this._sftpClient.mkdir(dirPath, (err) => {
+          resolve(getResponseData(err));
+        })
+      });
+    }
+
+    try {
+      await this._ftpClient.send("MKD " + dirPath, true);
+      return getResponseData(null);
+    } catch (err) {
+      return getResponseData(err);
+    }
+  };
   
   /**
    * Sets debugging mode __(currently only FTP)__
