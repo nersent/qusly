@@ -27,12 +27,15 @@
   "types": "build/index.d.ts",
   "scripts": {
     "dev": "tsc --watch",
-    "build": "tsc",
-    "prepare": "npm run build"
+    "build": "npm run clean && tsc",
+    "buildOnly": "npm run build",
+    "prepublishOnly": "npm run build",
+    "clean": "rimraf ./build"
   },
   "devDependencies": {
     "@types/node": "11.13.1",
     "@types/ssh2": "0.5.38",
+    "rimraf": "2.6.3",
     "typescript": "3.4.2"
   },
   "dependencies": {
