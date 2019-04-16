@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { Writable, Readable } from 'stream';
 import { Client as FtpClient } from 'basic-ftp';
 import {  Client as SshClient, SFTPWrapper } from 'ssh2';
+import { FileEntry } from 'ssh2-streams';
 
 import { IConfig, IResponse, ISizeResponse, IAbortResponse, IExecResponse } from '.';
 import { getResponseData } from '../utils';
@@ -246,8 +247,8 @@ export class Client extends EventEmitter {
   }
 
   /**
-   * Removes a file
-   * @param path - Source path
+   * Removes a file.
+   * @param path - File path
    */
   public async remove(path: string): Promise<IResponse> {
     if (this._isSFTP) {
@@ -260,6 +261,24 @@ export class Client extends EventEmitter {
 
     try {
       await this._ftpClient.remove(path);
+      return getResponseData(null);
+    } catch (err) {
+      return getResponseData(err);
+    }
+  }
+
+  /**
+   * Removes a directory.
+   * @param path - Directory path
+   */
+  public async removeDir(path: string): Promise<IResponse> {
+    try {
+      if (this._isSFTP) {
+        await this._sftpRemoveDir(path);
+      } else {
+        await this._ftpClient.removeDir(path);
+      }
+
       return getResponseData(null);
     } catch (err) {
       return getResponseData(err);
@@ -371,4 +390,44 @@ export class Client extends EventEmitter {
       return getResponseData(err);
     }
   }
+
+  protected async _sftpRemoveDir(path: string) {
+    try {
+      const files = await this._sftpReadDir(path);
+
+      if (files.length) {
+        for (const file of files) {
+          const filePath = path + '/' + file.filename;
+
+          if ((file.attrs as any).isDirectory()) {
+            await this._sftpRemoveDir(filePath);
+          } else {
+            await this.remove(filePath);
+          }
+        }
+      }
+
+      await this._sftpRemoveEmptyDir(path);
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  protected _sftpReadDir(path: string): Promise<FileEntry[]> {
+    return new Promise((resolve, reject) => {
+      this._sftpClient.readdir(path, (err, files) => {
+        if (err) return reject(err);
+        resolve(files);
+      });
+    });
+  }
+
+  protected _sftpRemoveEmptyDir(path: string) {
+    return new Promise((resolve, reject) => {
+      this._sftpClient.rmdir(path, (err) => {
+        if (err) return reject(err);
+        resolve();
+      })
+    });
+  };
 };
