@@ -36,6 +36,7 @@
     "typescript": "3.4.2"
   },
   "dependencies": {
+    "basic-ftp": "https://github.com/xnerhu/basic-ftp",
     "ssh2": "0.8.2"
   }
 }

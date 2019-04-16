@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { Writable, Readable } from 'stream';
-import { Client as FtpClient, RawListParser } from 'basic-ftp';
+import { Client as FtpClient, parseList, FileInfo } from 'basic-ftp';
 import {  Client as SshClient, SFTPWrapper } from 'ssh2';
 import { FileEntry } from 'ssh2-streams';
 
@@ -9,7 +9,7 @@ import { getResponseData } from '../utils';
 import { IProgressEventData } from './progress';
 import { IHandler } from './handler';
 import { IConfig } from './config';
-import { IFile, IFileType } from './file';
+import { formatFile } from '../utils/file';
 
 export declare interface Client {
   on(event: 'connect', listener: Function): this;
@@ -307,30 +307,26 @@ export class Client extends EventEmitter {
     }
   };
 
-  public async ls(path: string): Promise<ILsResponse> {
+  /**
+   * Lists all files in a directory at `dirPath`
+   */
+  public async ls(dirPath: string): Promise<ILsResponse> {
     if (this._isSFTP) {
       return new Promise((resolve) => {
-        this._sftpClient.readdir(path, (err, files) => {
-          console.log(files[0].longname);
-          console.log(this._ftpClient.parseList);
-          resolve(getResponseData(err));
+        this._sftpClient.readdir(dirPath, (err, files) => {
+          resolve(getResponseData(err, {
+            files: files.map(file => formatFile(parseList(file.longname)[0]))
+          }));
         });
       });
     }
 
     try {
-      await this._ftpClient.cd(path);
+      await this._ftpClient.cd(dirPath);
       const files = await this._ftpClient.list();
 
       return getResponseData(null, {
-        files: files.map((file) => ({
-          name: file.name,
-          type: file.type as unknown,
-          size: file.size,
-          owner: file.user,
-          group: file.group,
-          mtime: new Date(file.date),
-        } as IFile)),
+        files: files.map(file => formatFile(file)),
       });
     } catch (err) {
       return getResponseData(err);
@@ -344,6 +340,13 @@ export class Client extends EventEmitter {
     if (!this._isSFTP) {
       this._ftpClient.ftp.verbose = value;
     }
+  }
+
+  public get debugger() {
+    if (!this._isSFTP) {
+      return this._ftpClient.ftp.verbose;
+    }
+    return false;
   }
 
   protected get _isSFTP() {

@@ -1,4 +1,4 @@
-import { IFile } from "./file";
+import { File } from "./file";
 
 export interface IResponse {
   success: boolean;
@@ -21,5 +21,5 @@ export interface IExecResponse extends IResponse {
 }
 
 export interface ILsResponse extends IResponse {
-  files?: IFile[];
+  files?: File[];
 }
