@@ -36,7 +36,6 @@
     "typescript": "3.4.2"
   },
   "dependencies": {
-    "basic-ftp": "3.4.4",
     "ssh2": "0.8.2"
   }
 }

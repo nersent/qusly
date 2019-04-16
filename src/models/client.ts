@@ -1,14 +1,15 @@
 import { EventEmitter } from 'events';
 import { Writable, Readable } from 'stream';
-import { Client as FtpClient } from 'basic-ftp';
+import { Client as FtpClient, RawListParser } from 'basic-ftp';
 import {  Client as SshClient, SFTPWrapper } from 'ssh2';
 import { FileEntry } from 'ssh2-streams';
 
-import { IResponse, IAbortResponse, ISizeResponse, IExecResponse } from './res';
+import { IResponse, IAbortResponse, ISizeResponse, IExecResponse, ILsResponse } from './res';
 import { getResponseData } from '../utils';
 import { IProgressEventData } from './progress';
 import { IHandler } from './handler';
 import { IConfig } from './config';
+import { IFile, IFileType } from './file';
 
 export declare interface Client {
   on(event: 'connect', listener: Function): this;
@@ -281,6 +282,56 @@ export class Client extends EventEmitter {
       }
 
       return getResponseData(null);
+    } catch (err) {
+      return getResponseData(err);
+    }
+  }
+
+  /**
+   * Creates a directory at `dirPath`.
+   */
+  public async createDir(dirPath: string): Promise<IResponse> {
+    if (this._isSFTP) {
+      return new Promise((resolve) => {
+        this._sftpClient.mkdir(dirPath, (err) => {
+          resolve(getResponseData(err));
+        })
+      });
+    }
+
+    try {
+      await this._ftpClient.send("MKD " + dirPath, true);
+      return getResponseData(null);
+    } catch (err) {
+      return getResponseData(err);
+    }
+  };
+
+  public async ls(path: string): Promise<ILsResponse> {
+    if (this._isSFTP) {
+      return new Promise((resolve) => {
+        this._sftpClient.readdir(path, (err, files) => {
+          console.log(files[0].longname);
+          console.log(this._ftpClient.parseList);
+          resolve(getResponseData(err));
+        });
+      });
+    }
+
+    try {
+      await this._ftpClient.cd(path);
+      const files = await this._ftpClient.list();
+
+      return getResponseData(null, {
+        files: files.map((file) => ({
+          name: file.name,
+          type: file.type as unknown,
+          size: file.size,
+          owner: file.user,
+          group: file.group,
+          mtime: new Date(file.date),
+        } as IFile)),
+      });
     } catch (err) {
       return getResponseData(err);
     }

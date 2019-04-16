@@ -1,3 +1,5 @@
+import { IFile } from "./file";
+
 export interface IResponse {
   success: boolean;
   error?: {
@@ -16,4 +18,8 @@ export interface IAbortResponse extends IResponse {
 
 export interface IExecResponse extends IResponse {
   message?: string;
+}
+
+export interface ILsResponse extends IResponse {
+  files?: IFile[];
 }
