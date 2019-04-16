@@ -1,4 +1,4 @@
-import { IProtocol } from "./protocol";
+export type IProtocol = 'ftp' | 'sftp';
 
 export interface IConfig {
   protocol?: IProtocol;

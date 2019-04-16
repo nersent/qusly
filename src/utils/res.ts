@@ -1,4 +1,4 @@
-import { IResponse } from "../models";
+import { IResponse } from "../models/res";
 
 export const getResponseData = (err?: Error, additional?: any): IResponse => {
   if (err != null) {

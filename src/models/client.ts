@@ -4,10 +4,11 @@ import { Client as FtpClient } from 'basic-ftp';
 import {  Client as SshClient, SFTPWrapper } from 'ssh2';
 import { FileEntry } from 'ssh2-streams';
 
-import { IConfig, IResponse, ISizeResponse, IAbortResponse, IExecResponse } from '.';
+import { IResponse, IAbortResponse, ISizeResponse, IExecResponse } from './res';
 import { getResponseData } from '../utils';
 import { IProgressEventData } from './progress';
-import { IHandlerData } from './handler-data';
+import { IHandler } from './handler';
+import { IConfig } from './config';
 
 export declare interface Client {
   on(event: 'connect', listener: Function): this;
@@ -323,14 +324,14 @@ export class Client extends EventEmitter {
     }
   }
 
-  protected _handleStream(data: IHandlerData): Promise<IResponse> {
+  protected _handleStream(data: IHandler): Promise<IResponse> {
     if (this._isSFTP) {
       return this._handleSftpStream(data);
     }
     return this._handleFtpStream(data);
   }
 
-  protected _handleSftpStream(data: IHandlerData): Promise<IResponse> {
+  protected _handleSftpStream(data: IHandler): Promise<IResponse> {
     const { fileSize, path, type } = data;
 
     return new Promise((resolve) => {
@@ -367,7 +368,7 @@ export class Client extends EventEmitter {
     });
   }
 
-  protected async _handleFtpStream(data: IHandlerData): Promise<IResponse> {
+  protected async _handleFtpStream(data: IHandler): Promise<IResponse> {
     const { fileSize, path, type, startAt } = data;
 
     try {
