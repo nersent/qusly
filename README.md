@@ -84,6 +84,7 @@ Class `Client`:
 Interfaces:
 
 - [`IConnectionConfig`](#connectionConfig)
+- [`File`](#file)
 - [`IProgressEvent`](#progressEvent)
 - [`IResponse`](#response)
 - [`ISizeResponse`](#sizeResponse)
@@ -93,7 +94,6 @@ Interfaces:
 
 Enums:
 
-- [`File`](#file)
 - [`FileType`](#fileType)
 
 Events:
@@ -374,7 +374,7 @@ type IProtocol = 'ftp' | 'sftp';
 
 <a name="file"></a>
 
-### Enum `File`
+### Interface `File`
 
 ```ts
 interface File {
