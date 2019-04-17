@@ -1,7 +1,7 @@
 {
   "name": "qusly-core",
   "version": "1.0.1",
-  "description": "A wrapper around ssh2 and basic-ftp for building FTP/SFTP clients with clear and consistent api.",
+  "description": "An API wrapper around ssh2 and basic-ftp for building FTP/FTPS/SFTP clients.",
   "keywords": [
     "ftp",
     "sftp",

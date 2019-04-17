@@ -118,6 +118,7 @@ Other:
 <a name="clientConnect"></a>
 
 - `Client.connect(config: ConnectionConfig): Promise<IResponse>`
+  <br />
   Connects to server.
   <br />
 
@@ -140,6 +141,7 @@ Other:
 <a name="clientDisconnect"></a>
 
 - `Client.disconnect(): void`
+  <br />
   Disconnects from server.
   <br />
 
@@ -151,6 +153,7 @@ Other:
 <a name="clientgetSize"></a>
 
 - `Client.getSize(path: string): Promise<ISizeResponse>`
+  <br />
   Gets size of a file.
   <br />
 
@@ -167,6 +170,7 @@ Other:
 <a name="clientUpload"></a>
 
 - `Client.upload(path: string, source: Readable, fileSize?: number): Promise<IResponse>`
+  <br />
   Uploads a file.
   <br />
 
@@ -193,6 +197,7 @@ Other:
 <a name="clientDownload"></a>
 
 - `Client.download(path: string, destination: Writable, startAt = 0): Promise<IResponse>`
+  <br />
   Downloads a file. You can start at given offset by setting **`startAt`**.
   <br />
 
@@ -212,6 +217,7 @@ Other:
   ```
 
 - `Client.abort(): Promise<IAbortResponse>`
+  <br />
   Aborts the current data transfer like downloading or uploading.
   <br />
 
@@ -228,6 +234,7 @@ Other:
 <a name="clientSend"></a>
 
 - `Client.send(command: string): Promise<ISendResponse>`
+  <br />
   Sends a raw command. **Output depends on a protocol and server support!**
   <br />
 
@@ -245,6 +252,7 @@ Other:
 <a name="clientMove"></a>
 
 - `Client.move(srcPath: string, destPath: string): Promise<IResponse>`
+  <br />
   Moves a file from **`srcPath`** to **`destPath`**.
   <br />
 
@@ -261,6 +269,7 @@ Other:
 <a name="clientRemove"></a>
 
 - `Client.remove(path: string): Promise<IResponse>`
+  <br />
   Removes a **file** at **`path`**.
   <br />
 
@@ -277,6 +286,7 @@ Other:
 <a name="clientRemoveDir"></a>
 
 - `Client.removeDir(path: string): Promise<IResponse>`
+  <br />
   Removes a **directory** at **`path`** and all of its content.
   <br />
 
@@ -293,6 +303,7 @@ Other:
 <a name="clientCreateDir"></a>
 
 - `Client.createDir(path: string): Promise<IResponse>`
+  <br />
   Creates a directory at **`path`**.
   <br />
 
@@ -309,6 +320,7 @@ Other:
 <a name="clientLs"></a>
 
 - `Client.ls(path: string): Promise<ILsResponse>`
+  <br />
   Lists all files at **`path`**.
   <br />
 
@@ -333,6 +345,10 @@ Other:
 <a name="clientDebugger"></a>
 
 - `set/get Client.debugger` - Debugger. **Currently works only with FTP**.
+  <br />
+  ```ts
+  client.debugger = true;
+  ```
 
 <a name="iConnectionConfig"></a>
 
@@ -505,10 +521,10 @@ interface ILsResponse extends IResponse {
   client.download(...);
   ```
 
-### Tests
+# Tests
 
 Coming soon...
 
-### Related
+# Related
 
 - [Qusly](https://www.github.com/xnerhu/qusly) - A FTP/SFTP client with Material Design UI.
