@@ -404,8 +404,6 @@ enum FileType {
 }
 ```
 
-- [`Client.connect`](#clientConnect)
-
 <a name="progressEvent"></a>
 
 ### Interface `IProgressEvent`
@@ -515,7 +513,7 @@ interface ILsResponse extends IResponse {
     const { bytes, fileSize, path } = data;
     const percent = (bytes / fileSize) * 100;
 
-    console.log(`${path}: ${percent}`);
+    console.log(`${path}: ${percent}%`);
   });
 
   client.download(...);
