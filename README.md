@@ -123,7 +123,7 @@ Other:
   <br />
 
   ```js
-  const res = client.connect({
+  const res = await client.connect({
     host: 'www.example.com',
     user: 'root', // default anonymous
     password: 'password', // default @anonymous
