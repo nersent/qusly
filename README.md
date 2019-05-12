@@ -84,6 +84,7 @@ Class `Client`:
 Interfaces:
 
 - [`IConnectionConfig`](#connectionConfig)
+- [`File`](#file)
 - [`IProgressEvent`](#progressEvent)
 - [`IResponse`](#response)
 - [`ISizeResponse`](#sizeResponse)
@@ -93,7 +94,6 @@ Interfaces:
 
 Enums:
 
-- [`File`](#file)
 - [`FileType`](#fileType)
 
 Events:
@@ -123,7 +123,7 @@ Other:
   <br />
 
   ```js
-  const res = client.connect({
+  const res = await client.connect({
     host: 'www.example.com',
     user: 'root', // default anonymous
     password: 'password', // default @anonymous
@@ -374,7 +374,7 @@ type IProtocol = 'ftp' | 'sftp';
 
 <a name="file"></a>
 
-### Enum `File`
+### Interface `File`
 
 ```ts
 interface File {
@@ -403,8 +403,6 @@ enum FileType {
   SymbolicLink,
 }
 ```
-
-- [`Client.connect`](#clientConnect)
 
 <a name="progressEvent"></a>
 
@@ -515,7 +513,7 @@ interface ILsResponse extends IResponse {
     const { bytes, fileSize, path } = data;
     const percent = (bytes / fileSize) * 100;
 
-    console.log(`${path}: ${percent}`);
+    console.log(`${path}: ${percent}%`);
   });
 
   client.download(...);
