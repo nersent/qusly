@@ -1,10 +1,10 @@
 import { EventEmitter } from 'events';
 import { Writable, Readable } from 'stream';
 import { Client as FtpClient, parseList } from 'basic-ftp';
-import {  Client as SshClient, SFTPWrapper } from 'ssh2';
+import { Client as SshClient, SFTPWrapper } from 'ssh2';
 import { FileEntry } from 'ssh2-streams';
 
-import { IResponse, IAbortResponse, ISizeResponse, ISendResponse, ILsResponse } from './res';
+import { IResponse, IAbortResponse, ISizeResponse, ISendResponse, ILsResponse, IPwdResponse } from './res';
 import { getResponseData } from '../utils';
 import { IProgressEvent } from './progress';
 import { IHandler } from './handler';
@@ -33,11 +33,11 @@ export class Client extends EventEmitter {
   protected _sshClient: SshClient;
 
   protected _writable: Writable;
-  
+
   protected _readable: Readable;
 
   protected _aborting = false;
-  
+
   protected _buffered = 0;
 
   /**
@@ -76,13 +76,13 @@ export class Client extends EventEmitter {
     }
 
     this._ftpClient = new FtpClient();
-  
+
     try {
       await this._ftpClient.access({ secure: true, ...config });
       this.connected = true;
       if (!this._aborting) this.emit('connect');
       return getResponseData();
-    } catch(err) {
+    } catch (err) {
       return getResponseData(err);
     }
   }
@@ -111,15 +111,15 @@ export class Client extends EventEmitter {
     this._aborting = true;
     this._cleanStreams();
     this.disconnect();
-  
+
     const res = await this.connect(this._config);
 
     this._aborting = false;
-    this.emit('abort');   
+    this.emit('abort');
 
     return res.success ? getResponseData(null, { bytes: this._buffered }) : res;
   }
-  
+
   /**
    * Gets size of a file.
    * @param path - Remote path of a file
@@ -161,7 +161,7 @@ export class Client extends EventEmitter {
       this._readable = this._sftpClient.createReadStream(path, { start: startAt });
     }
     this._writable = destination;
-    
+
     return this._handleStream({
       type: 'download',
       fileSize,
@@ -181,7 +181,7 @@ export class Client extends EventEmitter {
       this._writable = this._sftpClient.createWriteStream(path);
     }
     this._readable = source;
-    
+
     return this._handleStream({
       type: 'upload',
       fileSize,
@@ -205,11 +205,11 @@ export class Client extends EventEmitter {
             stream.close();
             resolve(getResponseData(err));
           });
-          
+
           stream.on('data', (chunk) => {
             data += chunk;
           });
-          
+
           stream.once('close', () => {
             stream.close();
             resolve(getResponseData(null, { message: data }));
@@ -332,7 +332,27 @@ export class Client extends EventEmitter {
       return getResponseData(err);
     }
   }
-  
+
+  /**
+   * Gets path of current working directory
+   */
+  public async pwd(): Promise<IPwdResponse> {
+    if (this._isSFTP) {
+      return new Promise((resolve) => {
+        this._sftpClient.realpath("./", (err, path) => {
+          resolve(getResponseData(err, { path }));
+        });
+      });
+    }
+
+    try {
+      const path = await this._ftpClient.pwd();
+      return getResponseData(null, { path });
+    } catch (err) {
+      return getResponseData(err);
+    }
+  }
+
   /**
    * Sets debugging mode __(currently only FTP)__
    */
@@ -357,7 +377,7 @@ export class Client extends EventEmitter {
     if (this._readable != null) {
       this._readable.removeAllListeners();
       this._readable.unpipe(this._writable);
-      
+
       if (this._writable != null) {
         this._writable.removeAllListeners();
 
@@ -366,7 +386,7 @@ export class Client extends EventEmitter {
           this._writable = null;
           this._readable = null;
         });
-  
+
         this._readable.destroy();
       }
     } else if (this._writable) {

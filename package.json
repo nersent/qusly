@@ -30,7 +30,8 @@
     "build": "npm run clean && tsc",
     "buildOnly": "npm run build",
     "prepublishOnly": "npm run build",
-    "clean": "rimraf ./build"
+    "clean": "rimraf ./build",
+    "prepare": "npm run build"
   },
   "devDependencies": {
     "@types/node": "11.13.1",

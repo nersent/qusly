@@ -23,3 +23,7 @@ export interface ISendResponse extends IResponse {
 export interface ILsResponse extends IResponse {
   files?: File[];
 }
+
+export interface IPwdResponse extends IResponse {
+  path?: string;
+}
