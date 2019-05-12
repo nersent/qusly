@@ -78,6 +78,7 @@ Class `Client`:
 - [`Client.removeDir`](#clientRemoveDir)
 - [`Client.createDir`](#clientCreateDir)
 - [`Client.ls`](#clientLs)
+- [`Client.pwd`](#clientPwd)
 - [`Client.connected`](#clientConnected)
 - [`Client.debugger`](#clientDebugger)
 
@@ -91,6 +92,7 @@ Interfaces:
 - [`IAbortResponse`](#abortResponse)
 - [`ISendResponse`](#sendResponse)
 - [`ILsResponse`](#lsResponse)
+- [`IPwdResponse`](#pwdResponse)
 
 Enums:
 
@@ -334,6 +336,23 @@ Other:
   }
   ```
 
+<a name="clientPwd"></a>
+
+- `Client.pwd(): Promise<IPwdResponse>`
+  <br />
+  Gets path of current working directory.
+  <br />
+
+  ```js
+  const res = await client.pwd();
+
+  if (res.success) {
+    console.log(res.path);
+  } else {
+    console.log('Error occured: ', res.err);
+  }
+  ```
+
 <a name="clientProperties"></a>
 
 #### Properties
@@ -488,6 +507,18 @@ interface ILsResponse extends IResponse {
 ```
 
 - [`Client.ls`](#clientLs)
+
+<a name="pwdResponse"></a>
+
+### Interface `IPwdResponse`
+
+```ts
+interface IPwdResponse extends IResponse {
+  path?: string;
+}
+```
+
+- [`Client.pwd`](#clientPwd)
 
 ### Events
 
