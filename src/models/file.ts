@@ -12,6 +12,7 @@ export interface File {
   user: string;
   group: string;
   date: Date;
+  ext: string;
   permissions: {
     user: number;
     group: number;
