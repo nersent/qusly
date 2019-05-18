@@ -552,4 +552,4 @@ interface IPwdResponse extends IResponse {
 
 # Related
 
-- [Qusly](https://www.github.com/xnerhu/qusly) - A FTP/SFTP client with Material Design UI.
+- [Qusly](https://www.github.com/xnerhu/qusly) - An FTP/SFTP client with Material Design UI.
