@@ -550,10 +550,6 @@ interface IPwdResponse extends IResponse {
   client.download(...);
   ```
 
-# Tests
-
-Coming soon...
-
 # Related
 
 - [Qusly](https://www.github.com/xnerhu/qusly) - A FTP/SFTP client with Material Design UI.
