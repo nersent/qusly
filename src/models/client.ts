@@ -93,14 +93,24 @@ export class Client extends EventEmitter {
    * To reconnect call `connect` method.
    */
   public disconnect() {
-    this.connected = false;
-    this._cleanStreams();
-    if (this._isSFTP) this._sshClient.end();
-    else this._ftpClient.close();
-    this._ftpClient = null;
-    this._sshClient = null;
-    this._sftpClient = null;
-    if (!this._aborting) this.emit('disconnect');
+    if (this.connected) {
+      this.connected = false;
+      this._cleanStreams();
+
+      if (this._sshClient != null) {
+        this._sshClient.end();
+      } else if (this._ftpClient != null) {
+        this._ftpClient.close();
+      }
+
+      this._ftpClient = null;
+      this._sshClient = null;
+      this._sftpClient = null;
+
+      if (!this._aborting) {
+        this.emit('disconnect');
+      }
+    }
   }
 
 
@@ -389,7 +399,7 @@ export class Client extends EventEmitter {
 
         this._readable.destroy();
       }
-    } else if (this._writable) {
+    } else if (this._writable != null) {
       this._writable.end();
     }
 
