@@ -3,7 +3,7 @@ import { Client as FtpClient } from 'basic-ftp';
 
 import { SFTPClient } from './sftp-client';
 import { IConfig } from './config';
-import { IResponse } from './response';
+import { IRes, ISizeRes } from './response';
 
 export class Client {
   public connected = false;
@@ -19,17 +19,20 @@ export class Client {
   * You can call it to reconnect.
   * @param config - Connection config
   */
-  public async connect(config: IConfig) {
+  public async connect(config: IConfig): Promise<IRes> {
     this._config = config;
     this.connected = false;
 
-    const data = await this._wrap<IResponse>(() => {
-      this._sftpClient = new SFTPClient();
-      return this._sftpClient.connect(config);
-    }, async () => {
-      this._ftpClient = new FtpClient();
-      await this._ftpClient.access({ secure: false, ...config });
-    });
+    const data = await this._wrap(
+      () => {
+        this._sftpClient = new SFTPClient();
+        return this._sftpClient.connect(config);
+      },
+      async () => {
+        this._ftpClient = new FtpClient();
+        await this._ftpClient.access({ secure: false, ...config });
+      }
+    );
 
     if (data.success) {
       this.connected = true;
@@ -42,7 +45,7 @@ export class Client {
     * Disconnects from server.
     * Closes all opened sockets.
     */
-  public disconnect() {
+  public disconnect(): Promise<IRes> {
     // TODO: Handle streams
     this.connected = true;
 
@@ -54,12 +57,28 @@ export class Client {
     });
   }
 
+  /**
+   * Gets size of an file.
+   * @param path - Remote path
+   */
+  public size(path: string): Promise<ISizeRes> {
+    return this._wrap(
+      () => this._sftpClient.size(path),
+      () => this._ftpClient.size(path),
+      'size',
+    );
+  }
 
-  private async _wrap<T>(sftp: Function, ftp: Function): Promise<T | IResponse> {
+  private async _wrap(sftp: Function, ftp: Function, key?: string) {
     try {
       const isSftp = this._config.protocol == 'sftp';
       const data = isSftp ? await sftp() : await ftp();
-      return { success: true, ...data };
+
+      if (key == null) {
+        return { success: true, ...data };
+      } else {
+        return { success: true, [key]: data }
+      }
     } catch (error) {
       return { success: false, error }
     }

@@ -34,4 +34,13 @@ export class SFTPClient {
     this._wrapper = null;
     this._ssh = null;
   }
+
+  public size(path: string) {
+    return new Promise((resolve, reject) => {
+      this._wrapper.stat(path, (err, stats) => {
+        if (err) return reject(err);
+        resolve({ size: stats.size });
+      })
+    });
+  }
 }
