@@ -1,526 +1,175 @@
 import { EventEmitter } from 'events';
-import { Writable, Readable } from 'stream';
 import { Client as FtpClient, parseList } from 'basic-ftp';
-import { Client as SshClient, SFTPWrapper } from 'ssh2';
-import { FileEntry } from 'ssh2-streams';
 
-import { IResponse, IAbortResponse, ISizeResponse, ISendResponse, ILsResponse, IPwdResponse } from './res';
-import { getResponseData } from '../utils';
-import { IProgressEvent } from './progress';
-import { IHandler } from './handler';
-import { IConnectionConfig } from './config';
-import { formatFile } from '../utils/file';
+import { SFTPClient } from './sftp-client';
+import { IConfig } from './config';
+import { IRes, ISizeRes, ISendRes, IPwdRes, IReadDirRes } from './res';
+import { formatFile } from '../utils';
 
-export declare interface Client {
-  on(event: 'connect', listener: Function): this;
-  on(event: 'disconnect', listener: Function): this;
-  on(event: 'progress', listener: (data?: IProgressEvent) => void): this;
-  on(event: 'abort', listener: Function): this;
-  once(event: 'connect', listener: Function): this;
-  once(event: 'disconnect', listener: Function): this;
-  once(event: 'abort', listener: Function): this;
-}
-
-export class Client extends EventEmitter {
+export class Client {
   public connected = false;
 
-  protected _config: IConnectionConfig;
+  private _config: IConfig;
 
-  protected _ftpClient: FtpClient;
+  private _ftpClient: FtpClient;
 
-  protected _sftpClient: SFTPWrapper;
-
-  protected _sshClient: SshClient;
-
-  protected _writable: Writable;
-
-  protected _readable: Readable;
-
-  protected _aborting = false;
-
-  protected _buffered = 0;
+  private _sftpClient: SFTPClient;
 
   /**
-   * Connects to a server.
-   * @param config - Connection config
-   */
-  public async connect(config: IConnectionConfig): Promise<IResponse> {
+  * Connects to server.
+  * You can call it to reconnect.
+  * @param config Connection config
+  */
+  public async connect(config: IConfig): Promise<IRes> {
     this._config = config;
+    this.connected = false;
 
-    if (this._isSFTP) {
-      return new Promise((resolve) => {
-        if (this.connected) this.disconnect();
+    const data = await this._wrap(
+      () => {
+        this._sftpClient = new SFTPClient();
+        return this._sftpClient.connect(config);
+      },
+      async () => {
+        this._ftpClient = new FtpClient();
+        await this._ftpClient.access({ secure: false, ...config });
+      }
+    );
 
-        const onError = (err) => {
-          this.disconnect();
-          resolve(getResponseData(err));
-        }
-
-        this._sshClient = new SshClient();
-
-        this._sshClient.once('error', onError);
-        this._sshClient.once('ready', () => {
-          this._sshClient.removeAllListeners();
-          this._sshClient.sftp((err, sftp) => {
-            if (err) return onError(err);
-
-            this._sftpClient = sftp;
-            this.connected = true;
-            if (!this._aborting) this.emit('connect');
-            resolve(getResponseData());
-          });
-        });
-
-        this._sshClient.connect({ username: config.user, ...config })
-      });
-    }
-
-    this._ftpClient = new FtpClient();
-
-    try {
-      await this._ftpClient.access({ secure: false, ...config });
+    if (data.success) {
       this.connected = true;
-      if (!this._aborting) this.emit('connect');
-      return getResponseData();
-    } catch (err) {
-      return getResponseData(err);
     }
+
+    return data;
   }
 
   /**
-   * Disconnects from a server.
-   * Closes all opened sockets.
-   * To reconnect call `connect` method.
-   */
-  public disconnect() {
-    if (this.connected) {
-      this.connected = false;
-      this._cleanStreams();
+    * Disconnects from server.
+    * Closes all opened sockets.
+    */
+  public disconnect(): Promise<IRes> {
+    // TODO: Handle streams
+    this.connected = true;
 
-      if (this._sshClient != null) {
-        this._sshClient.end();
-      } else if (this._ftpClient != null) {
-        this._ftpClient.close();
-      }
-
+    return this._wrap(() => {
+      this._sftpClient.disconnect();
+    }, () => {
+      this._ftpClient.close();
       this._ftpClient = null;
-      this._sshClient = null;
-      this._sftpClient = null;
-
-      if (!this._aborting) {
-        this.emit('disconnect');
-      }
-    }
-  }
-
-
-  /**
-   * Aborts current data transfer like download and upload.
-   */
-  public async abort(): Promise<IAbortResponse> {
-    this._aborting = true;
-    this._cleanStreams();
-    this.disconnect();
-
-    const res = await this.connect(this._config);
-
-    this._aborting = false;
-    this.emit('abort');
-
-    return res.success ? getResponseData(null, { bytes: this._buffered }) : res;
+    });
   }
 
   /**
    * Gets size of a file.
-   * @param path - Remote path of a file
+   * @param path Remote path
    */
-  public async getSize(path: string): Promise<ISizeResponse> {
-    if (!this.connected) return getResponseData(new Error('Client is not connected'));
-
-    if (this._isSFTP) {
-      return new Promise((resolve) => {
-        this._sftpClient.stat(path, (err, stats) => {
-          resolve(getResponseData(err, stats && { size: stats.size }));
-        })
-      });
-    }
-
-    try {
-      const size = await this._ftpClient.size(path);
-      return getResponseData(null, { size });
-    } catch (err) {
-      return getResponseData(err);
-    }
+  public size(path: string): Promise<ISizeRes> {
+    return this._wrap(
+      () => this._sftpClient.size(path),
+      () => this._ftpClient.size(path),
+      'size',
+    );
   }
 
   /**
-   * Downloads a file.
-   * @param path - Remote path of a file
-   * @param destination - Destination file
-   * @param startAt - Offset to start at
-   */
-  public async download(path: string, destination: Writable, startAt = 0): Promise<IResponse> {
-    if (!this.connected) return getResponseData(new Error('Client is not connected'));
-
-    const sizeResponse = await this.getSize(path);
-    if (!sizeResponse.success) return sizeResponse;
-    const fileSize = sizeResponse.size - startAt;
-
-    if (this._isSFTP) {
-      this._buffered = 0;
-      this._readable = this._sftpClient.createReadStream(path, { start: startAt });
-    }
-    this._writable = destination;
-
-    return this._handleStream({
-      type: 'download',
-      fileSize,
-      path,
-      startAt
-    });
+    * Send a command.
+    */
+  public send(command: string): Promise<ISendRes> {
+    return this._wrap(
+      () => this._sftpClient.send(command),
+      async () => {
+        const { message } = await this._ftpClient.send(command);
+        return message;
+      },
+      'message',
+    );
   }
 
   /**
-   * Uploads a file.
-   * @param path - Remote path of a file
-   * @param source - Source file
-   */
-  public async upload(path: string, source: Readable, fileSize?: number): Promise<IResponse> {
-    if (this._isSFTP) {
-      this._buffered = 0;
-      this._writable = this._sftpClient.createWriteStream(path);
-    }
-    this._readable = source;
-
-    return this._handleStream({
-      type: 'upload',
-      fileSize,
-      path,
-    });
+    * Renames or moves a file.
+    * @param srcPath Source path
+    * @param destPath Destination path
+    */
+  public rename(srcPath: string, destPath: string): Promise<IRes> {
+    return this._wrap(
+      () => this._sftpClient.move(srcPath, destPath),
+      () => this._ftpClient.rename(srcPath, destPath),
+    );
   }
 
   /**
-   * Send a command.
-   * @param command - Command to send
-   */
-  public async send(command: string): Promise<ISendResponse> {
-    if (this._isSFTP) {
-      return new Promise((resolve) => {
-        this._sshClient.exec(command, (err, stream): any => {
-          if (err) return getResponseData(err);
-
-          let data = '';
-
-          stream.once('error', (err: Error) => {
-            stream.close();
-            resolve(getResponseData(err));
-          });
-
-          stream.on('data', (chunk) => {
-            data += chunk;
-          });
-
-          stream.once('close', () => {
-            stream.close();
-            resolve(getResponseData(null, { message: data }));
-          })
-        })
-      });
-    }
-
-    try {
-      const res = await this._ftpClient.send(command);
-      return getResponseData(null, { message: res.message });
-    } catch (err) {
-      return getResponseData(err);
-    }
+  * Removes a file.
+  * @param path Remote path
+  */
+  public unlink(path: string): Promise<IRes> {
+    return this._wrap(
+      () => this._sftpClient.unlink(path),
+      () => this._ftpClient.remove(path),
+    );
   }
 
   /**
-   * Moves/Renames a file.
-   * @param srcPath - Source path
-   * @param destPath - Destination path
-   */
-  public async move(srcPath: string, destPath: string): Promise<IResponse> {
-    if (this._isSFTP) {
-      return new Promise((resolve) => {
-        this._sftpClient.rename(srcPath, destPath, (err) => {
-          resolve(getResponseData(err));
-        });
-      });
-    }
-
-    try {
-      await this._ftpClient.rename(srcPath, destPath);
-      return getResponseData();
-    } catch (err) {
-      return getResponseData(err);
-    }
+    * Removes a directory and all of its content.
+    * @param path Directory path
+    */
+  public async rimraf(path: string): Promise<IRes> {
+    return this._wrap(
+      () => this._sftpClient.removeDir(path),
+      () => this._ftpClient.removeDir(path),
+    );
   }
 
   /**
-   * Removes a file.
-   * @param path - File path
+   * Creates a directory.
+   * @param path Remote path
    */
-  public async remove(path: string): Promise<IResponse> {
-    if (this._isSFTP) {
-      return new Promise((resolve) => {
-        this._sftpClient.unlink(path, (err) => {
-          resolve(getResponseData(err));
-        })
-      });
-    }
-
-    try {
-      await this._ftpClient.remove(path);
-      return getResponseData(null);
-    } catch (err) {
-      return getResponseData(err);
-    }
-  }
-
-  /**
-   * Remove a directory and all of its content.
-   * @param path - Directory path
-   */
-  public async removeDir(path: string): Promise<IResponse> {
-    try {
-      if (this._isSFTP) {
-        await this._sftpRemoveDir(path);
-      } else {
-        await this._ftpClient.removeDir(path);
-      }
-
-      return getResponseData(null);
-    } catch (err) {
-      return getResponseData(err);
-    }
-  }
-
-  /**
-   * Creates a directory at `path`.
-   */
-  public async createDir(path: string): Promise<IResponse> {
-    if (this._isSFTP) {
-      return new Promise((resolve) => {
-        this._sftpClient.mkdir(path, (err) => {
-          resolve(getResponseData(err));
-        })
-      });
-    }
-
-    try {
-      await this._ftpClient.send("MKD " + path, true);
-      return getResponseData(null);
-    } catch (err) {
-      return getResponseData(err);
-    }
+  public mkdir(path: string): Promise<IRes> {
+    return this._wrap(
+      () => this._sftpClient.mkdir(path),
+      () => this._ftpClient.send("MKD " + path, true),
+    );
   };
 
   /**
-   * Lists all files in a directory at `path`
-   */
-  public async ls(path: string): Promise<ILsResponse> {
-    if (this._isSFTP) {
-      return new Promise((resolve) => {
-        this._sftpClient.readdir(path, (err, files) => {
-          resolve(getResponseData(err, {
-            files: files.map(file => formatFile(parseList(file.longname)[0]))
-          }));
-        });
-      });
-    }
-
-    try {
-      await this._ftpClient.cd(path);
-      const files = await this._ftpClient.list();
-
-      return getResponseData(null, {
-        files: files.map(file => formatFile(file)),
-      });
-    } catch (err) {
-      return getResponseData(err);
-    }
+    * Gets path of current working directory.
+    */
+  public pwd(): Promise<IPwdRes> {
+    return this._wrap(
+      () => this._sftpClient.pwd(),
+      () => this._ftpClient.pwd(),
+      'path'
+    );
   }
 
   /**
-   * Gets path of current working directory
-   */
-  public async pwd(): Promise<IPwdResponse> {
-    if (this._isSFTP) {
-      return new Promise((resolve) => {
-        this._sftpClient.realpath("./", (err, path) => {
-          resolve(getResponseData(err, { path }));
-        });
-      });
-    }
+    * Reads the content of a directory.
+    */
+  public readDir(path = './'): Promise<IReadDirRes> {
+    return this._wrap(
+      async () => {
+        const files = await this._sftpClient.readDir(path);
+        return files.map(file => formatFile(parseList(file.longname)[0]))
+      },
+      async () => {
+        const files = await this._ftpClient.list();
+        return files.map(file => formatFile(file));
+      },
+      'files'
+    );
+  }
 
+  private async _wrap(sftp: Function, ftp: Function, key?: string) {
     try {
-      const path = await this._ftpClient.pwd();
-      return getResponseData(null, { path });
-    } catch (err) {
-      return getResponseData(err);
-    }
-  }
+      const isSftp = this._config.protocol == 'sftp';
+      const data = isSftp ? await sftp() : await ftp();
 
-  /**
-   * Sets debugging mode __(currently only FTP)__
-   */
-  public set debuger(value: boolean) {
-    if (!this._isSFTP) {
-      this._ftpClient.ftp.verbose = value;
-    }
-  }
-
-  public get debugger() {
-    if (!this._isSFTP) {
-      return this._ftpClient.ftp.verbose;
-    }
-    return false;
-  }
-
-  protected get _isSFTP() {
-    return this._config.protocol === 'sftp';
-  }
-
-  protected _cleanStreams() {
-    if (this._readable != null) {
-      this._readable.removeAllListeners();
-      this._readable.unpipe(this._writable);
-
-      if (this._writable != null) {
-        this._writable.removeAllListeners();
-
-        this._readable.once('close', () => {
-          this._writable.end();
-          this._writable = null;
-          this._readable = null;
-        });
-
-        this._readable.destroy();
-      }
-    } else if (this._writable != null) {
-      this._writable.end();
-    }
-
-    if (!this._isSFTP && this._ftpClient.ftp.dataSocket != null) {
-      this._ftpClient.ftp.dataSocket.unpipe(this._writable);
-    }
-  }
-
-  protected _handleStream(data: IHandler): Promise<IResponse> {
-    if (this._isSFTP) {
-      return this._handleSftpStream(data);
-    }
-    return this._handleFtpStream(data);
-  }
-
-  protected _handleSftpStream(data: IHandler): Promise<IResponse> {
-    const { fileSize, path, type } = data;
-
-    return new Promise((resolve) => {
-      this._readable.on('data', (chunk) => {
-        this._buffered += chunk.length;
-
-        this.emit('progress', {
-          bytes: this._buffered,
-          fileSize,
-          path,
-          type,
-        } as IProgressEvent);
-      });
-
-      const onError = (err) => {
-        this._cleanStreams();
-        resolve(getResponseData(err));
+      let res = { success: true };
+      if (key != null) {
+        res[key] = data;
       }
 
-      const onClose = () => {
-        this._cleanStreams();
-        resolve(getResponseData());
-      }
-
-      if (type === 'download') {
-        this._readable.once('error', onError);
-        this._readable.once('close', onClose);
-      } else {
-        this._writable.once('error', onError);
-        this._writable.once('finish', onClose);
-      }
-
-      this._readable.pipe(this._writable);
-    });
-  }
-
-  protected async _handleFtpStream(data: IHandler): Promise<IResponse> {
-    const { fileSize, path, type, startAt } = data;
-
-    try {
-      this._ftpClient.trackProgress(info => {
-        this._buffered = info.bytes;
-
-        this.emit('progress', {
-          bytes: info.bytes,
-          fileSize,
-          path,
-          type,
-        } as IProgressEvent);
-      });
-
-      if (type === 'download') {
-        await this._ftpClient.download(this._writable, path, startAt);
-      } else {
-        await this._ftpClient.upload(this._readable, path);
-      }
-
-      this._ftpClient.trackProgress(undefined);
-      this._cleanStreams();
-
-      return getResponseData();
-    } catch (err) {
-      this._ftpClient.trackProgress(undefined);
-      this._cleanStreams();
-      return getResponseData(err);
+      return res;
+    } catch (error) {
+      return { success: false, error }
     }
   }
-
-  protected async _sftpRemoveDir(path: string) {
-    try {
-      const files = await this._sftpReadDir(path);
-
-      if (files.length) {
-        for (const file of files) {
-          const filePath = path + '/' + file.filename;
-
-          if ((file.attrs as any).isDirectory()) {
-            await this._sftpRemoveDir(filePath);
-          } else {
-            await this.remove(filePath);
-          }
-        }
-      }
-
-      await this._sftpRemoveEmptyDir(path);
-    } catch (err) {
-      throw err;
-    }
-  };
-
-  protected _sftpReadDir(path: string): Promise<FileEntry[]> {
-    return new Promise((resolve, reject) => {
-      this._sftpClient.readdir(path, (err, files) => {
-        if (err) return reject(err);
-        resolve(files);
-      });
-    });
-  }
-
-  protected _sftpRemoveEmptyDir(path: string) {
-    return new Promise((resolve, reject) => {
-      this._sftpClient.rmdir(path, (err) => {
-        if (err) return reject(err);
-        resolve();
-      })
-    });
-  };
 };

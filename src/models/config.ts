@@ -1,6 +1,6 @@
 export type IProtocol = 'ftp' | 'sftp';
 
-export interface IConnectionConfig {
+export interface IConfig {
   protocol?: IProtocol;
   host: string;
   port?: number;
