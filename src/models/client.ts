@@ -78,7 +78,7 @@ export class Client extends EventEmitter {
     this._ftpClient = new FtpClient();
 
     try {
-      await this._ftpClient.access({ secure: true, ...config });
+      await this._ftpClient.access({ secure: false, ...config });
       this.connected = true;
       if (!this._aborting) this.emit('connect');
       return getResponseData();
