@@ -84,4 +84,15 @@ export class SFTPClient {
       })
     });
   }
+
+  // TODO: Rimraf
+
+  public mkdir(path: string) {
+    return new Promise((resolve, reject) => {
+      this._wrapper.mkdir(path, (err) => {
+        if (err) return reject(err);
+        resolve();
+      })
+    });
+  }
 }

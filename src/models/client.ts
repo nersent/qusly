@@ -106,6 +106,19 @@ export class Client {
     );
   }
 
+  // TODO: Rimraf
+
+  /**
+   * Creates a directory.
+   * @param path Remote path
+   */
+  public async mkdir(path: string): Promise<IRes> {
+    return this._wrap(
+      () => this._sftpClient.mkdir(path),
+      () => this._ftpClient.send("MKD " + path, true),
+    );
+  };
+
   private async _wrap(sftp: Function, ftp: Function, key?: string) {
     try {
       const isSftp = this._config.protocol == 'sftp';
