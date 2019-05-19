@@ -84,14 +84,25 @@ export class Client {
   }
 
   /**
-    * Moves/Renames an file.
+    * Renames or moves an file.
     * @param srcPath - Source path
     * @param destPath - Destination path
     */
-  public move(srcPath: string, destPath: string): Promise<IRes> {
+  public rename(srcPath: string, destPath: string): Promise<IRes> {
     return this._wrap(
       () => this._sftpClient.move(srcPath, destPath),
       () => this._ftpClient.rename(srcPath, destPath),
+    );
+  }
+
+  /**
+  * Removes an file.
+  * @param path Remote path
+  */
+  public unlink(path: string): Promise<IRes> {
+    return this._wrap(
+      () => this._sftpClient.unlink(path),
+      () => this._ftpClient.remove(path),
     );
   }
 

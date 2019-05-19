@@ -75,4 +75,13 @@ export class SFTPClient {
       });
     })
   }
+
+  public unlink(path: string) {
+    return new Promise((resolve, reject) => {
+      this._wrapper.unlink(path, (err) => {
+        if (err) return reject(err);
+        resolve();
+      })
+    });
+  }
 }
