@@ -18,7 +18,7 @@ export class Client {
   /**
   * Connects to server.
   * You can call it to reconnect.
-  * @param config - Connection config
+  * @param config Connection config
   */
   public async connect(config: IConfig): Promise<IRes> {
     this._config = config;
@@ -59,8 +59,8 @@ export class Client {
   }
 
   /**
-   * Gets size of an file.
-   * @param path - Remote path
+   * Gets size of a file.
+   * @param path Remote path
    */
   public size(path: string): Promise<ISizeRes> {
     return this._wrap(
@@ -85,9 +85,9 @@ export class Client {
   }
 
   /**
-    * Renames or moves an file.
-    * @param srcPath - Source path
-    * @param destPath - Destination path
+    * Renames or moves a file.
+    * @param srcPath Source path
+    * @param destPath Destination path
     */
   public rename(srcPath: string, destPath: string): Promise<IRes> {
     return this._wrap(
@@ -97,7 +97,7 @@ export class Client {
   }
 
   /**
-  * Removes an file.
+  * Removes a file.
   * @param path Remote path
   */
   public unlink(path: string): Promise<IRes> {
@@ -130,8 +130,8 @@ export class Client {
   };
 
   /**
-  * Gets path of current working directory.
-  */
+    * Gets path of current working directory.
+    */
   public pwd(): Promise<IPwdRes> {
     return this._wrap(
       () => this._sftpClient.pwd(),
@@ -141,8 +141,8 @@ export class Client {
   }
 
   /**
-     * Reads the content of a directory.
-     */
+    * Reads the content of a directory.
+    */
   public readDir(path = './'): Promise<IReadDirRes> {
     return this._wrap(
       async () => {
