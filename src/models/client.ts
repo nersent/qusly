@@ -107,7 +107,16 @@ export class Client {
     );
   }
 
-  // TODO: Rimraf
+  /**
+    * Removes a directory and all of its content.
+    * @param path Directory path
+    */
+  public async rimraf(path: string): Promise<IRes> {
+    return this._wrap(
+      () => this._sftpClient.removeDir(path),
+      () => this._ftpClient.removeDir(path),
+    );
+  }
 
   /**
    * Creates a directory.

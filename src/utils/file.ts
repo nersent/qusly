@@ -1,5 +1,5 @@
 import { FileInfo, FileType } from "basic-ftp";
-import { extname, join, normalize } from 'path';
+import { extname } from 'path';
 
 import { IFile, IFileType } from "../models/file";
 

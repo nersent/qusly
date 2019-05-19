@@ -86,7 +86,32 @@ export class SFTPClient {
     });
   }
 
-  // TODO: Rimraf
+  public async removeDir(path: string) {
+    const files = await this.readDir(path);
+
+    if (files.length) {
+      for (const file of files) {
+        const filePath = path + '/' + file.filename;
+
+        if ((file.attrs as any).isDirectory()) {
+          await this.removeDir(filePath);
+        } else {
+          await this.unlink(filePath);
+        }
+      }
+    }
+
+    await this.removeEmptyDir(path);
+  };
+
+  public removeEmptyDir(path: string) {
+    return new Promise((resolve, reject) => {
+      this._wrapper.rmdir(path, (err) => {
+        if (err) return reject(err);
+        resolve();
+      })
+    });
+  };
 
   public mkdir(path: string) {
     return new Promise((resolve, reject) => {
