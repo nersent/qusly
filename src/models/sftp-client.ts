@@ -66,4 +66,13 @@ export class SFTPClient {
       })
     });
   }
+
+  public move(src: string, dest: string) {
+    return new Promise((resolve, reject) => {
+      this._wrapper.rename(src, dest, (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    })
+  }
 }

@@ -72,7 +72,7 @@ export class Client {
   /**
     * Send a command.
     */
-  public async send(command: string): Promise<ISendRes> {
+  public send(command: string): Promise<ISendRes> {
     return this._wrap(
       () => this._sftpClient.send(command),
       async () => {
@@ -83,16 +83,29 @@ export class Client {
     );
   }
 
+  /**
+    * Moves/Renames an file.
+    * @param srcPath - Source path
+    * @param destPath - Destination path
+    */
+  public move(srcPath: string, destPath: string): Promise<IRes> {
+    return this._wrap(
+      () => this._sftpClient.move(srcPath, destPath),
+      () => this._ftpClient.rename(srcPath, destPath),
+    );
+  }
+
   private async _wrap(sftp: Function, ftp: Function, key?: string) {
     try {
       const isSftp = this._config.protocol == 'sftp';
       const data = isSftp ? await sftp() : await ftp();
 
-      if (key == null) {
-        return { success: true, ...data };
-      } else {
-        return { success: true, [key]: data }
+      let res = { success: true };
+      if (key != null) {
+        res[key] = data;
       }
+
+      return res;
     } catch (error) {
       return { success: false, error }
     }
