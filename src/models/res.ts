@@ -6,3 +6,7 @@ export interface IRes {
 export interface ISizeRes extends IRes {
   size?: number;
 }
+
+export interface ISendRes extends IRes {
+  message?: string;
+}

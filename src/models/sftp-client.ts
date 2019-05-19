@@ -43,4 +43,27 @@ export class SFTPClient {
       })
     });
   }
+
+  public send(command: string) {
+    return new Promise((resolve, reject) => {
+      this._ssh.exec(command, (err, stream): any => {
+        if (err) return reject(err);
+        let data = '';
+
+        stream.once('error', (err: Error) => {
+          stream.close();
+          reject(err);
+        });
+
+        stream.on('data', (chunk) => {
+          data += chunk;
+        });
+
+        stream.once('close', () => {
+          stream.close();
+          resolve(data);
+        })
+      })
+    });
+  }
 }

@@ -3,7 +3,7 @@ import { Client as FtpClient } from 'basic-ftp';
 
 import { SFTPClient } from './sftp-client';
 import { IConfig } from './config';
-import { IRes, ISizeRes } from './response';
+import { IRes, ISizeRes, ISendRes } from './res';
 
 export class Client {
   public connected = false;
@@ -66,6 +66,20 @@ export class Client {
       () => this._sftpClient.size(path),
       () => this._ftpClient.size(path),
       'size',
+    );
+  }
+
+  /**
+    * Send a command.
+    */
+  public async send(command: string): Promise<ISendRes> {
+    return this._wrap(
+      () => this._sftpClient.send(command),
+      async () => {
+        const { message } = await this._ftpClient.send(command);
+        return message;
+      },
+      'message',
     );
   }
 
