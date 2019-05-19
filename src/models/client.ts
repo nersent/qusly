@@ -3,7 +3,7 @@ import { Client as FtpClient } from 'basic-ftp';
 
 import { SFTPClient } from './sftp-client';
 import { IConfig } from './config';
-import { IRes, ISizeRes, ISendRes } from './res';
+import { IRes, ISizeRes, ISendRes, IPwdRes } from './res';
 
 export class Client {
   public connected = false;
@@ -118,6 +118,17 @@ export class Client {
       () => this._ftpClient.send("MKD " + path, true),
     );
   };
+
+  /**
+  * Gets path of current working directory.
+  */
+  public async pwd(): Promise<IPwdRes> {
+    return this._wrap(
+      () => this._sftpClient.pwd(),
+      () => this._ftpClient.pwd(),
+      'path'
+    );
+  }
 
   private async _wrap(sftp: Function, ftp: Function, key?: string) {
     try {

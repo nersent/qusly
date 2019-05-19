@@ -10,3 +10,7 @@ export interface ISizeRes extends IRes {
 export interface ISendRes extends IRes {
   message?: string;
 }
+
+export interface IPwdRes extends IRes {
+  path?: string;
+}

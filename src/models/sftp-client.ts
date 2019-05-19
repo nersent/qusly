@@ -95,4 +95,13 @@ export class SFTPClient {
       })
     });
   }
+
+  public pwd() {
+    return new Promise((resolve, reject) => {
+      this._wrapper.realpath("./", (err, path) => {
+        if (err) return reject(err);
+        resolve(path);
+      });
+    });
+  }
 }
