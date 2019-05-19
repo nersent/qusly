@@ -1,4 +1,5 @@
 import { Client as SshClient, SFTPWrapper } from "ssh2";
+import { FileEntry } from "ssh2-streams";
 
 import { IConfig } from "./config";
 
@@ -101,6 +102,15 @@ export class SFTPClient {
       this._wrapper.realpath("./", (err, path) => {
         if (err) return reject(err);
         resolve(path);
+      });
+    });
+  }
+
+  public readDir(path: string): Promise<FileEntry[]> {
+    return new Promise((resolve, reject) => {
+      this._wrapper.readdir(path, (err, files) => {
+        if (err) return reject(err);
+        resolve(files);
       });
     });
   }

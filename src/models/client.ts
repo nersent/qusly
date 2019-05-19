@@ -1,9 +1,10 @@
 import { EventEmitter } from 'events';
-import { Client as FtpClient } from 'basic-ftp';
+import { Client as FtpClient, parseList } from 'basic-ftp';
 
 import { SFTPClient } from './sftp-client';
 import { IConfig } from './config';
-import { IRes, ISizeRes, ISendRes, IPwdRes } from './res';
+import { IRes, ISizeRes, ISendRes, IPwdRes, IReadDirRes } from './res';
+import { formatFile } from '../utils';
 
 export class Client {
   public connected = false;
@@ -112,7 +113,7 @@ export class Client {
    * Creates a directory.
    * @param path Remote path
    */
-  public async mkdir(path: string): Promise<IRes> {
+  public mkdir(path: string): Promise<IRes> {
     return this._wrap(
       () => this._sftpClient.mkdir(path),
       () => this._ftpClient.send("MKD " + path, true),
@@ -122,11 +123,28 @@ export class Client {
   /**
   * Gets path of current working directory.
   */
-  public async pwd(): Promise<IPwdRes> {
+  public pwd(): Promise<IPwdRes> {
     return this._wrap(
       () => this._sftpClient.pwd(),
       () => this._ftpClient.pwd(),
       'path'
+    );
+  }
+
+  /**
+     * Reads the content of a directory.
+     */
+  public readDir(path = './'): Promise<IReadDirRes> {
+    return this._wrap(
+      async () => {
+        const files = await this._sftpClient.readDir(path);
+        return files.map(file => formatFile(parseList(file.longname)[0]))
+      },
+      async () => {
+        const files = await this._ftpClient.list();
+        return files.map(file => formatFile(file));
+      },
+      'files'
     );
   }
 
