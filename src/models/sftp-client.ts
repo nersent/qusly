@@ -28,4 +28,10 @@ export class SFTPClient {
       this._ssh.connect({ username: config.user, ...config })
     });
   }
+
+  public disconnect() {
+    this._ssh.end();
+    this._wrapper = null;
+    this._ssh = null;
+  }
 }
