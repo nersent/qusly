@@ -3,7 +3,7 @@
 [![Travis](https://img.shields.io/travis/xnerhu/qusly-core.svg?style=flat-square)](https://travis-ci.org/xnerhu/qusly-core.svg)
 [![NPM](https://img.shields.io/npm/v/qusly-core.svg?style=flat-square)](https://www.npmjs.com/package/qusly-core)
 
-An API wrapper around [ssh2](https://github.com/mscdex/ssh2) and [basic-ftp](https://github.com/patrickjuchli/basic-ftp) for building **FTP/FTPS/SFTP** clients.
+An API wrapper around [ssh2](https://github.com/mscdex/ssh2) and [basic-ftp](https://github.com/patrickjuchli/basic-ftp) for building **FTP/FTPS/SFTP** clients used in [Qusly](https://www.github.com/qusly/qusly).
 
 ## Installing
 
@@ -21,7 +21,6 @@ const { Client } = require('qusly-core');
 async function init() {
   const client = new Client();
 
-  // Connect to the server
   await client.connect({
     host: 'www.example.com',
     user: 'root', // default anonymous
@@ -30,35 +29,49 @@ async function init() {
     port: 21, // default 21
   });
 
-  // List all files
-  const { files } = await client.ls('./');
-  // Print listed files
-  console.log(files);
+  const res = await client.readDir('./');
+  console.log(res);
 
-  // Disconnect
   await client.disconnect();
 }
 
 init();
 ```
 
-The output would be something like this:
+Example output:
 
 ```js
-[
-  {
-    name: 'image.jpg',
-    type: 1,
-    size: 41582,
-    date: [object Date],
-    permissions: {
-      user: 6,
-      group: 6
+{
+  success: true,
+  files: [
+    {
+      name: 'my documents',
+      type: 'directory',
+      size: 4096,
+      ext: ''
+      user: 'root',
+      group: 'root',
+      date: '2019-05-10T18:52:00.000Z,
+      permissions: {
+        user: 6,
+        group: 6
+      },
     },
-    user: 'root',
-    group: 'root'
-  }
-]
+    {
+      name: 'wallpaper.png',
+      type: 'file',
+      ext: 'png'
+      size: 43,
+      user: 'root',
+      group: 'root',
+      date: '2019-05-29T22:00:00.000Z',
+      permissions: {
+        user: 6,
+        group: 6
+      },
+    },
+  ]
+}
 
 ```
 
@@ -66,37 +79,36 @@ The output would be something like this:
 
 Class `Client`:
 
+- [`Client.abort`](#clientAbort)
 - [`Client.connect`](#clientConnect)
 - [`Client.disconnect`](#clientDisconnect)
-- [`Client.getSize`](#clientGetSize)
-- [`Client.upload`](#clientUpload)
 - [`Client.download`](#clientDownload)
-- [`Client.abort`](#clientAbort)
-- [`Client.send`](#clientSend)
+- [`Client.mkdir`](#clientMkdir)
 - [`Client.move`](#clientMove)
-- [`Client.remove`](#clientRemove)
-- [`Client.removeDir`](#clientRemoveDir)
-- [`Client.createDir`](#clientCreateDir)
-- [`Client.ls`](#clientLs)
 - [`Client.pwd`](#clientPwd)
-- [`Client.connected`](#clientConnected)
-- [`Client.debugger`](#clientDebugger)
+- [`Client.readDir`](#clientReadDir)
+- [`Client.rimraf`](#clientRimraf)
+- [`Client.send`](#clientSend)
+- [`Client.size`](#clientSize)
+- [`Client.unlink`](#clientUnlink)
+- [`Client.upload`](#clientUpload)
 
 Interfaces:
 
-- [`IConnectionConfig`](#connectionConfig)
-- [`File`](#file)
+- [`IConfig`](#config)
+- [`IFile`](#file)
 - [`IProgressEvent`](#progressEvent)
-- [`IResponse`](#response)
-- [`ISizeResponse`](#sizeResponse)
-- [`IAbortResponse`](#abortResponse)
-- [`ISendResponse`](#sendResponse)
-- [`ILsResponse`](#lsResponse)
-- [`IPwdResponse`](#pwdResponse)
+- [`IRes`](#res)
+- [`ISizeRes`](#sizeRes)
+- [`ISendRes`](#sendRes)
+- [`IPwdRes`](#pwdRes)
+- [`IReadDirRes`](#readDirRes)
+- [`IAbortRes`](#abortRes)
 
-Enums:
+Types:
 
-- [`FileType`](#fileType)
+- [`IFileType`](#fileType)
+- [`IProtocol`](#protocol)
 
 Events:
 
@@ -105,21 +117,26 @@ Events:
 - [`client.on('abort')`](#clientOnAbort)
 - [`client.on('progress')`](#clientOnProgress)
 
-Other:
-
-- [`IProtocol`](#protocol)
-
-<a name="client"></a>
-
 ### Class `Client`
-
-<a name="clientMethods"></a>
 
 #### Methods
 
+<a name="clientAbort"></a>
+
+- `Client.abort(): Promise<IAbortRes>`
+  <br />
+  Aborts the current data transfer.
+  <br />
+
+  ```js
+  const { bytes } = await client.abort();
+
+  console.log(`Aborted at ${res.bytes} bytes`);
+  ```
+
 <a name="clientConnect"></a>
 
-- `Client.connect(config: ConnectionConfig): Promise<IResponse>`
+- `Client.connect(config: IConfig): Promise<IRes>`
   <br />
   Connects to server.
   <br />
@@ -142,28 +159,153 @@ Other:
 
 <a name="clientDisconnect"></a>
 
-- `Client.disconnect(): void`
+- `Client.disconnect(): Promise<IRes>`
   <br />
-  Disconnects from server.
+  Disconnects from server. Closes all opened sockets.
   <br />
 
   ```js
-  client.disconnect();
+  await client.disconnect();
+
   console.log('Disconnected!');
   ```
 
-<a name="clientgetSize"></a>
+<a name="clientDownload"></a>
 
-- `Client.getSize(path: string): Promise<ISizeResponse>`
+- `Client.download(path: string, destination: Writable, startAt = 0): Promise<IRes>`
   <br />
-  Gets size of a file.
+  Downloads a file. You can start at given offset by setting **`startAt`**.
   <br />
 
   ```js
-  const res = await client.getSize('file.rar');
+  const { createWriteStream } = require('fs');
+  const { resolve } = require('path');
+
+  const localPath = resolve('downloads', 'downloaded file.rar');
+
+  const res = await client.download('file.rar', createWriteStream(localPath));
 
   if (res.success) {
-    console.log('Size: ', res.size);
+    console.log('Downloaded');
+  } else {
+    console.log('Error occured or aborted');
+  }
+  ```
+
+<a name="clientMkdir"></a>
+
+- `Client.mkdir(path: string): Promise<IRes>`
+  <br />
+  Creates a directory.
+  <br />
+
+  ```js
+  const path = '/home/documents/new folder';
+  const res = await client.mkdir(path);
+
+  console.log(`Created a directory at ${path}`);
+  ```
+
+<a name="clientPwd"></a>
+
+- `Client.pwd(): Promise<IPwdRes>`
+  <br />
+  Gets path of the current working directory.
+  <br />
+
+  ```js
+  const { path } = await client.pwd();
+
+  console.log(`Current path: ${path}`);
+  ```
+
+<a name="clientReadDir"></a>
+
+- `Client.readDir(path: string): Promise<IReadDirRes>`
+  <br />
+  Reads the content of a directory.
+  <br />
+
+  ```js
+  const { files } = await client.readDir('/root/');
+
+  console.log('Files', files);
+  ```
+
+<a name="clientMove"></a>
+
+- `Client.move(srcPath: string, destPath: string): Promise<IResponse>`
+  <br />
+  Moves a file from **`srcPath`** to **`destPath`**.
+  <br />
+
+  ```js
+  const res = await client.move('music/file.mp4', 'videos/file.mp4');
+
+  if (res.success) {
+    console.log('Moved');
+  } else {
+    console.log('Error occured: ', res.err);
+  }
+  ```
+
+<a name="clientRimraf"></a>
+
+- `Client.rimraf(path: string): Promise<IRes>`
+  <br />
+  Removes a **directory** and all of its content.
+  <br />
+
+  ```js
+  const path = 'videos';
+  const res = await client.rimraf(path);
+
+  console.log(`Removed all files at ${path}`);
+  ```
+
+<a name="clientSend"></a>
+
+- `Client.send(command: string): Promise<ISendResponse>`
+  <br />
+  Sends a raw command. **Output depends on a protocol and server support!**
+  <br />
+
+  ```js
+  // Probably will work on SFTP
+  const res = await client.send('whoami');
+
+  if (res.success) {
+    console.log(res.message);
+  } else {
+    console.log('Error occured: ', res.err);
+  }
+  ```
+
+<a name="clientSize"></a>
+
+- `Client.size(path: string): Promise<ISizeRes>`
+  <br />
+  Gets size of a file in bytes.
+  <br />
+
+  ```js
+  const { size } = await client.size('file.rar');
+
+  console.log(`Size: ${size}`);
+  ```
+
+<a name="clientUnlink"></a>
+
+- `Client.unlink(path: string): Promise<IResponse>`
+  <br />
+  Removes a **file** at **`path`**.
+  <br />
+
+  ```js
+  const res = await client.unlink('videos/file.mp4');
+
+  if (res.success) {
+    console.log('Removed');
   } else {
     console.log('Error occured: ', res.err);
   }
@@ -186,195 +328,22 @@ Other:
   const res = await client.upload(
     'image.jpg',
     createReadStream(path),
-    fileSize,
-  ); // Setting file size is optional
+    fileSize, // Optional, but recommended for further tracking the progress
+  );
 
   if (res.success) {
     console.log('Uploaded');
   } else {
-    console.log('Error occured/Aborted: ', res.error);
+    console.log('Error occured or aborted');
   }
   ```
 
-<a name="clientDownload"></a>
+<a name="config"></a>
 
-- `Client.download(path: string, destination: Writable, startAt = 0): Promise<IResponse>`
-  <br />
-  Downloads a file. You can start at given offset by setting **`startAt`**.
-  <br />
-
-  ```js
-  const { createWriteStream } = require('fs');
-  const { resolve } = require('path');
-
-  const localPath = resolve('downloads', 'downloaded file.rar');
-
-  const res = await client.download('file.rar', createWriteStream(localPath));
-
-  if (res.success) {
-    console.log('Downloaded');
-  } else {
-    console.log('Error occured/Aborted: ', res.error);
-  }
-  ```
-
-- `Client.abort(): Promise<IAbortResponse>`
-  <br />
-  Aborts the current data transfer like downloading or uploading.
-  <br />
-
-  ```js
-  const res = await client.abort();
-
-  if (res.success) {
-    console.log(`Aborted at ${res.bytes} bytes`);
-  } else {
-    console.log('Error occured: ', res.error);
-  }
-  ```
-
-<a name="clientSend"></a>
-
-- `Client.send(command: string): Promise<ISendResponse>`
-  <br />
-  Sends a raw command. **Output depends on a protocol and server support!**
-  <br />
-
-  ```js
-  // Probably will work on SFTP
-  const res = await client.send('whoami');
-
-  if (res.success) {
-    console.log(res.message);
-  } else {
-    console.log('Error occured: ', res.err);
-  }
-  ```
-
-<a name="clientMove"></a>
-
-- `Client.move(srcPath: string, destPath: string): Promise<IResponse>`
-  <br />
-  Moves a file from **`srcPath`** to **`destPath`**.
-  <br />
-
-  ```js
-  const res = await client.move('music/file.mp4', 'videos/file.mp4');
-
-  if (res.success) {
-    console.log('Moved');
-  } else {
-    console.log('Error occured: ', res.err);
-  }
-  ```
-
-<a name="clientRemove"></a>
-
-- `Client.remove(path: string): Promise<IResponse>`
-  <br />
-  Removes a **file** at **`path`**.
-  <br />
-
-  ```js
-  const res = await client.remove('videos/file.mp4');
-
-  if (res.success) {
-    console.log('Removed');
-  } else {
-    console.log('Error occured: ', res.err);
-  }
-  ```
-
-<a name="clientRemoveDir"></a>
-
-- `Client.removeDir(path: string): Promise<IResponse>`
-  <br />
-  Removes a **directory** at **`path`** and all of its content.
-  <br />
-
-  ```js
-  const res = await client.remove('videos');
-
-  if (res.success) {
-    console.log('Removed');
-  } else {
-    console.log('Error occured: ', res.err);
-  }
-  ```
-
-<a name="clientCreateDir"></a>
-
-- `Client.createDir(path: string): Promise<IResponse>`
-  <br />
-  Creates a directory at **`path`**.
-  <br />
-
-  ```js
-  const res = await client.createDir('new folder');
-
-  if (res.success) {
-    console.log('Created a directory');
-  } else {
-    console.log('Error occured: ', res.err);
-  }
-  ```
-
-<a name="clientLs"></a>
-
-- `Client.ls(path: string): Promise<ILsResponse>`
-  <br />
-  Lists all files at **`path`**.
-  <br />
-
-  ```js
-  const res = await client.ls('music');
-
-  if (res.success) {
-    console.log(res.files);
-  } else {
-    console.log('Error occured: ', res.err);
-  }
-  ```
-
-<a name="clientPwd"></a>
-
-- `Client.pwd(): Promise<IPwdResponse>`
-  <br />
-  Gets path of current working directory.
-  <br />
-
-  ```js
-  const res = await client.pwd();
-
-  if (res.success) {
-    console.log(res.path);
-  } else {
-    console.log('Error occured: ', res.err);
-  }
-  ```
-
-<a name="clientProperties"></a>
-
-#### Properties
-
-<a name="clientConnected"></a>
-
-- `Client.connected: boolean` - Indicates if client is connected.
-
-<a name="clientDebugger"></a>
-
-- `set/get Client.debugger` - Debugger. **Currently works only with FTP**.
-  <br />
-  ```ts
-  client.debugger = true;
-  ```
-
-<a name="iConnectionConfig"></a>
-
-### Interface `connectionConfig`
+### Interface `IConfig`
 
 ```ts
-interface IConnectionConfig {
+interface IConfig {
   protocol?: IProtocol;
   host: string;
   port?: number;
@@ -383,22 +352,14 @@ interface IConnectionConfig {
 }
 ```
 
-<a name="protocol"></a>
-
-### Type `IProtocol`
-
-```ts
-type IProtocol = 'ftp' | 'sftp';
-```
-
 <a name="file"></a>
 
-### Interface `File`
+### Interface `IFile`
 
 ```ts
-interface File {
+interface IFile {
   name: string;
-  type: FileType;
+  type: IFileType;
   size: number;
   user: string;
   group: string;
@@ -411,115 +372,88 @@ interface File {
 }
 ```
 
-<a name="fileType"></a>
-
-### Enum `FileType`
-
-```ts
-enum FileType {
-  Unknown = 0,
-  File,
-  Directory,
-  SymbolicLink,
-}
-```
-
 <a name="progressEvent"></a>
 
 ### Interface `IProgressEvent`
 
 ```ts
-interface IProgressEvent {
-  type: 'download' | 'upload';
-  path: string;
+interface IProgressEvent extends IStreamInfo {
   bytes: number;
-  fileSize?: number;
 }
 ```
 
-- [`Client.on('progress')`](#clientOnProgress)
+<a name="res"></a>
 
-<a name="response"></a>
-
-### Interface `IResponse`
+### Interface `IRes`
 
 ```ts
-interface IResponse {
+interface IRes {
   success: boolean;
-  error?: {
-    code?: string | number;
-    message?: string;
-  };
+  error?: Error;
 }
 ```
 
-- [`Client.connect`](#clientConnect)
-- [`Client.upload`](#clientUpload)
-- [`Client.download`](#clientDownload)
-- [`Client.move`](#clientMove)
-- [`Client.remove`](#clientRemove)
-- [`Client.removeDir`](#clientRemoveDir)
-- [`Client.createDir`](#clientCreateDir)
+<a name="sizeRes"></a>
 
-<a name="sizeResponse"></a>
-
-### Interface `ISizeResponse`
+### Interface `ISizeRes`
 
 ```ts
-interface ISizeResponse extends IResponse {
+interface ISizeRes extends IRes {
   size?: number;
 }
 ```
 
-- [`Client.getSize`](#clientGetSize)
+<a name="sendRes"></a>
 
-<a name="abortResponse"></a>
-
-### Interface `IAbortResponse`
+### Interface `ISendRes`
 
 ```ts
-interface IAbortResponse extends IResponse {
-  bytes?: number;
-}
-```
-
-- [`Client.abort`](#clientAbort)
-
-<a name="sendResponse"></a>
-
-### Interface `ISendResponse`
-
-```ts
-interface ISendResponse extends IResponse {
+interface ISendRes extends IRes {
   message?: string;
 }
 ```
 
-- [`Client.send`](#clientSend)
+<a name="pwdRes"></a>
 
-<a name="lsResponse"></a>
-
-### Interface `ILsResponse`
+### Interface `IPwdRes`
 
 ```ts
-interface ILsResponse extends IResponse {
-  files?: File[];
-}
-```
-
-- [`Client.ls`](#clientLs)
-
-<a name="pwdResponse"></a>
-
-### Interface `IPwdResponse`
-
-```ts
-interface IPwdResponse extends IResponse {
+interface IPwdRes extends IRes {
   path?: string;
 }
 ```
 
-- [`Client.pwd`](#clientPwd)
+<a name="readDirRes"></a>
+
+### Interface `IReadDirRes`
+
+```ts
+interface IReadDirRes extends IRes {
+  files?: IFile[];
+}
+```
+
+<a name="abortRes"></a>
+
+### Interface `IAbortRes`
+
+```ts
+interface IAbortRes extends IRes {
+  bytes?: number;
+}
+```
+
+### Type `IProtocol`
+
+```ts
+type IProtocol = 'ftp' | 'sftp';
+```
+
+### Type `IFileType`
+
+```ts
+type IFileType = 'unknown' | 'file' | 'directory' | 'symbolic-link';
+```
 
 ### Events
 
@@ -542,8 +476,8 @@ interface IPwdResponse extends IResponse {
 
   ```ts
   client.on('progress', (data: IProgressEvent) => {
-    const { bytes, fileSize, path } = data;
-    const percent = (bytes / fileSize) * 100;
+    const { bytes, size, path } = data;
+    const percent = (bytes / size * 100).toFixed(2);
 
     console.log(`${path}: ${percent}%`);
   });

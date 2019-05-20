@@ -86,7 +86,7 @@ export class Client extends EventEmitter {
   }
 
   /**
-   * Gets size of a file.
+   * Gets size of a file in bytes.
    * @param path Remote path
    */
   public size(path: string): Promise<ISizeRes> {
@@ -98,7 +98,7 @@ export class Client extends EventEmitter {
   }
 
   /**
-    * Send a command.
+    * Sends a raw command. **Output depends on a protocol and server support!**
     */
   public send(command: string): Promise<ISendRes> {
     return this._wrap(
@@ -112,11 +112,11 @@ export class Client extends EventEmitter {
   }
 
   /**
-    * Renames or moves a file.
+    * Moves or renames a file.
     * @param srcPath Source path
     * @param destPath Destination path
     */
-  public rename(srcPath: string, destPath: string): Promise<IRes> {
+  public move(srcPath: string, destPath: string): Promise<IRes> {
     return this._wrap(
       () => this._sftpClient.move(srcPath, destPath),
       () => this._ftpClient.rename(srcPath, destPath),
@@ -157,7 +157,7 @@ export class Client extends EventEmitter {
   };
 
   /**
-   * Gets path of current working directory.
+   * Gets path of the current working directory.
    */
   public pwd(): Promise<IPwdRes> {
     return this._wrap(
