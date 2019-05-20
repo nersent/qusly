@@ -40,7 +40,7 @@ export class SFTPClient {
     return new Promise((resolve, reject) => {
       this._wrapper.stat(path, (err, stats) => {
         if (err) return reject(err);
-        resolve({ size: stats.size });
+        resolve(stats.size);
       })
     });
   }
@@ -138,5 +138,9 @@ export class SFTPClient {
         resolve(files);
       });
     });
+  }
+
+  public createReadStream(path: string, startAt?: number) {
+    return this._wrapper.createReadStream(path, { start: startAt });
   }
 }

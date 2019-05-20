@@ -1,19 +1,23 @@
+import { Writable } from 'stream';
 import { EventEmitter } from 'events';
 import { Client as FtpClient, parseList } from 'basic-ftp';
 
 import { SFTPClient } from './sftp-client';
-import { IConfig } from './config';
+import { IConfig, IProtocol } from './config';
 import { IRes, ISizeRes, ISendRes, IPwdRes, IReadDirRes } from './res';
 import { formatFile } from '../utils';
+import { TransferManager } from './transfer';
 
 export class Client {
   public connected = false;
 
   private _config: IConfig;
 
-  private _ftpClient: FtpClient;
+  public _ftpClient: FtpClient;
 
-  private _sftpClient: SFTPClient;
+  public _sftpClient: SFTPClient;
+
+  private _transferManager = new TransferManager(this);
 
   /**
   * Connects to server.
@@ -157,9 +161,43 @@ export class Client {
     );
   }
 
+  public download(path: string, destination: Writable, startAt = 0) {
+    return this._transferManager.download(path, destination, startAt)
+  }
+
+  /*private async _handleFtpStream(data: IHandler): Promise<IRes> {
+    const { fileSize, path, type, startAt } = data;
+
+    try {
+      this._ftpClient.trackProgress(info => {
+        this.emit('progress', {
+          bytes: info.bytes,
+          fileSize,
+          path,
+          type,
+        } as IProgressEvent);
+      });
+
+      if (type === 'download') {
+        await this._ftpClient.download(this._writable, path, startAt);
+      } else {
+        await this._ftpClient.upload(this._readable, path);
+      }
+
+      this._ftpClient.trackProgress(undefined);
+      this._cleanStreams();
+
+      return getResponseData();
+    } catch (err) {
+      this._ftpClient.trackProgress(undefined);
+      this._cleanStreams();
+      return getResponseData(err);
+    }
+  }*/
+
   private async _wrap(sftp: Function, ftp: Function, key?: string) {
     try {
-      const isSftp = this._config.protocol == 'sftp';
+      const isSftp = this.protocol == 'sftp';
       const data = isSftp ? await sftp() : await ftp();
 
       let res = { success: true };
@@ -171,5 +209,9 @@ export class Client {
     } catch (error) {
       return { success: false, error }
     }
+  }
+
+  public get protocol(): IProtocol {
+    return this._config != null ? this._config.protocol : null;
   }
 };
