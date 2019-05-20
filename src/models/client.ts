@@ -4,7 +4,7 @@ import { Client as FtpClient, parseList } from 'basic-ftp';
 
 import { SFTPClient } from './sftp-client';
 import { IConfig, IProtocol } from './config';
-import { IRes, ISizeRes, ISendRes, IPwdRes, IReadDirRes } from './res';
+import { IRes, ISizeRes, ISendRes, IPwdRes, IReadDirRes, IAbortRes } from './res';
 import { formatFile } from '../utils';
 import { TransferManager } from './transfer';
 
@@ -167,7 +167,7 @@ export class Client {
    * @param destination Destination stream
    * @param startAt - Offset to start at
    */
-  public download(path: string, destination: Writable, startAt = 0) {
+  public download(path: string, destination: Writable, startAt = 0): Promise<IRes> {
     return this._transferManager.download(path, destination, startAt)
   }
 
@@ -176,8 +176,27 @@ export class Client {
    * @param path Remote path of a file
    * @param source Source stream
    */
-  public async upload(path: string, source: Readable, fileSize?: number) {
+  public async upload(path: string, source: Readable, fileSize?: number): Promise<IRes> {
     return this._transferManager.upload(path, source, fileSize);
+  }
+
+  /**
+   * Aborts the current data transfer.
+   */
+  public async abort(): Promise<IAbortRes> {
+    if (!this.aborting) {
+      this.aborting = true;
+      this._transferManager.closeStreams();
+
+      await this.disconnect();
+      const res = await this.connect(this._config);
+
+      this.aborting = false;
+
+      return { ...res, bytes: this._transferManager.buffered };
+    }
+
+    return { success: false };
   }
 
   private async _wrap(sftp: Function, ftp: Function, key?: string) {
@@ -198,5 +217,13 @@ export class Client {
 
   public get protocol(): IProtocol {
     return this._config != null ? this._config.protocol : null;
+  }
+
+  public get aborting() {
+    return this._transferManager.aborting;
+  }
+
+  public set aborting(value: boolean) {
+    this._transferManager.aborting = value;
   }
 };

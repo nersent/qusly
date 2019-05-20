@@ -10,6 +10,8 @@ export class TransferManager {
 
   public buffered = 0;
 
+  public aborting = false;
+
   constructor(public client: Client) { }
 
   public async download(path: string, destination: Writable, startAt = 0) {
@@ -31,7 +33,7 @@ export class TransferManager {
     });
   }
 
-  public async upload(path: string, source: Readable, size?: number) {
+  public upload(path: string, source: Readable, size?: number) {
     if (this.client.protocol === 'sftp') {
       this.writable = this.client._sftpClient.createWriteStream(path);
     }
@@ -105,6 +107,31 @@ export class TransferManager {
   }
 
   public closeStreams() {
+    if (this.readable != null) {
+      this.readable.removeAllListeners();
+      this.readable.unpipe(this.writable);
 
+      if (this.writable != null) {
+        this.writable.removeAllListeners();
+
+        this.readable.once('close', () => {
+          this.writable.end();
+          this.writable = null;
+          this.readable = null;
+        });
+
+        this.readable.destroy();
+      }
+    } else if (this.writable != null) {
+      this.writable.end();
+    }
+
+    if (this.client.protocol === 'ftp') {
+      this.client._ftpClient.trackProgress(undefined);
+
+      if (this.client._ftpClient.ftp.dataSocket != null) {
+        this.client._ftpClient.ftp.dataSocket.unpipe(this.writable);
+      }
+    }
   }
 }

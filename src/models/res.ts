@@ -20,3 +20,7 @@ export interface IPwdRes extends IRes {
 export interface IReadDirRes extends IRes {
   files?: IFile[];
 }
+
+export interface IAbortRes extends IRes {
+  bytes?: number;
+}
