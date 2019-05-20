@@ -221,6 +221,23 @@ export class Client extends EventEmitter {
     return { success: false };
   }
 
+  /**
+   * Checks if file exists.
+   */
+  public async exists(path: string): Promise<boolean> {
+    try {
+      if (this.protocol === 'sftp') {
+        await this._sftpClient.stat(path);
+      } else {
+        await this._ftpClient.rename(path, path);
+      }
+    } catch (err) {
+      return false;
+    }
+
+    return true;
+  }
+
   private async _wrap(sftp: Function, ftp: Function, key?: string) {
     try {
       const isSftp = this.protocol == 'sftp';

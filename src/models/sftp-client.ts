@@ -1,5 +1,5 @@
 import { Client as SshClient, SFTPWrapper } from "ssh2";
-import { FileEntry } from "ssh2-streams";
+import { FileEntry, Stats } from "ssh2-streams";
 
 import { IConfig } from "./config";
 
@@ -146,5 +146,14 @@ export class SFTPClient {
 
   public createWriteStream(path: string) {
     return this._wrapper.createWriteStream(path);
+  }
+
+  public stat(path: string): Promise<Stats> {
+    return new Promise((resolve, reject) => {
+      this._wrapper.stat(path, (err, stats) => {
+        if (err) return reject(err);
+        resolve(stats);
+      });
+    });
   }
 }

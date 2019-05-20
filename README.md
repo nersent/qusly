@@ -83,6 +83,7 @@ Class `Client`:
 - [`Client.connect`](#clientConnect)
 - [`Client.disconnect`](#clientDisconnect)
 - [`Client.download`](#clientDownload)
+- [`Client.exists`](#clientExists)
 - [`Client.mkdir`](#clientMkdir)
 - [`Client.move`](#clientMove)
 - [`Client.pwd`](#clientPwd)
@@ -189,6 +190,24 @@ Events:
     console.log('Downloaded');
   } else {
     console.log('Error occured or aborted');
+  }
+  ```
+
+<a name="clientExists"></a>
+
+- `Client.exists(path: string): Promise<boolean>`
+  <br />
+  Checks if file exists.
+  <br />
+
+  ```js
+  const path = '/home/index.ts';
+  const exists = await client.exists(path);
+
+  if (exists) {
+    console.log('File exists');
+  } else {
+    console.log("File doesn't exists");
   }
   ```
 
