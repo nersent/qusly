@@ -7,8 +7,19 @@ import { IConfig, IProtocol } from './config';
 import { IRes, ISizeRes, ISendRes, IPwdRes, IReadDirRes, IAbortRes } from './res';
 import { formatFile } from '../utils';
 import { TransferManager } from './transfer';
+import { IProgressEvent } from './progress-event';
 
-export class Client {
+export declare interface Client {
+  on(event: 'connect', listener: Function): this;
+  on(event: 'disconnect', listener: Function): this;
+  on(event: 'progress', listener: (data?: IProgressEvent) => void): this;
+  on(event: 'abort', listener: Function): this;
+  once(event: 'connect', listener: Function): this;
+  once(event: 'disconnect', listener: Function): this;
+  once(event: 'abort', listener: Function): this;
+}
+
+export class Client extends EventEmitter {
   public connected = false;
 
   private _config: IConfig;
@@ -25,6 +36,10 @@ export class Client {
   * @param config Connection config
   */
   public async connect(config: IConfig): Promise<IRes> {
+    if (this.connected) {
+      await this.disconnect();
+    }
+
     this._config = config;
     this.connected = false;
 
@@ -40,6 +55,7 @@ export class Client {
     );
 
     if (data.success) {
+      this.emit('connect');
       this.connected = true;
     }
 
@@ -50,16 +66,23 @@ export class Client {
     * Disconnects from server.
     * Closes all opened sockets.
     */
-  public disconnect(): Promise<IRes> {
-    // TODO: Handle streams
+  public async disconnect(): Promise<IRes> {
     this.connected = true;
+    this._transferManager.closeStreams();
 
-    return this._wrap(() => {
+    const res = await this._wrap(() => {
       this._sftpClient.disconnect();
+      this._sftpClient = null;
     }, () => {
       this._ftpClient.close();
       this._ftpClient = null;
     });
+
+    if (!this.aborting) {
+      this.emit('disconnect');
+    }
+
+    return res;
   }
 
   /**
@@ -188,7 +211,6 @@ export class Client {
       this.aborting = true;
       this._transferManager.closeStreams();
 
-      await this.disconnect();
       const res = await this.connect(this._config);
 
       this.aborting = false;

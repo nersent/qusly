@@ -65,22 +65,20 @@ export class TransferManager {
     return { success: true };
   }
 
-  public handleSftpStream({ type, size }: IStreamInfo) {
+  public handleSftpStream(data: IStreamInfo) {
     return new Promise((resolve, reject) => {
       this.buffered = 0;
 
       this.readable.on('data', (chunk) => {
         this.buffered += chunk.length;
 
-        console.log(this.buffered, size);
-
-        console.log(`${(this.buffered / size * 100).toFixed(2)}%`);
+        this.client.emit('progress', { ...data, bytes: this.buffered });
       });
 
       const onError = (err) => reject(err);
       const onClose = () => resolve();
 
-      if (type === 'download') {
+      if (data.type === 'download') {
         this.readable.once('error', onError);
         this.readable.once('close', onClose);
       } else {
@@ -92,17 +90,18 @@ export class TransferManager {
     });
   }
 
-  public async handleFtpStream({ type, size, path, startAt }: IStreamInfo) {
+  public async handleFtpStream(data: IStreamInfo) {
     this.client._ftpClient.trackProgress(info => {
-      this.buffered = info.bytes;
+      if (this.aborting) return;
 
-      console.log(`${(this.buffered / size * 100).toFixed(2)}%`);
+      this.buffered = info.bytes;
+      this.client.emit('progress', { ...data, bytes: this.buffered });
     });
 
-    if (type === 'download') {
-      await this.client._ftpClient.download(this.writable, path, startAt);
+    if (data.type === 'download') {
+      await this.client._ftpClient.download(this.writable, data.path, data.startAt);
     } else {
-      await this.client._ftpClient.upload(this.readable, path);
+      await this.client._ftpClient.upload(this.readable, data.path);
     }
   }
 
