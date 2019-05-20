@@ -17,10 +17,10 @@ export class TransferManager {
     if (!sizeRes.success) return sizeRes;
 
     if (this.client.protocol === 'sftp') {
-      this.buffered = 0;
       this.readable = this.client._sftpClient.createReadStream(path, startAt);
     }
 
+    this.buffered = 0;
     this.writable = destination;
 
     return this.handleStream({
@@ -28,6 +28,21 @@ export class TransferManager {
       size: sizeRes.size - startAt,
       path,
       startAt
+    });
+  }
+
+  public async upload(path: string, source: Readable, size?: number) {
+    if (this.client.protocol === 'sftp') {
+      this.writable = this.client._sftpClient.createWriteStream(path);
+    }
+
+    this.readable = source;
+    this.buffered = 0;
+
+    return this.handleStream({
+      type: 'upload',
+      size,
+      path,
     });
   }
 
@@ -87,8 +102,6 @@ export class TransferManager {
     } else {
       await this.client._ftpClient.upload(this.readable, path);
     }
-
-    this.client._ftpClient.trackProgress(undefined);
   }
 
   public closeStreams() {

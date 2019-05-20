@@ -143,4 +143,8 @@ export class SFTPClient {
   public createReadStream(path: string, startAt?: number) {
     return this._wrapper.createReadStream(path, { start: startAt });
   }
+
+  public createWriteStream(path: string) {
+    return this._wrapper.createWriteStream(path);
+  }
 }

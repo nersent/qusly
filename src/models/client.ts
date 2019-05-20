@@ -1,4 +1,4 @@
-import { Writable } from 'stream';
+import { Writable, Readable } from 'stream';
 import { EventEmitter } from 'events';
 import { Client as FtpClient, parseList } from 'basic-ftp';
 
@@ -134,8 +134,8 @@ export class Client {
   };
 
   /**
-    * Gets path of current working directory.
-    */
+   * Gets path of current working directory.
+   */
   public pwd(): Promise<IPwdRes> {
     return this._wrap(
       () => this._sftpClient.pwd(),
@@ -145,8 +145,8 @@ export class Client {
   }
 
   /**
-    * Reads the content of a directory.
-    */
+   * Reads the content of a directory.
+   */
   public readDir(path = './'): Promise<IReadDirRes> {
     return this._wrap(
       async () => {
@@ -161,39 +161,24 @@ export class Client {
     );
   }
 
+  /**
+   * Downloads a file.
+   * @param path Remote path of a file
+   * @param destination Destination stream
+   * @param startAt - Offset to start at
+   */
   public download(path: string, destination: Writable, startAt = 0) {
     return this._transferManager.download(path, destination, startAt)
   }
 
-  /*private async _handleFtpStream(data: IHandler): Promise<IRes> {
-    const { fileSize, path, type, startAt } = data;
-
-    try {
-      this._ftpClient.trackProgress(info => {
-        this.emit('progress', {
-          bytes: info.bytes,
-          fileSize,
-          path,
-          type,
-        } as IProgressEvent);
-      });
-
-      if (type === 'download') {
-        await this._ftpClient.download(this._writable, path, startAt);
-      } else {
-        await this._ftpClient.upload(this._readable, path);
-      }
-
-      this._ftpClient.trackProgress(undefined);
-      this._cleanStreams();
-
-      return getResponseData();
-    } catch (err) {
-      this._ftpClient.trackProgress(undefined);
-      this._cleanStreams();
-      return getResponseData(err);
-    }
-  }*/
+  /**
+   * Uploads a file.
+   * @param path Remote path of a file
+   * @param source Source stream
+   */
+  public async upload(path: string, source: Readable, fileSize?: number) {
+    return this._transferManager.upload(path, source, fileSize);
+  }
 
   private async _wrap(sftp: Function, ftp: Function, key?: string) {
     try {
