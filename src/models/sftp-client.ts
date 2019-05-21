@@ -156,4 +156,17 @@ export class SFTPClient {
       });
     });
   }
+
+  public touch(path: string) {
+    return new Promise((resolve, reject) => {
+      this._wrapper.open(path, 'w', (err, handle) => {
+        if (err) return reject(err);
+
+        this._wrapper.close(handle, (err) => {
+          if (err) return reject(err);
+          resolve();
+        })
+      })
+    });
+  }
 }

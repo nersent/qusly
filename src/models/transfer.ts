@@ -14,7 +14,7 @@ export class TransferManager {
 
   constructor(public client: Client) { }
 
-  public async download(path: string, destination: Writable, startAt = 0) {
+  public async download(path: string, destination: Writable, startAt = 0, blockProgress = false) {
     const sizeRes = await this.client.size(path);
     if (!sizeRes.success) return sizeRes;
 
@@ -29,11 +29,12 @@ export class TransferManager {
       type: 'download',
       size: sizeRes.size - startAt,
       path,
-      startAt
+      startAt,
+      blockProgress
     });
   }
 
-  public upload(path: string, source: Readable, size?: number) {
+  public upload(path: string, source: Readable, size?: number, blockProgress = false) {
     if (this.client.protocol === 'sftp') {
       this.writable = this.client._sftpClient.createWriteStream(path);
     }
@@ -45,6 +46,7 @@ export class TransferManager {
       type: 'upload',
       size,
       path,
+      blockProgress
     });
   }
 
@@ -72,7 +74,9 @@ export class TransferManager {
       this.readable.on('data', (chunk) => {
         this.buffered += chunk.length;
 
-        this.client.emit('progress', { ...data, bytes: this.buffered });
+        if (!data.blockProgress) {
+          this.client.emit('progress', { ...data, bytes: this.buffered });
+        }
       });
 
       const onError = (err) => reject(err);
@@ -95,7 +99,10 @@ export class TransferManager {
       if (this.aborting) return;
 
       this.buffered = info.bytes;
-      this.client.emit('progress', { ...data, bytes: this.buffered });
+
+      if (!data.blockProgress) {
+        this.client.emit('progress', { ...data, bytes: this.buffered });
+      }
     });
 
     if (data.type === 'download') {

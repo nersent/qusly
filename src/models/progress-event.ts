@@ -1,5 +1,5 @@
-import { IStreamInfo } from "./stream-info";
+import { ITransferData } from "./stream-info";
 
-export interface IProgressEvent extends IStreamInfo {
+export interface IProgressEvent extends ITransferData {
   bytes: number;
 }

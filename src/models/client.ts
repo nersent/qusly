@@ -8,6 +8,7 @@ import { IRes, ISizeRes, ISendRes, IPwdRes, IReadDirRes, IAbortRes } from './res
 import { formatFile } from '../utils';
 import { TransferManager } from './transfer';
 import { IProgressEvent } from './progress-event';
+import { createReadStream } from 'fs';
 
 export declare interface Client {
   on(event: 'connect', listener: Function): this;
@@ -190,17 +191,18 @@ export class Client extends EventEmitter {
    * @param destination Destination stream
    * @param startAt - Offset to start at
    */
-  public download(path: string, destination: Writable, startAt = 0): Promise<IRes> {
-    return this._transferManager.download(path, destination, startAt)
+  public download(path: string, destination: Writable, startAt = 0, blockProgress = false): Promise<IRes> {
+    return this._transferManager.download(path, destination, startAt, blockProgress)
   }
 
   /**
    * Uploads a file.
    * @param path Remote path of a file
    * @param source Source stream
+   * @param fileSize Size of a file. Can be used to further tracking progress.
    */
-  public async upload(path: string, source: Readable, fileSize?: number): Promise<IRes> {
-    return this._transferManager.upload(path, source, fileSize);
+  public async upload(path: string, source: Readable, fileSize?: number, blockProgress = false): Promise<IRes> {
+    return this._transferManager.upload(path, source, fileSize, blockProgress);
   }
 
   /**
@@ -219,6 +221,22 @@ export class Client extends EventEmitter {
     }
 
     return { success: false };
+  }
+
+  /**
+   * Creates an empty file.
+   * @param path Remote path
+   */
+  public touch(path: string): Promise<IRes> {
+    return this._wrap(
+      () => this._sftpClient.touch(path),
+      () => {
+        const source = new Readable({ read() { } });
+        source.push(null);
+
+        return this.upload(path, source, null, true);
+      }
+    );
   }
 
   /**
