@@ -91,6 +91,7 @@ Class `Client`:
 - [`Client.rimraf`](#clientRimraf)
 - [`Client.send`](#clientSend)
 - [`Client.size`](#clientSize)
+- [`Client.touch`](#clientTouch)
 - [`Client.unlink`](#clientUnlink)
 - [`Client.upload`](#clientUpload)
 
@@ -253,7 +254,7 @@ Events:
 
 <a name="clientMove"></a>
 
-- `Client.move(srcPath: string, destPath: string): Promise<IResponse>`
+- `Client.move(srcPath: string, destPath: string): Promise<IRes>`
   <br />
   Moves a file from **`srcPath`** to **`destPath`**.
   <br />
@@ -264,7 +265,7 @@ Events:
   if (res.success) {
     console.log('Moved');
   } else {
-    console.log('Error occured: ', res.err);
+    console.log('Error occured');
   }
   ```
 
@@ -284,20 +285,16 @@ Events:
 
 <a name="clientSend"></a>
 
-- `Client.send(command: string): Promise<ISendResponse>`
+- `Client.send(command: string): Promise<ISendRes>`
   <br />
   Sends a raw command. **Output depends on a protocol and server support!**
   <br />
 
   ```js
   // Probably will work on SFTP
-  const res = await client.send('whoami');
+  const { message } = await client.send('whoami');
 
-  if (res.success) {
-    console.log(res.message);
-  } else {
-    console.log('Error occured: ', res.err);
-  }
+  console.log(message);
   ```
 
 <a name="clientSize"></a>
@@ -313,9 +310,26 @@ Events:
   console.log(`Size: ${size}`);
   ```
 
+<a name="clientTouch"></a>
+
+- `Client.touch(path: string): Promise<IRes>`
+  <br />
+  Creates an empty file.
+  <br />
+
+  ```js
+  const res = await client.touch('./empty file.txt');
+
+  if (res.success) {
+    console.log('Created an empty file');
+  } else {
+    console.log('Error occured');
+  }
+  ```
+
 <a name="clientUnlink"></a>
 
-- `Client.unlink(path: string): Promise<IResponse>`
+- `Client.unlink(path: string): Promise<IRes>`
   <br />
   Removes a **file** at **`path`**.
   <br />
@@ -326,13 +340,13 @@ Events:
   if (res.success) {
     console.log('Removed');
   } else {
-    console.log('Error occured: ', res.err);
+    console.log('Error occured');
   }
   ```
 
 <a name="clientUpload"></a>
 
-- `Client.upload(path: string, source: Readable, fileSize?: number): Promise<IResponse>`
+- `Client.upload(path: string, source: Readable, fileSize?: number): Promise<IRes>`
   <br />
   Uploads a file.
   <br />
@@ -347,7 +361,7 @@ Events:
   const res = await client.upload(
     'image.jpg',
     createReadStream(path),
-    fileSize, // Optional, but recommended for further tracking the progress
+    fileSize, // Optional but recommended for further tracking the progress
   );
 
   if (res.success) {
