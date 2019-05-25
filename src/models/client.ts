@@ -1,19 +1,38 @@
+import { Writable, Readable } from 'stream';
 import { EventEmitter } from 'events';
 import { Client as FtpClient, parseList } from 'basic-ftp';
 
-import { SFTPClient } from './sftp-client';
-import { IConfig } from './config';
-import { IRes, ISizeRes, ISendRes, IPwdRes, IReadDirRes } from './res';
-import { formatFile } from '../utils';
 
-export class Client {
+import { SFTPClient } from './sftp-client';
+import { IConfig, IProtocol } from './config';
+import { IRes, ISizeRes, ISendRes, IPwdRes, IReadDirRes, IAbortRes } from './res';
+import { formatFile } from '../utils';
+import { TransferManager } from './transfer';
+import { IProgressEvent } from './progress-event';
+import { writeFileSync, readFileSync } from 'fs';
+import { TLSSocket } from 'tls';
+import { resolve, } from 'path';
+
+export declare interface Client {
+  on(event: 'connect', listener: Function): this;
+  on(event: 'disconnect', listener: Function): this;
+  on(event: 'progress', listener: (data?: IProgressEvent) => void): this;
+  on(event: 'abort', listener: Function): this;
+  once(event: 'connect', listener: Function): this;
+  once(event: 'disconnect', listener: Function): this;
+  once(event: 'abort', listener: Function): this;
+}
+
+export class Client extends EventEmitter {
   public connected = false;
 
   private _config: IConfig;
 
-  private _ftpClient: FtpClient;
+  public _ftpClient: FtpClient;
 
-  private _sftpClient: SFTPClient;
+  public _sftpClient: SFTPClient;
+
+  private _transferManager = new TransferManager(this);
 
   /**
   * Connects to server.
@@ -21,6 +40,10 @@ export class Client {
   * @param config Connection config
   */
   public async connect(config: IConfig): Promise<IRes> {
+    if (this.connected) {
+      await this.disconnect();
+    }
+
     this._config = config;
     this.connected = false;
 
@@ -31,11 +54,16 @@ export class Client {
       },
       async () => {
         this._ftpClient = new FtpClient();
-        await this._ftpClient.access({ secure: false, ...config });
+
+        await this._ftpClient.access({
+          secure: false, // TODO
+          ...config
+        });
       }
     );
 
     if (data.success) {
+      this.emit('connect');
       this.connected = true;
     }
 
@@ -46,20 +74,27 @@ export class Client {
     * Disconnects from server.
     * Closes all opened sockets.
     */
-  public disconnect(): Promise<IRes> {
-    // TODO: Handle streams
+  public async disconnect(): Promise<IRes> {
     this.connected = true;
+    this._transferManager.closeStreams();
 
-    return this._wrap(() => {
+    const res = await this._wrap(() => {
       this._sftpClient.disconnect();
+      this._sftpClient = null;
     }, () => {
       this._ftpClient.close();
       this._ftpClient = null;
     });
+
+    if (!this.aborting) {
+      this.emit('disconnect');
+    }
+
+    return res;
   }
 
   /**
-   * Gets size of a file.
+   * Gets size of a file in bytes.
    * @param path Remote path
    */
   public size(path: string): Promise<ISizeRes> {
@@ -71,7 +106,7 @@ export class Client {
   }
 
   /**
-    * Send a command.
+    * Sends a raw command. **Output depends on a protocol and server support!**
     */
   public send(command: string): Promise<ISendRes> {
     return this._wrap(
@@ -85,11 +120,11 @@ export class Client {
   }
 
   /**
-    * Renames or moves a file.
+    * Moves or renames a file.
     * @param srcPath Source path
     * @param destPath Destination path
     */
-  public rename(srcPath: string, destPath: string): Promise<IRes> {
+  public move(srcPath: string, destPath: string): Promise<IRes> {
     return this._wrap(
       () => this._sftpClient.move(srcPath, destPath),
       () => this._ftpClient.rename(srcPath, destPath),
@@ -130,8 +165,8 @@ export class Client {
   };
 
   /**
-    * Gets path of current working directory.
-    */
+   * Gets path of the current working directory.
+   */
   public pwd(): Promise<IPwdRes> {
     return this._wrap(
       () => this._sftpClient.pwd(),
@@ -141,8 +176,8 @@ export class Client {
   }
 
   /**
-    * Reads the content of a directory.
-    */
+   * Reads the content of a directory.
+   */
   public readDir(path = './'): Promise<IReadDirRes> {
     return this._wrap(
       async () => {
@@ -157,9 +192,80 @@ export class Client {
     );
   }
 
+  /**
+   * Downloads a file.
+   * @param path Remote path of a file
+   * @param destination Destination stream
+   * @param startAt - Offset to start at
+   */
+  public download(path: string, destination: Writable, startAt = 0, blockProgress = false): Promise<IRes> {
+    return this._transferManager.download(path, destination, startAt, blockProgress)
+  }
+
+  /**
+   * Uploads a file.
+   * @param path Remote path of a file
+   * @param source Source stream
+   * @param fileSize Size of a file. Can be used to further tracking progress.
+   */
+  public async upload(path: string, source: Readable, fileSize?: number, blockProgress = false): Promise<IRes> {
+    return this._transferManager.upload(path, source, fileSize, blockProgress);
+  }
+
+  /**
+   * Aborts the current data transfer.
+   */
+  public async abort(): Promise<IAbortRes> {
+    if (!this.aborting) {
+      this.aborting = true;
+      this._transferManager.closeStreams();
+
+      const res = await this.connect(this._config);
+
+      this.aborting = false;
+
+      return { ...res, bytes: this._transferManager.buffered };
+    }
+
+    return { success: false };
+  }
+
+  /**
+   * Creates an empty file.
+   * @param path Remote path
+   */
+  public touch(path: string): Promise<IRes> {
+    return this._wrap(
+      () => this._sftpClient.touch(path),
+      () => {
+        const source = new Readable({ read() { } });
+        source.push(null);
+
+        return this.upload(path, source, null, true);
+      }
+    );
+  }
+
+  /**
+   * Checks if file exists.
+   */
+  public async exists(path: string): Promise<boolean> {
+    try {
+      if (this.protocol === 'sftp') {
+        await this._sftpClient.stat(path);
+      } else {
+        await this._ftpClient.rename(path, path);
+      }
+    } catch (err) {
+      return false;
+    }
+
+    return true;
+  }
+
   private async _wrap(sftp: Function, ftp: Function, key?: string) {
     try {
-      const isSftp = this._config.protocol == 'sftp';
+      const isSftp = this.protocol == 'sftp';
       const data = isSftp ? await sftp() : await ftp();
 
       let res = { success: true };
@@ -171,5 +277,17 @@ export class Client {
     } catch (error) {
       return { success: false, error }
     }
+  }
+
+  public get protocol(): IProtocol {
+    return this._config != null ? this._config.protocol : null;
+  }
+
+  public get aborting() {
+    return this._transferManager.aborting;
+  }
+
+  public set aborting(value: boolean) {
+    this._transferManager.aborting = value;
   }
 };

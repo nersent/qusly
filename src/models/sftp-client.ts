@@ -1,5 +1,5 @@
 import { Client as SshClient, SFTPWrapper } from "ssh2";
-import { FileEntry } from "ssh2-streams";
+import { FileEntry, Stats } from "ssh2-streams";
 
 import { IConfig } from "./config";
 
@@ -40,7 +40,7 @@ export class SFTPClient {
     return new Promise((resolve, reject) => {
       this._wrapper.stat(path, (err, stats) => {
         if (err) return reject(err);
-        resolve({ size: stats.size });
+        resolve(stats.size);
       })
     });
   }
@@ -137,6 +137,36 @@ export class SFTPClient {
         if (err) return reject(err);
         resolve(files);
       });
+    });
+  }
+
+  public createReadStream(path: string, startAt?: number) {
+    return this._wrapper.createReadStream(path, { start: startAt });
+  }
+
+  public createWriteStream(path: string) {
+    return this._wrapper.createWriteStream(path);
+  }
+
+  public stat(path: string): Promise<Stats> {
+    return new Promise((resolve, reject) => {
+      this._wrapper.stat(path, (err, stats) => {
+        if (err) return reject(err);
+        resolve(stats);
+      });
+    });
+  }
+
+  public touch(path: string) {
+    return new Promise((resolve, reject) => {
+      this._wrapper.open(path, 'w', (err, handle) => {
+        if (err) return reject(err);
+
+        this._wrapper.close(handle, (err) => {
+          if (err) return reject(err);
+          resolve();
+        })
+      })
     });
   }
 }
