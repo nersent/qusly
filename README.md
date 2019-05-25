@@ -504,7 +504,7 @@ type IFileType = 'unknown' | 'file' | 'directory' | 'symbolic-link';
 
 <a name="clientOnProgress"></a>
 
-- `client.on('progress')` - Triggered while e.g downloading a file.
+- `client.on('progress')` - Triggered while transfering a file.
   <br />
 
   ```ts

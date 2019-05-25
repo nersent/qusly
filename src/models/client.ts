@@ -2,13 +2,16 @@ import { Writable, Readable } from 'stream';
 import { EventEmitter } from 'events';
 import { Client as FtpClient, parseList } from 'basic-ftp';
 
+
 import { SFTPClient } from './sftp-client';
 import { IConfig, IProtocol } from './config';
 import { IRes, ISizeRes, ISendRes, IPwdRes, IReadDirRes, IAbortRes } from './res';
 import { formatFile } from '../utils';
 import { TransferManager } from './transfer';
 import { IProgressEvent } from './progress-event';
-import { createReadStream } from 'fs';
+import { writeFileSync, readFileSync } from 'fs';
+import { TLSSocket } from 'tls';
+import { resolve, } from 'path';
 
 export declare interface Client {
   on(event: 'connect', listener: Function): this;
@@ -51,7 +54,11 @@ export class Client extends EventEmitter {
       },
       async () => {
         this._ftpClient = new FtpClient();
-        await this._ftpClient.access({ secure: false, ...config });
+
+        await this._ftpClient.access({
+          secure: false, // TODO
+          ...config
+        });
       }
     );
 
