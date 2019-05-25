@@ -1,18 +1,37 @@
-import { FileInfo } from "basic-ftp";
+import { FileInfo, FileType } from "basic-ftp";
 import { extname } from 'path';
 
-import { File } from "../models/file";
+import { IFile, IFileType } from "../models/file";
 
-export const formatFile = ({ name, type, size, user, group, date, permissions }: FileInfo): File => ({
-  date: new Date(date),
-  permissions: {
-    user: permissions.user,
-    group: permissions.group,
-  },
-  type,
-  name,
-  size,
-  user,
-  group,
-  ext: extname(name)
-})
+const getType = (type: FileType): IFileType => {
+  switch (type) {
+    case FileType.Directory: {
+      return 'directory';
+    }
+    case FileType.File: {
+      return 'file';
+    }
+    case FileType.SymbolicLink: {
+      return 'symbolic-link';
+    }
+    case FileType.Unknown: {
+      return 'unknown';
+    }
+  }
+}
+
+export const formatFile = (file: FileInfo): IFile => {
+  return {
+    date: new Date(file.date),
+    permissions: {
+      user: file.permissions.user,
+      group: file.permissions.group,
+    },
+    name: file.name,
+    size: file.size,
+    user: file.user,
+    group: file.group,
+    type: getType(file.type),
+    ext: extname(file.name),
+  };
+}

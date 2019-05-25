@@ -1,13 +1,8 @@
-export enum FileType {
-  Unknown = 0,
-  File,
-  Directory,
-  SymbolicLink
-}
+export type IFileType = 'unknown' | 'file' | 'directory' | 'symbolic-link';
 
-export interface File {
+export interface IFile {
   name: string;
-  type: FileType;
+  type: IFileType;
   size: number;
   user: string;
   group: string;

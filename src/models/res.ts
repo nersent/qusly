@@ -1,29 +1,26 @@
-import { File } from "./file";
+import { IFile } from "./file";
 
-export interface IResponse {
+export interface IRes {
   success: boolean;
-  error?: {
-    code?: string | number;
-    message?: string;
-  }
+  error?: Error;
 }
 
-export interface ISizeResponse extends IResponse {
+export interface ISizeRes extends IRes {
   size?: number;
 }
 
-export interface IAbortResponse extends IResponse {
-  bytes?: number;
-}
-
-export interface ISendResponse extends IResponse {
+export interface ISendRes extends IRes {
   message?: string;
 }
 
-export interface ILsResponse extends IResponse {
-  files?: File[];
+export interface IPwdRes extends IRes {
+  path?: string;
 }
 
-export interface IPwdResponse extends IResponse {
-  path?: string;
+export interface IReadDirRes extends IRes {
+  files?: IFile[];
+}
+
+export interface IAbortRes extends IRes {
+  bytes?: number;
 }
