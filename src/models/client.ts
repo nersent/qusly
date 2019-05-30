@@ -185,6 +185,7 @@ export class Client extends EventEmitter {
         return files.map(file => formatFile(parseList(file.longname)[0]))
       },
       async () => {
+        await this._ftpClient.cd(path);
         const files = await this._ftpClient.list();
         return files.map(file => formatFile(file));
       },
