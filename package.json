@@ -41,6 +41,6 @@
   },
   "dependencies": {
     "basic-ftp": "https://github.com/xnerhu/basic-ftp",
-    "ssh2": "0.8.2"
+    "ssh2": "0.8.4"
   }
 }
