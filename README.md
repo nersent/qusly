@@ -1,6 +1,6 @@
 # qusly-core
 
-[![Travis](https://img.shields.io/travis/xnerhu/qusly-core.svg?style=flat-square)](https://travis-ci.org/xnerhu/qusly-core.svg)
+[![Travis](https://img.shields.io/travis/qusly/qusly-core.svg?style=flat-square)](https://travis-ci.org/xnerhu/qusly-core.svg)
 [![NPM](https://img.shields.io/npm/v/qusly-core.svg?style=flat-square)](https://www.npmjs.com/package/qusly-core)
 
 An API wrapper around [ssh2](https://github.com/mscdex/ssh2) and [basic-ftp](https://github.com/patrickjuchli/basic-ftp) for building **FTP/FTPS/SFTP** clients used in [Qusly](https://www.github.com/qusly/qusly).
