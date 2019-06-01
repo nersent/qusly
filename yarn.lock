@@ -41,6 +41,7 @@ balanced-match@^1.0.0:
 
 "basic-ftp@https://github.com/xnerhu/basic-ftp":
   version "3.4.4"
+  uid "759aaf8d2ce5aa34d8103b53ec2835ae6f7088e6"
   resolved "https://github.com/xnerhu/basic-ftp#759aaf8d2ce5aa34d8103b53ec2835ae6f7088e6"
 
 bcrypt-pbkdf@^1.0.2:
