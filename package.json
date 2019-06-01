@@ -37,7 +37,7 @@
     "@types/node": "11.13.1",
     "@types/ssh2": "0.5.38",
     "rimraf": "2.6.3",
-    "typescript": "3.4.2"
+    "typescript": "3.5.1"
   },
   "dependencies": {
     "basic-ftp": "https://github.com/xnerhu/basic-ftp",
