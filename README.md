@@ -51,7 +51,7 @@ Example output:
       ext: ''
       user: 'root',
       group: 'root',
-      date: '2019-05-10T18:52:00.000Z,
+      date: '2019-05-10T18:52:00.000Z',
       permissions: {
         user: 6,
         group: 6
