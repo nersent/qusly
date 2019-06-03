@@ -35,8 +35,9 @@ balanced-match@^1.0.0:
   integrity sha1-ibTRmasr7kneFk6gK4nORi1xt2c=
 
 "basic-ftp@https://github.com/xnerhu/basic-ftp":
-  version "3.4.4"
-  resolved "https://github.com/xnerhu/basic-ftp#759aaf8d2ce5aa34d8103b53ec2835ae6f7088e6"
+  version "3.5.0"
+  uid d88164bf371d32fbc6a84688aa066d15f6aa3070
+  resolved "https://github.com/xnerhu/basic-ftp#d88164bf371d32fbc6a84688aa066d15f6aa3070"
 
 bcrypt-pbkdf@^1.0.2:
   version "1.0.2"
