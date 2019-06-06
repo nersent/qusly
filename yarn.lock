@@ -34,9 +34,10 @@ balanced-match@^1.0.0:
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.0.tgz#89b4d199ab2bee49de164ea02b89ce462d71b767"
   integrity sha1-ibTRmasr7kneFk6gK4nORi1xt2c=
 
-"basic-ftp@https://github.com/xnerhu/basic-ftp":
-  version "3.4.4"
-  resolved "https://github.com/xnerhu/basic-ftp#759aaf8d2ce5aa34d8103b53ec2835ae6f7088e6"
+basic-ftp@3.6.0:
+  version "3.6.0"
+  resolved "https://registry.yarnpkg.com/basic-ftp/-/basic-ftp-3.6.0.tgz#53f66467179606eb42f3c2f68df09e42ccd7f20b"
+  integrity sha512-Wlw5HqlgMt2eJbR8SNORCalVRejG9D3hB0fwMNOjzdNswc0G5ZJvBCASt2n3dE1tNNeK/nJST7Z0ngR601PxmQ==
 
 bcrypt-pbkdf@^1.0.2:
   version "1.0.2"

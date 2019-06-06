@@ -241,7 +241,7 @@ Events:
 
 <a name="clientReadDir"></a>
 
-- `Client.readDir(path: string): Promise<IReadDirRes>`
+- `Client.readDir(path?: string): Promise<IReadDirRes>`
   <br />
   Reads the content of a directory.
   <br />

@@ -36,11 +36,11 @@
   "devDependencies": {
     "@types/node": "12.0.4",
     "@types/ssh2": "0.5.38",
+    "basic-ftp": "3.6.0",
     "rimraf": "2.6.3",
     "typescript": "3.5.1"
   },
   "dependencies": {
-    "basic-ftp": "https://github.com/xnerhu/basic-ftp",
     "ssh2": "0.8.4"
   }
 }

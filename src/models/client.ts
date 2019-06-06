@@ -9,9 +9,6 @@ import { IRes, ISizeRes, ISendRes, IPwdRes, IReadDirRes, IAbortRes } from './res
 import { formatFile } from '../utils';
 import { TransferManager } from './transfer';
 import { IProgressEvent } from './progress-event';
-import { writeFileSync, readFileSync } from 'fs';
-import { TLSSocket } from 'tls';
-import { resolve, } from 'path';
 
 export declare interface Client {
   on(event: 'connect', listener: Function): this;
@@ -178,15 +175,14 @@ export class Client extends EventEmitter {
   /**
    * Reads the content of a directory.
    */
-  public readDir(path = './'): Promise<IReadDirRes> {
+  public readDir(path?: string): Promise<IReadDirRes> {
     return this._wrap(
       async () => {
-        const files = await this._sftpClient.readDir(path);
+        const files = await this._sftpClient.readDir(path || './');
         return files.map(file => formatFile(parseList(file.longname)[0]))
       },
       async () => {
-        await this._ftpClient.cd(path);
-        const files = await this._ftpClient.list();
+        const files = await this._ftpClient.list(path);
         return files.map(file => formatFile(file));
       },
       'files'
@@ -224,7 +220,6 @@ export class Client extends EventEmitter {
       const res = await this.connect(this._config);
 
       this.aborting = false;
-
       return { ...res, bytes: this._transferManager.buffered };
     }
 
