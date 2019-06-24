@@ -1,6 +1,6 @@
 {
   "name": "qusly-core",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "An API wrapper around ssh2 and basic-ftp for building FTP/FTPS/SFTP clients.",
   "keywords": [
     "ftp",
@@ -11,7 +11,8 @@
     "ssh2",
     "node-ftp",
     "basic-ftp",
-    "qusly"
+    "qusly",
+    "qusly-core"
   ],
   "author": {
     "name": "Mikołaj Palkiewicz",
