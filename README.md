@@ -479,7 +479,7 @@ interface IAbortRes extends IRes {
 ### Type `IProtocol`
 
 ```ts
-type IProtocol = 'ftp' | 'sftp';
+type IProtocol = 'sftp' | 'ftp' | 'ftps';
 ```
 
 ### Type `IFileType`
@@ -520,4 +520,4 @@ type IFileType = 'unknown' | 'file' | 'directory' | 'symbolic-link';
 
 # Related
 
-- [Qusly](https://www.github.com/xnerhu/qusly) - An FTP/SFTP client with Material Design UI.
+- [Qusly](https://www.github.com/xnerhu/qusly) - An innovative FTP/SFTP client.
