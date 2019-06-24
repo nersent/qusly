@@ -28,10 +28,8 @@
   "scripts": {
     "dev": "tsc --watch",
     "build": "npm run clean && tsc",
-    "buildOnly": "npm run build",
     "prepublishOnly": "npm run build",
-    "clean": "rimraf ./build",
-    "prepare": "npm run build"
+    "clean": "rimraf ./build"
   },
   "devDependencies": {
     "@types/node": "12.0.10",
