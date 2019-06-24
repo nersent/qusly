@@ -55,8 +55,13 @@ export class Client extends EventEmitter {
       async () => {
         this._ftpClient = new FtpClient();
 
+        const ftps = config.protocol === 'ftps';
+
         await this._ftpClient.access({
-          secure: false, // TODO
+          secure: ftps,
+          secureOptions: ftps ? null : {
+            rejectUnauthorized: false,
+          },
           ...config
         });
       }

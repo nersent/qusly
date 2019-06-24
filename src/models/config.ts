@@ -1,4 +1,4 @@
-export type IProtocol = 'ftp' | 'sftp';
+export type IProtocol = 'sftp' | 'ftp' | 'ftps';
 
 export interface IConfig {
   protocol?: IProtocol;
