@@ -34,10 +34,10 @@
     "prepare": "npm run build"
   },
   "devDependencies": {
-    "@types/node": "12.0.4",
+    "@types/node": "12.0.10",
     "@types/ssh2": "0.5.38",
     "rimraf": "2.6.3",
-    "typescript": "3.5.1"
+    "typescript": "3.5.2"
   },
   "dependencies": {
     "basic-ftp": "3.6.0",
