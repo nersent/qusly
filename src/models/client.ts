@@ -18,6 +18,7 @@ export declare interface Client {
   once(event: 'connect', listener: Function): this;
   once(event: 'disconnect', listener: Function): this;
   once(event: 'abort', listener: Function): this;
+  on(event: '_available', listener: Function): this;
 }
 
 export class Client extends EventEmitter {
@@ -30,6 +31,8 @@ export class Client extends EventEmitter {
   public _sftpClient: SFTPClient;
 
   private _transferManager = new TransferManager(this);
+
+  private _busy = false;
 
   /**
   * Connects to server.
@@ -81,7 +84,7 @@ export class Client extends EventEmitter {
     }, () => {
       this._ftpClient.close();
       this._ftpClient = null;
-    });
+    }, null, false);
 
     if (!this.aborting) {
       this.emit('disconnect');
@@ -259,20 +262,41 @@ export class Client extends EventEmitter {
     return true;
   }
 
-  private async _wrap(sftp: Function, ftp: Function, key?: string) {
+  private async _wrap(sftp: Function, ftp: Function, key?: string, checkStatus = true) {
     try {
       const isSftp = this.protocol == 'sftp';
-      const data = isSftp ? await sftp() : await ftp();
+      const data = isSftp ? await sftp() : await this._wrapFtp(ftp, checkStatus);
 
       let res = { success: true };
       if (key != null) {
         res[key] = data;
       }
 
+      this._setAvailable();
       return res;
     } catch (error) {
+      this._setAvailable();
       return { success: false, error }
     }
+  }
+
+  private _wrapFtp(fn: Function, checkStatus: boolean) {
+    return new Promise((resolve) => {
+      if (!checkStatus || !this._busy) {
+        this._busy = true;
+        return resolve(fn());
+      }
+
+      const handle = () => {
+        if (!this._busy) {
+          this._busy = true;
+          this.removeListener('_available', handle);
+          resolve(fn());
+        }
+      };
+
+      this.on('_available', handle);
+    });
   }
 
   public get protocol(): IProtocol {
@@ -285,5 +309,10 @@ export class Client extends EventEmitter {
 
   public set aborting(value: boolean) {
     this._transferManager.aborting = value;
+  }
+
+  private _setAvailable() {
+    this._busy = false;
+    this.emit('_available');
   }
 };
