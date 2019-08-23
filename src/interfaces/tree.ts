@@ -1,6 +1,6 @@
 import { IFile } from './file';
 
-interface ITreeItem {
+export interface ITreeItem {
   path?: string;
   file?: IFile;
 }

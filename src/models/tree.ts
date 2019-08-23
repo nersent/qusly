@@ -1,13 +1,19 @@
 import { EventEmitter } from 'events';
 
-import { IConfig } from '../interfaces';
+import { IConfig, ITreeItem } from '../interfaces';
 import { formatPath } from '../utils';
 import { Client } from './client';
 
-export class Tree extends EventEmitter {
-  private client = new Client();
+export declare interface Tree {
+  on(event: 'fetch', listener: (item: ITreeItem) => void): this;
+  on(event: 'finish', listener: Function): this;
+  once(event: 'finish', listener: Function): this;
+}
 
-  private connected = false;
+export class Tree extends EventEmitter {
+  public client = new Client();
+
+  public connected = false;
 
   private queue: string[] = ['/'];
 
@@ -21,8 +27,9 @@ export class Tree extends EventEmitter {
     return res;
   }
 
-  public init(maxDepth = 0) {
-    this.traverse(maxDepth);
+  public async init(maxDepth = 0) {
+    await this.traverse(maxDepth);
+    this.emit('finish');
   }
 
   private async traverse(maxDepth: number) {
@@ -39,11 +46,14 @@ export class Tree extends EventEmitter {
       for (const file of res.files) {
         const filePath = formatPath(path, file);
 
-        console.log(filePath, ':', file.name);
-
         if (file.type === 'directory') {
           this.tempQueue.push(filePath);
         }
+
+        this.emit('fetch', {
+          path: filePath,
+          file,
+        })
       }
     }
 
