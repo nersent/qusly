@@ -1,4 +1,4 @@
-import { ITransferData } from "./stream-info";
+import { ITransferData } from './stream';
 
 export interface IProgressEvent extends ITransferData {
   bytes: number;

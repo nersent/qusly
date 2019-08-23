@@ -2,13 +2,20 @@ import { Writable, Readable } from 'stream';
 import { EventEmitter } from 'events';
 import { Client as FtpClient, parseList } from 'basic-ftp';
 
-
-import { SFTPClient } from './sftp-client';
-import { IConfig, IProtocol } from './config';
-import { IRes, ISizeRes, ISendRes, IPwdRes, IReadDirRes, IAbortRes } from './res';
+import {
+  IProgressEvent,
+  IConfig,
+  IRes,
+  ISizeRes,
+  ISendRes,
+  IPwdRes,
+  IReadDirRes,
+  IAbortRes,
+  IProtocol
+} from '../interfaces';
 import { formatFile } from '../utils';
 import { TransferManager } from './transfer';
-import { IProgressEvent } from './progress-event';
+import { SFTPClient } from './sftp-client';
 
 export declare interface Client {
   on(event: 'connect', listener: Function): this;

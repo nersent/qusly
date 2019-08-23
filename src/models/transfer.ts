@@ -1,7 +1,7 @@
-import { Readable, Writable } from "stream";
+import { Readable, Writable } from 'stream';
 
-import { Client } from "./client";
-import { IStreamInfo } from "./stream-info";
+import { IStreamInfo } from '../interfaces';
+import { Client } from './client';
 
 export class TransferManager {
   public readable: Readable;

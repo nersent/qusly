@@ -1,7 +1,7 @@
-import { FileInfo, FileType } from "basic-ftp";
+import { FileInfo, FileType } from 'basic-ftp';
 import { extname } from 'path';
 
-import { IFile, IFileType } from "../models/file";
+import { IFile, IFileType } from '../interfaces';
 
 const getType = (type: FileType): IFileType => {
   switch (type) {

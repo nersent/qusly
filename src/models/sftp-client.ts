@@ -1,7 +1,7 @@
-import { Client as SshClient, SFTPWrapper } from "ssh2";
-import { FileEntry, Stats } from "ssh2-streams";
+import { Client as SshClient, SFTPWrapper } from 'ssh2';
+import { FileEntry, Stats } from 'ssh2-streams';
 
-import { IConfig } from "./config";
+import { IConfig } from '../interfaces';
 
 export class SFTPClient {
   private _ssh: SshClient;
