@@ -95,6 +95,11 @@ Class `Client`:
 - [`Client.unlink`](#clientUnlink)
 - [`Client.upload`](#clientUpload)
 
+Class `Tree`:
+
+- [`Tree.connect`](#treeConnect)
+- [`Tree.init`](#treeInit)
+
 Interfaces:
 
 - [`IConfig`](#config)
@@ -106,6 +111,8 @@ Interfaces:
 - [`IPwdRes`](#pwdRes)
 - [`IReadDirRes`](#readDirRes)
 - [`IAbortRes`](#abortRes)
+- [`ITreeItem`](#treeItem)
+- [`ITreeOptions`](#treeOptions)
 
 Types:
 
@@ -114,10 +121,12 @@ Types:
 
 Events:
 
-- [`client.on('connect')`](#clientOnConnect)
-- [`client.on('disconnect')`](#clientOnDisconnect)
-- [`client.on('abort')`](#clientOnAbort)
-- [`client.on('progress')`](#clientOnProgress)
+- [`Client.on('connect')`](#clientOnConnect)
+- [`Client.on('disconnect')`](#clientOnDisconnect)
+- [`Client.on('abort')`](#clientOnAbort)
+- [`Client.on('progress')`](#clientOnProgress)
+- [`Tree.on('fetch')`](#treeOnFetch)
+- [`Tree.on('finish')`](#treeOnFinish)
 
 ### Class `Client`
 
@@ -371,6 +380,37 @@ Events:
   }
   ```
 
+### Class `Tree`
+
+An utility for tree traversal.
+
+#### Methods
+
+<a name="treeConnect"></a>
+
+- `Tree.connect(config: IConfig): Promise<IRes>`
+
+<a name="treeInit"></a>
+
+- `Tree.init(options: ITreeOptions): Promise<void>`
+  <br />
+  Starts traversing tree. You can set `options` to for example change max depth.
+  <br />
+
+  ```js
+  const tree = new Tree();
+
+  await tree.init({
+    path: '/',
+    maxDepth: 0,
+    filter: item => {
+      return item.file.type === 'directory';
+    },
+  });
+
+  console.log('Finished traversing!');
+  ```
+
 <a name="config"></a>
 
 ### Interface `IConfig`
@@ -476,6 +516,29 @@ interface IAbortRes extends IRes {
 }
 ```
 
+<a name="treeItem"></a>
+
+### Interface `ITreeItem`
+
+```ts
+interface ITreeItem {
+  path?: string;
+  file?: IFile;
+}
+```
+
+<a name="treeOptions"></a>
+
+### Interface `ITreeOptions`
+
+```ts
+export interface ITreeOptions {
+  path?: string;
+  maxDepth?: number;
+  filter?: (item: ITreeItem) => boolean;
+}
+```
+
 ### Type `IProtocol`
 
 ```ts
@@ -490,21 +553,23 @@ type IFileType = 'unknown' | 'file' | 'directory' | 'symbolic-link';
 
 ### Events
 
+**Client**
+
 <a name="clientOnConnect"></a>
 
-- `client.on('connect')` - Client has connected to server.
+- `Client.on('connect')` - Client has connected to server.
 
 <a name="clientOnDisconnect"></a>
 
-- `client.on('disconnect')` - Client has disconnected from server.
+- `Client.on('disconnect')` - Client has disconnected from server.
 
 <a name="clientOnAbort"></a>
 
-- `client.on('abort')` - File transfer has been aborted.
+- `Client.on('abort')` - File transfer has been aborted.
 
 <a name="clientOnProgress"></a>
 
-- `client.on('progress')` - Triggered while transfering a file.
+- `Client.on('progress')` - Triggered while transfering a file.
   <br />
 
   ```ts
@@ -517,6 +582,25 @@ type IFileType = 'unknown' | 'file' | 'directory' | 'symbolic-link';
 
   client.download(...);
   ```
+
+**Tree**
+
+<a name="treeOnFetch"></a>
+
+- `Tree.on('fetch')` - Invoked when file is fetched.
+  <br />
+
+  ```ts
+  tree.on('fetch', (item: ITreeItem) => {
+    const { path, file } = item;
+
+    console.log(`${path}: ${file.size}`);
+  });
+  ```
+
+<a name="treeOnFinish"></a>
+
+- `Tree.on('finish')` - Traversing tree has ended.
 
 # Related
 
