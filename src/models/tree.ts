@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 
-import { IConfig, ITreeItem } from '../interfaces';
+import { IConfig, ITreeItem, ITreeOptions } from '../interfaces';
 import { formatPath } from '../utils';
 import { Client } from './client';
 
@@ -11,11 +11,11 @@ export declare interface Tree {
 }
 
 export class Tree extends EventEmitter {
-  public client = new Client();
+  private client = new Client();
 
-  public connected = false;
+  private connected = false;
 
-  private queue: string[] = ['/'];
+  private queue: string[] = [];
 
   private tempQueue: string[] = [];
 
@@ -27,33 +27,45 @@ export class Tree extends EventEmitter {
     return res;
   }
 
-  public async init(maxDepth = 0) {
-    await this.traverse(maxDepth);
+  public async init(options: ITreeOptions = {}) {
+    this.depth = -1;
+    this.queue = [options.path || '/'];
+
+    await this.traverse(options);
+    await this.client.disconnect();
+
     this.emit('finish');
+    this.connected = false;
+    this.queue = [];
   }
 
-  private async traverse(maxDepth: number) {
+  private async traverse(options: ITreeOptions) {
+    const { filter, maxDepth } = options;
+
     if (this.depth > maxDepth || !this.connected) return;
 
     for (const path of this.queue) {
       const res = await this.client.readDir(path);
 
       if (!res.success) {
-        console.error(`Can't traverse ${path}: `, res.error);
+        console.error(`Can't traverse to ${path}: `, res.error);
         continue;
       }
 
       for (const file of res.files) {
         const filePath = formatPath(path, file);
-
-        if (file.type === 'directory') {
-          this.tempQueue.push(filePath);
-        }
-
-        this.emit('fetch', {
+        const item: ITreeItem = {
           path: filePath,
           file,
-        })
+        };
+
+        if (!filter || filter(item)) {
+          this.emit('fetch', item)
+
+          if (file.type === 'directory') {
+            this.tempQueue.push(filePath);
+          }
+        }
       }
     }
 
@@ -61,6 +73,6 @@ export class Tree extends EventEmitter {
     this.tempQueue = [];
     this.depth++;
 
-    await this.traverse(maxDepth);
+    await this.traverse(options);
   }
 }
