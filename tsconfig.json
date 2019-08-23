@@ -2,7 +2,7 @@
   "compilerOptions": {
     "outDir": "./build/",
 
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
@@ -17,5 +17,5 @@
     "baseUrl": "./"
   },
   "exclude": ["node_modules", "build"],
-  "include": ["src/**/*"]
+  "include": ["./src"]
 }
