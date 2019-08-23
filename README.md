@@ -520,4 +520,4 @@ type IFileType = 'unknown' | 'file' | 'directory' | 'symbolic-link';
 
 # Related
 
-- [Qusly](https://www.github.com/xnerhu/qusly) - An innovative FTP/SFTP client.
+- [Qusly](https://www.github.com/qusly/qusly) - full-featured FTP client.
