@@ -1,13 +1,8 @@
 import { EventEmitter } from 'events';
 
-import { IConfig, IFile } from '../interfaces';
+import { IConfig } from '../interfaces';
 import { formatPath } from '../utils';
 import { Client } from './client';
-
-interface TreeItem {
-  path?: string;
-  file?: IFile;
-}
 
 export class Tree extends EventEmitter {
   private client = new Client();
@@ -22,7 +17,6 @@ export class Tree extends EventEmitter {
 
   public async connect(config: IConfig) {
     const res = await this.client.connect(config);
-
     this.connected = res.success;
     return res;
   }
@@ -32,7 +26,7 @@ export class Tree extends EventEmitter {
   }
 
   private async traverse(maxDepth: number) {
-    if (this.depth > maxDepth) return;
+    if (this.depth > maxDepth || !this.connected) return;
 
     for (const path of this.queue) {
       const res = await this.client.readDir(path);
