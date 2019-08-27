@@ -1,11 +1,11 @@
 import { EventEmitter } from 'events';
 
-import { IConfig, ITreeItem, ITreeOptions } from '../interfaces';
+import { IConfig, ITraversalItem, ITraversalOptions } from '../interfaces';
 import { formatPath } from '../utils';
 import { Client } from './client';
 
 export declare interface Tree {
-  on(event: 'fetch', listener: (item: ITreeItem) => void): this;
+  on(event: 'fetch', listener: (item: ITraversalItem) => void): this;
   on(event: 'finish', listener: Function): this;
   once(event: 'finish', listener: Function): this;
 }
@@ -27,7 +27,7 @@ export class Tree extends EventEmitter {
     return res;
   }
 
-  public async init(options: ITreeOptions = {}) {
+  public async init(options: ITraversalOptions = {}) {
     this.depth = -1;
     this.queue = [options.path || '/'];
 
@@ -39,7 +39,7 @@ export class Tree extends EventEmitter {
     this.queue = [];
   }
 
-  private async traverse(options: ITreeOptions) {
+  private async traverse(options: ITraversalOptions) {
     const { filter, maxDepth } = options;
 
     if (this.depth > maxDepth || !this.connected) return;
@@ -54,7 +54,7 @@ export class Tree extends EventEmitter {
 
       for (const file of res.files) {
         const filePath = formatPath(path, file);
-        const item: ITreeItem = {
+        const item: ITraversalItem = {
           path: filePath,
           file,
         };
