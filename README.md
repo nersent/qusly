@@ -81,6 +81,7 @@ Class `Client`:
 
 - [`Client.abort`](#clientAbort)
 - [`Client.connect`](#clientConnect)
+- [`Client.createBlank`](#clientCreateBlank)
 - [`Client.disconnect`](#clientDisconnect)
 - [`Client.download`](#clientDownload)
 - [`Client.exists`](#clientExists)
@@ -111,6 +112,7 @@ Interfaces:
 - [`IPwdRes`](#pwdRes)
 - [`IReadDirRes`](#readDirRes)
 - [`IAbortRes`](#abortRes)
+- [`ICreateBlankRes`](#createBlankRes)
 - [`ITraversalItem`](#traversalItem)
 - [`ITraversalOptions`](#traversalOptions)
 
@@ -166,6 +168,19 @@ Events:
   } else {
     console.log('Failed to connect!', res.error);
   }
+  ```
+
+<a name="clientCreateBlank"></a>
+
+- `Client.createBlank(type: 'folder' | 'file', path = './', files?: IFile[]): Promise<ICreateBlankRes>`
+  <br />
+  Creates an empty folder or file with unique name;
+  <br />
+
+  ```js
+  const res = await client.createBlank('folder');
+
+  console.log(`Created ${res.fileName}`);
   ```
 
 <a name="clientDisconnect"></a>
@@ -520,6 +535,16 @@ interface IAbortRes extends IRes {
 }
 ```
 
+<a name="createBlankRes"></a>
+
+### Interface `ICreateBlankRes`
+
+```ts
+interface ICreateBlankRes extends IRes {
+  fileName?: string;
+}
+```
+
 <a name="traversalItem"></a>
 
 ### Interface `ITraversalItem`
@@ -536,7 +561,7 @@ interface ITraversalItem {
 ### Interface `ITraversalOptions`
 
 ```ts
-export interface ITraversalOptions {
+interface ITraversalOptions {
   path?: string;
   maxDepth?: number;
   filter?: (item: ITraversalItem) => boolean;
