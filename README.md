@@ -95,10 +95,10 @@ Class `Client`:
 - [`Client.unlink`](#clientUnlink)
 - [`Client.upload`](#clientUpload)
 
-Class `Tree`:
+Class `Traversal`:
 
-- [`Tree.connect`](#treeConnect)
-- [`Tree.init`](#treeInit)
+- [`Traversal.connect`](#traversalConnect)
+- [`Traversal.init`](#traversalInit)
 
 Interfaces:
 
@@ -111,8 +111,8 @@ Interfaces:
 - [`IPwdRes`](#pwdRes)
 - [`IReadDirRes`](#readDirRes)
 - [`IAbortRes`](#abortRes)
-- [`ITreeItem`](#treeItem)
-- [`ITreeOptions`](#treeOptions)
+- [`ITraversalItem`](#traversalItem)
+- [`ITraversalOptions`](#traversalOptions)
 
 Types:
 
@@ -125,8 +125,8 @@ Events:
 - [`Client.on('disconnect')`](#clientOnDisconnect)
 - [`Client.on('abort')`](#clientOnAbort)
 - [`Client.on('progress')`](#clientOnProgress)
-- [`Tree.on('fetch')`](#treeOnFetch)
-- [`Tree.on('finish')`](#treeOnFinish)
+- [`Traversal.on('fetch')`](#traversalOnFetch)
+- [`Traversal.on('finish')`](#traversalOnFinish)
 
 ### Class `Client`
 
@@ -380,25 +380,29 @@ Events:
   }
   ```
 
-### Class `Tree`
+### Class `Traversal`
 
 An utility for tree traversal.
 
 #### Methods
 
-<a name="treeConnect"></a>
+<a name="traversalConnect"></a>
 
-- `Tree.connect(config: IConfig): Promise<IRes>`
+- `Traversal.connect(config: IConfig): Promise<IRes>`
 
-<a name="treeInit"></a>
+<a name="traversalInit"></a>
 
-- `Tree.init(options: ITreeOptions): Promise<void>`
+- `Traversal.init(options: ITreeOptions): Promise<void>`
   <br />
   Starts traversing tree. You can set `options` to for example change max depth.
   <br />
 
   ```js
-  const tree = new Tree();
+  const tree = new Traversal();
+
+  tree.on('fetch', item => {
+    console.log(item.path);
+  });
 
   await tree.init({
     path: '/',
@@ -516,26 +520,26 @@ interface IAbortRes extends IRes {
 }
 ```
 
-<a name="treeItem"></a>
+<a name="traversalItem"></a>
 
-### Interface `ITreeItem`
+### Interface `ITraversalItem`
 
 ```ts
-interface ITreeItem {
+interface ITraversalItem {
   path?: string;
   file?: IFile;
 }
 ```
 
-<a name="treeOptions"></a>
+<a name="traversalOptions"></a>
 
-### Interface `ITreeOptions`
+### Interface `ITraversalOptions`
 
 ```ts
-export interface ITreeOptions {
+export interface ITraversalOptions {
   path?: string;
   maxDepth?: number;
-  filter?: (item: ITreeItem) => boolean;
+  filter?: (item: ITraversalItem) => boolean;
 }
 ```
 
@@ -583,11 +587,11 @@ type IFileType = 'unknown' | 'file' | 'directory' | 'symbolic-link';
   client.download(...);
   ```
 
-**Tree**
+**Traversal**
 
-<a name="treeOnFetch"></a>
+<a name="traversalOnFetch"></a>
 
-- `Tree.on('fetch')` - Invoked when file is fetched.
+- `Traversal.on('fetch')` - Invoked when file is fetched.
   <br />
 
   ```ts
@@ -598,9 +602,9 @@ type IFileType = 'unknown' | 'file' | 'directory' | 'symbolic-link';
   });
   ```
 
-<a name="treeOnFinish"></a>
+<a name="traversalOnFinish"></a>
 
-- `Tree.on('finish')` - Traversing tree has ended.
+- `Traversal.on('finish')` - Invoked on finish.
 
 # Related
 
