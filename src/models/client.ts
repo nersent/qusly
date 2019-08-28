@@ -11,9 +11,11 @@ import {
   IPwdRes,
   IReadDirRes,
   IAbortRes,
-  IProtocol
+  IProtocol,
+  IFile,
+  ICreateBlankRes
 } from '../interfaces';
-import { formatFile } from '../utils';
+import { formatFile, createFileName } from '../utils';
 import { TransferManager } from './transfer';
 import { SFTPClient } from './sftp-client';
 
@@ -272,6 +274,25 @@ export class Client extends EventEmitter {
     }
 
     return true;
+  }
+
+  public async createBlank(type: 'folder' | 'file', path = './', files?: IFile[]): Promise<ICreateBlankRes> {
+    if (!files) {
+      const res = await this.readDir(path);
+      if (!res.success) return res;
+      files = res.files || [];
+    }
+
+    const fileName = createFileName(files, `new ${type}`);
+    const filePath = `${path}/${fileName}`;
+    const res = type === 'folder' ? await this.mkdir(filePath) : await this.touch(filePath);
+
+    if (!res.success) return res;
+
+    return {
+      success: true,
+      fileName,
+    }
   }
 
   private async _wrap(sftp: Function, ftp: Function, key?: string, checkStatus = true) {

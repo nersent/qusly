@@ -24,3 +24,7 @@ export interface IReadDirRes extends IRes {
 export interface IAbortRes extends IRes {
   bytes?: number;
 }
+
+export interface ICreateBlankRes extends IRes {
+  fileName?: string;
+}
