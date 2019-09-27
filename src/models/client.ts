@@ -123,6 +123,45 @@ export class Client extends EventEmitter {
   }
 
   /**
+   * Removes a file.
+   */
+  public unlink(path: string): Promise<void> {
+    return this._tasks.handle(() => {
+      if (this.isSftp) {
+        return this._sftpClient.unlink(path);
+      } else {
+        return this._ftpClient.remove(path);
+      }
+    });
+  }
+
+  /**
+   * Removes a folder and all of its content.
+   */
+  public async rimraf(path: string): Promise<void> {
+    return this._tasks.handle(() => {
+      if (this.isSftp) {
+        return this._sftpClient.removeDir(path);
+      }
+
+      return this._ftpClient.removeDir(path);
+    });
+  }
+
+  /**
+   * Removes files and folders
+   */
+  public async delete(path: string): Promise<void> {
+    const { type } = await this.stat(path);
+
+    if (type === 'folder') {
+      return this.rimraf(path);
+    }
+
+    return this.unlink(path);
+  }
+
+  /**
     * Sends a raw command. **Output depends on a protocol and server support!**
     */
   public send(command: string): Promise<string> {
@@ -136,11 +175,11 @@ export class Client extends EventEmitter {
     });
   }
 
-  private get isSftp() {
-    return this.protocol === 'sftp';
-  }
-
   public get protocol(): IProtocol {
     return this.config ? this.config.protocol : null;
+  }
+
+  private get isSftp() {
+    return this.protocol === 'sftp';
   }
 }
