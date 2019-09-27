@@ -1,9 +1,10 @@
 import { extname } from 'path';
 import { FileInfo, FileType } from 'basic-ftp';
+import { Stats } from 'ssh2-streams';
 
 import { IFile, IFileType } from '../interfaces';
 
-const getType = (type: FileType): IFileType => {
+export const getFileType = (type: FileType): IFileType => {
   switch (type) {
     case FileType.Directory: {
       return 'folder';
@@ -14,10 +15,21 @@ const getType = (type: FileType): IFileType => {
     case FileType.SymbolicLink: {
       return 'symbolic-link';
     }
-    case FileType.Unknown: {
-      return 'unknown';
-    }
   }
+
+  return 'unknown';
+}
+
+export const getFileTypeFromStats = (stats: Stats): IFileType => {
+  if (stats.isDirectory()) {
+    return 'folder';
+  } else if (stats.isFile()) {
+    return 'file';
+  } else if (stats.isSymbolicLink()) {
+    return 'symbolic-link';
+  }
+
+  return 'unknown';
 }
 
 export const formatFile = (file: FileInfo): IFile => {
@@ -29,7 +41,7 @@ export const formatFile = (file: FileInfo): IFile => {
       user: permissions.user,
       group: permissions.group,
     },
-    type: getType(type),
+    type: getFileType(type),
     ext: extname(name),
     name,
     size,

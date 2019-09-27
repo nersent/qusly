@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events';
-import { Client as FtpClient, parseList, FileType, FileInfo } from 'basic-ftp';
+import { Client as FtpClient, parseList } from 'basic-ftp';
 
-import { IConfig, IProtocol, IFile } from '../interfaces';
-import { formatFile } from '../utils';
+import { IConfig, IProtocol, IFile, IStats } from '../interfaces';
+import { formatFile, getFileTypeFromStats, getFileType } from '../utils';
 import { TaskManager } from './task-manager';
 import { SftpClient } from './sftp-client';
 
@@ -101,6 +101,23 @@ export class Client extends EventEmitter {
         return this._sftpClient.move(srcPath, destPath);
       } else {
         return this._ftpClient.rename(srcPath, destPath);
+      }
+    });
+  }
+
+  public stat(path: string): Promise<IStats> {
+    return this._tasks.handle(async (): Promise<IStats> => {
+      if (this.isSftp) {
+        const stats = await this._sftpClient.stat(path);
+        const type = getFileTypeFromStats(stats);
+
+        return { type, size: stats.size };
+      } else {
+        const list = await this._ftpClient.list(path);
+        const file = list[0];
+        const type = getFileType(file.type);
+
+        return { type, size: file.size };
       }
     });
   }
