@@ -33,14 +33,14 @@
     "clean": "rimraf ./build"
   },
   "devDependencies": {
-    "@types/node": "12.7.2",
-    "@types/ssh2": "0.5.38",
+    "@types/node": "12.7.8",
+    "@types/ssh2": "0.5.39",
     "rimraf": "3.0.0",
-    "tslint-config-airbnb": "5.11.1",
-    "typescript": "3.5.3"
+    "tslint-config-airbnb": "5.11.2",
+    "typescript": "3.6.3"
   },
   "dependencies": {
-    "basic-ftp": "3.8.1",
+    "basic-ftp": "4.0.2",
     "ssh2": "0.8.5"
   }
 }
