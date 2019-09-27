@@ -1,12 +1,12 @@
-import { FileInfo, FileType } from 'basic-ftp';
 import { extname } from 'path';
+import { FileInfo, FileType } from 'basic-ftp';
 
 import { IFile, IFileType } from '../interfaces';
 
 const getType = (type: FileType): IFileType => {
   switch (type) {
     case FileType.Directory: {
-      return 'directory';
+      return 'folder';
     }
     case FileType.File: {
       return 'file';
@@ -21,18 +21,20 @@ const getType = (type: FileType): IFileType => {
 }
 
 export const formatFile = (file: FileInfo): IFile => {
+  const { date, permissions, name, size, user, group, type } = file;
+
   return {
-    date: new Date(file.date),
+    date: new Date(date),
     permissions: {
-      user: file.permissions.user,
-      group: file.permissions.group,
+      user: permissions.user,
+      group: permissions.group,
     },
-    name: file.name,
-    size: file.size,
-    user: file.user,
-    group: file.group,
-    type: getType(file.type),
-    ext: extname(file.name),
+    type: getType(type),
+    ext: extname(name),
+    name,
+    size,
+    user,
+    group,
   };
 }
 
