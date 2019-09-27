@@ -89,9 +89,9 @@ export class Client extends EventEmitter {
     return this._tasks.handle(() => {
       if (this.isSftp) {
         return this._sftpClient.size(path);
-      } else {
-        return this._ftpClient.size(path);
       }
+
+      return this._ftpClient.size(path);
     });
   }
 
@@ -99,9 +99,9 @@ export class Client extends EventEmitter {
     return this._tasks.handle(() => {
       if (this.isSftp) {
         return this._sftpClient.move(srcPath, destPath);
-      } else {
-        return this._ftpClient.rename(srcPath, destPath);
       }
+
+      return this._ftpClient.rename(srcPath, destPath);
     });
   }
 
@@ -129,9 +129,9 @@ export class Client extends EventEmitter {
     return this._tasks.handle(() => {
       if (this.isSftp) {
         return this._sftpClient.unlink(path);
-      } else {
-        return this._ftpClient.remove(path);
       }
+
+      return this._ftpClient.remove(path);
     });
   }
 
@@ -159,6 +159,43 @@ export class Client extends EventEmitter {
     }
 
     return this.unlink(path);
+  }
+
+  public mkdir(path: string): Promise<void> {
+    return this._tasks.handle(() => {
+      if (this.isSftp) {
+        return this._sftpClient.mkdir(path);
+      }
+
+      return this._ftpClient.send("MKD " + path);
+    });
+  };
+
+  /**
+   * Gets path of current working directory.
+   */
+  public pwd(): Promise<string> {
+    return this._tasks.handle(() => {
+      if (this.isSftp) {
+        return this._sftpClient.pwd();
+      }
+
+      return this._ftpClient.pwd();
+    });
+  }
+
+  public async exists(path: string): Promise<boolean> {
+    try {
+      if (this.isSftp) {
+        await this._sftpClient.stat(path);
+      } else {
+        await this._ftpClient.rename(path, path);
+      }
+    } catch (err) {
+      return false;
+    }
+
+    return true;
   }
 
   /**
