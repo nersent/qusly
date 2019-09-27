@@ -1,9 +1,15 @@
 language: node_js
-node_js: '10'
+node_js: '12'
 sudo: enabled
 dist: trusty
+install:
+  - npm ci
+cache:
+  directories:
+    - node_modules
 os:
   - linux
   - osx
+  - windows
 script:
-  - yarn build
+  - npm run build
