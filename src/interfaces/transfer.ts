@@ -14,6 +14,8 @@ export interface IProgress {
   size?: number;
   localPath?: string;
   remotePath?: string;
-  startDate?: Date;
+  eta?: number;
+  speed?: number;
+  startAt?: Date;
   context?: Client;
 }

@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 
 import { Client } from './client';
 import { IDownloadOptions, ITransferOptions, IProgress } from '../interfaces';
+import { calcElapsed, calcEta } from '../utils';
 
 interface ITransferData {
   type?: 'download' | 'upload';
@@ -21,7 +22,7 @@ export class TransferManager {
 
   protected _aborting = false;
 
-  protected _startDate: Date;
+  protected _startAt: number;
 
   constructor(protected _client: Client) { }
 
@@ -68,7 +69,7 @@ export class TransferManager {
   }
 
   protected async _handleStream(data: ITransferData) {
-    this._startDate = new Date();
+    this._startAt = new Date().getTime();
 
     if (this._client.isSftp) {
       await this._handleSftp(data);
@@ -126,14 +127,20 @@ export class TransferManager {
     const { options, remotePath, localPath, size } = transferData;
 
     if (!options.quiet) {
+      const elapsed = calcElapsed(this._startAt);
+      const speed = this._buffered / elapsed; // bytes per second
+      const eta = calcEta(elapsed, this._buffered, size); // second
+
       const data: IProgress = {
         buffered: this._buffered,
-        startDate: this._startDate,
+        startAt: new Date(this._startAt),
         context: this._client,
         chunkSize,
         remotePath,
         localPath,
         size,
+        eta,
+        speed,
       }
 
       this._client.emit('progress', data);
@@ -168,6 +175,6 @@ export class TransferManager {
       }
     }
 
-    this._startDate = null;
+    this._startAt = null;
   }
 }
