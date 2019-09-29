@@ -1,37 +1,44 @@
+import { Writable, Readable } from 'stream';
 import { EventEmitter } from 'events';
 import { Client as FtpClient, parseList } from 'basic-ftp';
 
-import { IConfig, IProtocol, IFile, IStats } from '../interfaces';
+import { IConfig, IProtocol, IFile, IStats, IDownloadOptions, ITransferOptions, IProgress } from '../interfaces';
 import { formatFile, getFileTypeFromStats, getFileType } from '../utils';
 import { TaskManager } from './task-manager';
 import { SftpClient } from './sftp-client';
+import { TransferManager } from './transfer-manager';
 
 export declare interface Client {
   on(event: 'connect', listener: Function): this;
   on(event: 'disconnect', listener: Function): this;
   on(event: 'abort', listener: Function): this;
+  on(event: 'progress', listener: (data?: IProgress) => void): this;
   once(event: 'connect', listener: Function): this;
   once(event: 'disconnect', listener: Function): this;
-  once(event: 'abort', listener: Function): this;
+  once(event: 'progress', listener: Function): this;
 }
 
 export class Client extends EventEmitter {
   public connected = false;
 
-  public config: IConfig;
+  protected _config: IConfig;
 
-  private _tasks = new TaskManager();
+  public _ftpClient: FtpClient;
 
-  private _ftpClient: FtpClient;
+  public _sftpClient: SftpClient;
 
-  private _sftpClient: SftpClient;
+  protected _tasks = new TaskManager();
+
+  protected _transfer = new TransferManager(this);
+
+  protected _aborting = false;
 
   public async connect(config: IConfig): Promise<void> {
     if (this.connected) {
       await this.disconnect();
     }
 
-    this.config = config;
+    this._config = config;
     this.connected = false;
 
     if (this.isSftp) {
@@ -57,7 +64,7 @@ export class Client extends EventEmitter {
 
   public async disconnect() {
     this.connected = true;
-    // this._transferManager.closeStreams();
+    this._transfer.closeStreams();
 
     if (this.isSftp) {
       this._sftpClient.disconnect();
@@ -68,9 +75,9 @@ export class Client extends EventEmitter {
     this._sftpClient = null;
     this._ftpClient = null;
 
-    // if (!this.aborting) {
-    //   this.emit('disconnect');
-    // }
+    if (!this._aborting) {
+      this.emit('disconnect');
+    }
   }
 
   public async readDir(path?: string): Promise<IFile[]> {
@@ -212,11 +219,38 @@ export class Client extends EventEmitter {
     });
   }
 
-  public get protocol(): IProtocol {
-    return this.config ? this.config.protocol : null;
+  public async abort(): Promise<number> {
+    if (!this._aborting) {
+      this._aborting = true;
+      this._transfer.closeStreams();
+
+      await this.connect(this._config);
+
+      this._aborting = false;
+
+      return this._transfer._buffered;
+    }
+
+    return null;
   }
 
-  private get isSftp() {
+  public download(path: string, dest: Writable, options?: IDownloadOptions) {
+    return this._tasks.handle(() => {
+      return this._transfer.download(path, dest, options);
+    });
+  }
+
+  public upload(path: string, source: Readable, options?: ITransferOptions) {
+    return this._tasks.handle(() => {
+      return this._transfer.upload(path, source, options);
+    });
+  }
+
+  public get protocol(): IProtocol {
+    return this._config ? this._config.protocol : null;
+  }
+
+  public get isSftp() {
     return this.protocol === 'sftp';
   }
 }
