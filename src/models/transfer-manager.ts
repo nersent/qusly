@@ -1,9 +1,8 @@
 import { Readable, Writable } from 'stream';
-import { promises as fs } from 'fs';
 
 import { Client } from './client';
 import { IDownloadOptions, ITransferOptions, IProgress } from '../interfaces';
-import { calcElapsed, calcEta } from '../utils';
+import { calcElapsed, calcEta, getFilePath, getFileSize } from '../utils';
 
 interface ITransferData {
   type?: 'download' | 'upload';
@@ -27,7 +26,7 @@ export class TransferManager {
   constructor(protected _client: Client) { }
 
   public async download(remotePath: string, dest: Writable, options?: IDownloadOptions) {
-    const localPath = (dest as any).path;
+    const localPath = getFilePath(dest);
     const size = this._client.isSftp ? await this._client._sftpClient.size(remotePath) : await this._client._ftpClient.size(remotePath);
 
     options = { startAt: 0, ...options };
@@ -49,8 +48,8 @@ export class TransferManager {
   }
 
   public async upload(remotePath: string, source: Readable, options?: ITransferOptions) {
-    const localPath = (source as any).path;
-    const { size } = await fs.stat(localPath);
+    const localPath = getFilePath(source);
+    const size = await getFileSize(source);
 
     if (this._client.isSftp) {
       this._writable = this._client._sftpClient.createWriteStream(remotePath);

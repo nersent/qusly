@@ -1,6 +1,8 @@
+import { Readable, Writable } from 'stream';
 import { extname } from 'path';
 import { FileInfo, FileType } from 'basic-ftp';
 import { Stats } from 'ssh2-streams';
+import { promises as fs } from 'fs';
 
 import { IFile, IFileType } from '../interfaces';
 
@@ -74,3 +76,15 @@ export const createFileName = (files: IFile[], prefix: string) => {
 
   return exists ? `${prefix} (${index + 1})` : prefix;
 };
+
+export const getFilePath = (stream: Readable | Writable) => {
+  return (stream as any).path;
+}
+
+export const getFileSize = async (source: Readable) => {
+  const path = getFilePath(source);
+  if (!path) return -1;
+
+  const { size } = await fs.stat(path);
+  return size;
+}

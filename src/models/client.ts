@@ -3,7 +3,7 @@ import { EventEmitter } from 'events';
 import { Client as FtpClient, parseList } from 'basic-ftp';
 
 import { IConfig, IProtocol, IFile, IStats, IDownloadOptions, ITransferOptions, IProgress } from '../interfaces';
-import { formatFile, getFileTypeFromStats, getFileType } from '../utils';
+import { formatFile, getFileTypeFromStats, getFileType, createFileName } from '../utils';
 import { TaskManager } from './task-manager';
 import { SftpClient } from './sftp-client';
 import { TransferManager } from './transfer-manager';
@@ -84,7 +84,7 @@ export class Client extends EventEmitter {
     return this._tasks.handle(async () => {
       if (this.isSftp) {
         const list = await this._sftpClient.readDir(path || './');
-        return list.map(file => formatFile(parseList(file.longname)[0]))
+        return list.map(file => formatFile(parseList(file.longname)[0]));
       } else {
         const list = await this._ftpClient.list(path);
         return list.map(file => formatFile(file));
@@ -234,16 +234,46 @@ export class Client extends EventEmitter {
     return null;
   }
 
-  public download(path: string, dest: Writable, options?: IDownloadOptions) {
+  public download(path: string, dest: Writable, options?: IDownloadOptions): Promise<void> {
     return this._tasks.handle(() => {
       return this._transfer.download(path, dest, options);
     });
   }
 
-  public upload(path: string, source: Readable, options?: ITransferOptions) {
+  public upload(path: string, source: Readable, options?: ITransferOptions): Promise<void> {
     return this._tasks.handle(() => {
       return this._transfer.upload(path, source, options);
     });
+  }
+
+  public touch(path: string): Promise<void> {
+    if (this.isSftp) {
+      return this._tasks.handle(() => {
+        return this._sftpClient.touch(path);
+      });
+    }
+
+    const source = new Readable({ read() { } });
+    source.push(null);
+
+    return this.upload(path, source, { quiet: true });
+  }
+
+  public async createBlank(type: 'folder' | 'file', path = './', files?: IFile[]): Promise<string> {
+    if (!files) {
+      files = await this.readDir(path);
+    }
+
+    const fileName = createFileName(files, `new ${type}`);
+    const filePath = `${path}/${fileName}`;
+
+    if (type === 'folder') {
+      await this.mkdir(filePath)
+    } else {
+      await this.touch(filePath)
+    }
+
+    return fileName;
   }
 
   public get protocol(): IProtocol {
