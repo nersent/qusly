@@ -5,6 +5,7 @@ import { Stats } from 'ssh2-streams';
 import { promises as fs } from 'fs';
 
 import { IFile, IFileType } from '../interfaces';
+import { getValidDate } from './string';
 
 export const getFileType = (type: FileType): IFileType => {
   switch (type) {
@@ -38,7 +39,7 @@ export const formatFile = (file: FileInfo): IFile => {
   const { date, permissions, name, size, user, group, type } = file;
 
   return {
-    date: new Date(date),
+    date: getValidDate(date),
     permissions: {
       user: permissions.user,
       group: permissions.group,
