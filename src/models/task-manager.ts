@@ -11,7 +11,17 @@ interface IQueueItem {
 export class TaskManager extends EventEmitter {
   protected _queue: IQueueItem[] = [];
 
-  protected _taskId: string;
+  protected _taskIteration = 0;
+
+  protected _busyTasks = 0;
+
+  constructor(public splits = 1) {
+    super();
+  }
+
+  protected get _available() {
+    return this._busyTasks < this.splits;
+  }
 
   public handle<T>(f: Function, ...args: any[]): Promise<T> {
     return new Promise((resolve, reject) => {
@@ -24,33 +34,36 @@ export class TaskManager extends EventEmitter {
         resolve(data);
       });
 
-      if (!this._taskId) {
-        this._taskId = id;
-        this._exec();
+      if (this._available) {
+        this._exec(id);
       }
     });
   }
 
-  protected async _exec() {
-    if (!this._taskId || !this._queue.length) return;
+  protected async _exec(taskId: string) {
+    if (!taskId || !this._queue.length) return;
 
-    const { id, f, args } = this._queue[0];
+    this._busyTasks++;
 
-    if (id === this._taskId) {
-      let response: any;
-      let error: Error;
+    const queueIndex = this._queue.findIndex(r => r.id === taskId);
+    const { id, f, args } = this._queue[queueIndex];
 
-      try {
-        response = await f(...args);
-      } catch (err) {
-        error = err;
-      }
+    this._queue.splice(queueIndex, 1);
 
-      this._queue.shift();
-      this._taskId = this._queue.length && this._queue[0].id;
+    let response: any;
+    let error: Error;
 
-      this.emit(`complete-${id}`, response, error);
-      this._exec();
+    try {
+      response = await f(...args);
+    } catch (err) {
+      error = err;
+    }
+
+    this._busyTasks--;
+    this.emit(`complete-${id}`, response, error);
+
+    if (this._queue.length) {
+      this._exec(this._queue[0].id);
     }
   }
 }
