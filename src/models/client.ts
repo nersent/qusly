@@ -182,7 +182,7 @@ export class Client extends EventEmitter {
   };
 
   /**
-   * Gets path of current working directory.
+   * Returns path of current working directory.
    */
   public pwd(): Promise<string> {
     return this._tasks.handle(() => {
@@ -224,7 +224,6 @@ export class Client extends EventEmitter {
 
   public async abort(): Promise<number> {
     if (!this._aborting) {
-      this.emit('abort');
       this._transfer.emit('abort');
       this._aborting = true;
       this._transfer.closeStreams();
@@ -233,6 +232,7 @@ export class Client extends EventEmitter {
 
       this._aborting = false;
 
+      this.emit('abort');
       return this._transfer._buffered;
     }
 

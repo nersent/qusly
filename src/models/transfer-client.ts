@@ -7,8 +7,10 @@ import { TaskManager } from './task-manager';
 import { makeId } from '../utils';
 
 export declare interface TransferClient {
-  on(event: 'new-transfer', listener: (e: ITransferClientNew) => void): this;
+  on(event: 'new', listener: (e: ITransferClientNew) => void): this;
   on(event: 'progress', listener: (e: ITransferClientProgress) => void): this;
+  once(event: 'new', listener: (e: ITransferClientNew) => void): this;
+  once(event: 'progress', listener: (e: ITransferClientProgress) => void): this;
 }
 
 export class TransferClient extends EventEmitter {
@@ -16,19 +18,23 @@ export class TransferClient extends EventEmitter {
 
   private _tasks: TaskManager;
 
-  constructor(private _config: IConfig, public type: ITransferType, private _splits = 1) {
+  constructor(public type: ITransferType, private _splits = 1) {
     super();
 
     this._tasks = new TaskManager(_splits);
     this.setSplits(_splits);
   }
 
-  public async connect() {
-    const promises = this._clients.map(r => r.connect(this._config));
+  public async connect(config: IConfig) {
+    const promises = this._clients.map(r => r.connect(config));
     await Promise.all(promises);
   }
 
-  public async setSplits(count: number, connect = false) {
+  public getSplits() {
+    return this._clients.length;
+  }
+
+  public async setSplits(count: number, config?: IConfig) {
     this._tasks.splits = count;
 
     const length = this._clients.length;
@@ -38,7 +44,11 @@ export class TransferClient extends EventEmitter {
         this._clients[i] = new Client();
       }
 
-      if (connect) await this.connect();
+      if (config) {
+        await this.connect(config);
+      } else {
+        throw new Error('You must provide config!');
+      }
     } else if (count < length) {
       const deleted = this._clients.splice(0, length - count);
       await Promise.all(deleted.map(r => r.disconnect));
@@ -53,7 +63,7 @@ export class TransferClient extends EventEmitter {
 
       const client = this._clients[index];
 
-      this.emit('new-transfer', {
+      this.emit('new', {
         id,
         localPath,
         remotePath,
