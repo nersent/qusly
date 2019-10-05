@@ -15,6 +15,7 @@ export declare interface Client {
   on(event: 'progress', listener: (data?: IProgress) => void): this;
   once(event: 'connect', listener: Function): this;
   once(event: 'disconnect', listener: Function): this;
+  once(event: 'abort', listener: Function): this;
   once(event: 'progress', listener: Function): this;
 }
 
@@ -223,6 +224,8 @@ export class Client extends EventEmitter {
 
   public async abort(): Promise<number> {
     if (!this._aborting) {
+      this.emit('abort');
+      this._transfer.emit('abort');
       this._aborting = true;
       this._transfer.closeStreams();
 

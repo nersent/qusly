@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 import { Readable, Writable } from 'stream';
 
 import { Client } from './client';
@@ -12,7 +13,12 @@ interface ITransferData {
   options?: IDownloadOptions;
 }
 
-export class TransferManager {
+export declare interface TransferManager {
+  on(event: 'abort', listener: Function): this;
+  once(event: 'abort', listener: Function): this;
+}
+
+export class TransferManager extends EventEmitter {
   protected _readable: Readable;
 
   protected _writable: Writable;
@@ -23,7 +29,9 @@ export class TransferManager {
 
   protected _startAt: number;
 
-  constructor(protected _client: Client) { }
+  constructor(protected _client: Client) {
+    super();
+  }
 
   public async download(remotePath: string, dest: Writable, options?: IDownloadOptions) {
     const localPath = getFilePath(dest);
@@ -79,9 +87,18 @@ export class TransferManager {
     this.closeStreams();
   }
 
-  protected _handleSftp(data: ITransferData) {
-    return new Promise((resolve, reject) => {
+  protected async _handleSftp(data: ITransferData) {
+    let onAbort: Function;
+
+    await new Promise((resolve, reject) => {
+      onAbort = () => {
+        console.log('on abort');
+        resolve();
+      };
+
       this._buffered = 0;
+
+      this.once('abort', onAbort);
 
       this._readable.on('data', (chunk) => {
         if (this._aborting) return;
@@ -103,6 +120,8 @@ export class TransferManager {
 
       this._readable.pipe(this._writable);
     });
+
+    this.removeListener('abort', onAbort as any);
   }
 
   protected async _handleFtp(data: ITransferData) {
