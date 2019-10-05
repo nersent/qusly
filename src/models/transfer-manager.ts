@@ -112,7 +112,10 @@ export class TransferManager {
       if (this._aborting) return;
 
       this._buffered = info.bytes;
-      this._emitProgress(info.bytes, data);
+
+      if (this._buffered > 0) {
+        this._emitProgress(info.bytes, data);
+      }
     });
 
     if (type === 'download') {
