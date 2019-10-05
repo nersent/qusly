@@ -1,11 +1,7 @@
-# qusly-core
-
 <div align="center">
   <img src="static/logo.png" width="256">
 
-  <h3>
-    A powerful FTP client.
-  </h3>
+  <h1>Qusly</h1>
 
   <br />
 
