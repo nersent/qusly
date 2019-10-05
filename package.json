@@ -33,7 +33,7 @@
     "clean": "rimraf ./build"
   },
   "devDependencies": {
-    "@types/node": "12.7.8",
+    "@types/node": "12.7.11",
     "@types/ssh2": "0.5.39",
     "rimraf": "3.0.0",
     "tslint-config-airbnb": "5.11.2",

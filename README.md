@@ -1,7 +1,7 @@
 <div align="center">
   <img src="static/logo.png" width="256">
 
-  <h1>Qusly</h1>
+  <h1>Qusly-core</h1>
 
   <br />
 
