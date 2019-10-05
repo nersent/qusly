@@ -1,9 +1,38 @@
 # qusly-core
 
+<div align="center">
+  <img src="static/logo.png" width="256">
+
+  <h3>
+    A powerful FTP client.
+  </h3>
+
+  <br />
+
 [![Travis](https://img.shields.io/travis/qusly/qusly-core.svg?style=flat-square)](https://travis-ci.org/xnerhu/qusly-core.svg)
 [![NPM](https://img.shields.io/npm/v/qusly-core.svg?style=flat-square)](https://www.npmjs.com/package/qusly-core)
+[![NPM](https://img.shields.io/npm/dm/qusly-core?style=flat-square)](https://www.npmjs.com/package/qusly-core)
+[![Discord](https://discordapp.com/api/guilds/307605794680209409/widget.png?style=shield)](https://discord.gg/P7Vn4VX)
+[![Github](https://img.shields.io/github/followers/xnerhu.svg?style=social&label=Follow)](https://github.com/xnerhu)
 
-An API wrapper around [ssh2](https://github.com/mscdex/ssh2) and [basic-ftp](https://github.com/patrickjuchli/basic-ftp) for building **FTP/FTPS/SFTP** clients used in [Qusly](https://www.github.com/qusly/qusly).
+</div>
+
+Qusly-core is an API wrapper around [ssh2](https://github.com/mscdex/ssh2) and [basic-ftp](https://github.com/patrickjuchli/basic-ftp) for building **FTP/FTPS/SFTP** clients. It's used in [Qusly](https://www.github.com/qusly/qusly).
+
+<a href="https://www.patreon.com/bePatron?u=21429620">
+  <img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" width="160">
+</a>
+
+### Features
+
+- Supports **FTP, FTPS, SFTP**
+- Promises
+- Lots of utilities like `createBlank`
+- Splited transfer
+- Automatically calculates **ETA** and **transfer speed**
+- MS-dos support
+
+Checkout [roadmap](https://github.com/qusly/qusly-core/projects/) to see what's coming.
 
 ## Installing
 
@@ -16,21 +45,21 @@ $ npm install qusly-core
 An example of listing files:
 
 ```js
-const { Client } = require('qusly-core');
+import { Client } from 'qusly-core';
 
 async function init() {
   const client = new Client();
 
   await client.connect({
     host: 'www.example.com',
-    user: 'root', // default anonymous
-    password: 'password', // default @anonymous
-    protocol: 'ftp', // default ftp
-    port: 21, // default 21
+    user: 'root',
+    password: 'password'
+    protocol: 'sftp',
+    port: 22,
   });
 
-  const res = await client.readDir('./');
-  console.log(res);
+  const files = await client.readDir('/documents');
+  console.log(files);
 
   await client.disconnect();
 }
@@ -41,37 +70,34 @@ init();
 Example output:
 
 ```js
-{
-  success: true,
-  files: [
-    {
-      name: 'my documents',
-      type: 'directory',
-      size: 4096,
-      ext: ''
-      user: 'root',
-      group: 'root',
-      date: '2019-05-10T18:52:00.000Z',
-      permissions: {
-        user: 6,
-        group: 6
-      },
+[
+  {
+    name: 'projects',
+    type: 'directory',
+    size: 4096,
+    ext: ''
+    user: 'root',
+    group: 'root',
+    date: '2019-05-10T18:52:00.000Z', // obj Date
+    permissions: {
+      user: 6,
+      group: 6
     },
-    {
-      name: 'wallpaper.png',
-      type: 'file',
-      ext: 'png'
-      size: 43,
-      user: 'root',
-      group: 'root',
-      date: '2019-05-29T22:00:00.000Z',
-      permissions: {
-        user: 6,
-        group: 6
-      },
+  },
+  {
+    name: 'logs.txt',
+    type: 'file',
+    ext: 'txt'
+    size: 43,
+    user: 'root',
+    group: 'root',
+    date: '2019-05-29T22:00:00.000Z', // obj Date
+    permissions: {
+      user: 6,
+      group: 6
     },
-  ]
-}
+  },
+]
 
 ```
 
@@ -82,6 +108,7 @@ Class `Client`:
 - [`Client.abort`](#clientAbort)
 - [`Client.connect`](#clientConnect)
 - [`Client.createBlank`](#clientCreateBlank)
+- [`Client.delete`](#clientDelete)
 - [`Client.disconnect`](#clientDisconnect)
 - [`Client.download`](#clientDownload)
 - [`Client.exists`](#clientExists)
@@ -92,43 +119,44 @@ Class `Client`:
 - [`Client.rimraf`](#clientRimraf)
 - [`Client.send`](#clientSend)
 - [`Client.size`](#clientSize)
+- [`Client.stat`](#clientStat)
 - [`Client.touch`](#clientTouch)
 - [`Client.unlink`](#clientUnlink)
 - [`Client.upload`](#clientUpload)
 
-Class `Traversal`:
+Class `TransferClient`:
 
-- [`Traversal.connect`](#traversalConnect)
-- [`Traversal.init`](#traversalInit)
+- [`TransferClient`](#transferClientConstructor)
+- [`TransferClient.connect`](#transferClientConnect)
+- [`TransferClient.getSplits`](#transferClientGetSplits)
+- [`TransferClient.setSplits`](#transferClientSetSplits)
+- [`TransferClient.transfer`](#transferClientTransfer)
 
 Interfaces:
 
 - [`IConfig`](#config)
+- [`IDownloadOptions`](#downloadOptions)
 - [`IFile`](#file)
-- [`IProgressEvent`](#progressEvent)
-- [`IRes`](#res)
-- [`ISizeRes`](#sizeRes)
-- [`ISendRes`](#sendRes)
-- [`IPwdRes`](#pwdRes)
-- [`IReadDirRes`](#readDirRes)
-- [`IAbortRes`](#abortRes)
-- [`ICreateBlankRes`](#createBlankRes)
-- [`ITraversalItem`](#traversalItem)
-- [`ITraversalOptions`](#traversalOptions)
+- [`IProgress`](#progress)
+- [`IStats`](#stats)
+- [`ITransferClientNew`](#transferClientNew)
+- [`ITransferClientProgress`](#transferClientProgress)
+- [`ITransferOptions`](#transferOptions)
 
 Types:
 
 - [`IFileType`](#fileType)
 - [`IProtocol`](#protocol)
+- [`ITransferType`](#transferType)
 
 Events:
 
+- [`Client.on('abort')`](#clientOnAbort)
 - [`Client.on('connect')`](#clientOnConnect)
 - [`Client.on('disconnect')`](#clientOnDisconnect)
-- [`Client.on('abort')`](#clientOnAbort)
 - [`Client.on('progress')`](#clientOnProgress)
-- [`Traversal.on('fetch')`](#traversalOnFetch)
-- [`Traversal.on('finish')`](#traversalOnFinish)
+- [`TransferClient.on('new')`](#transferClientOnNew)
+- [`TransferClient.on('progress')`](#transferClientOnProgress)
 
 ### Class `Client`
 
@@ -136,58 +164,71 @@ Events:
 
 <a name="clientAbort"></a>
 
-- `Client.abort(): Promise<IAbortRes>`
+- `Client.abort(): Promise<void>`
   <br />
-  Aborts the current data transfer.
+  Aborts current data transfer. It closes all used file streams.
   <br />
 
   ```js
-  const { bytes } = await client.abort();
+  const bytes = await client.abort();
 
-  console.log(`Aborted at ${res.bytes} bytes`);
+  console.log(`Aborted at ${bytes} bytes`);
   ```
 
 <a name="clientConnect"></a>
 
-- `Client.connect(config: IConfig): Promise<IRes>`
+- `Client.connect(config: IConfig): Promise<void>`
   <br />
-  Connects to server.
+  Connects to server. You can use it to reload session.
   <br />
 
   ```js
-  const res = await client.connect({
-    host: 'www.example.com',
-    user: 'root', // default anonymous
-    password: 'password', // default @anonymous
-    protocol: 'ftp', // default ftp
-    port: 21, // default 21
-  });
+  try {
+    await client.connect({
+      host: 'www.example.com',
+      user: 'root', // default anonymous
+      password: 'password', // default @anonymous
+      protocol: 'ftp', // default ftp
+      port: 21, // default 21
+    });
 
-  if (res.success) {
     console.log('Connected!');
-  } else {
+  } catch (error) {
     console.log('Failed to connect!', res.error);
   }
   ```
 
 <a name="clientCreateBlank"></a>
 
-- `Client.createBlank(type: 'folder' | 'file', path = './', files?: IFile[]): Promise<ICreateBlankRes>`
+- `Client.createBlank(type: 'folder' | 'file', path = './', files?: IFile[]): Promise<string>`
   <br />
-  Creates an empty folder or file with unique name;
+  Creates an empty folder or file with unique name. If you've fetched files already, you can provide last argument to don't refetch files.
   <br />
 
   ```js
   const res = await client.createBlank('folder');
 
-  console.log(`Created ${res.fileName}`);
+  console.log(`Created new folder - ${res.fileName}`);
+  ```
+
+<a name="clientDelete"></a>
+
+- `Client.delete(path: string): Promise<void>`
+  <br />
+  An universal method to remove both files and folders.
+  <br />
+
+  ```js
+  await client.delete('folder');
+
+  console.log('Deleted');
   ```
 
 <a name="clientDisconnect"></a>
 
-- `Client.disconnect(): Promise<IRes>`
+- `Client.disconnect(): Promise<void>`
   <br />
-  Disconnects from server. Closes all opened sockets.
+  Disconnects from server. Closes all opened sockets and file streams.
   <br />
 
   ```js
@@ -198,24 +239,33 @@ Events:
 
 <a name="clientDownload"></a>
 
-- `Client.download(path: string, destination: Writable, startAt = 0): Promise<IRes>`
+- `Client.download(path: string, dest: Writable, options?: IDownloadOptions): Promise<void>`
   <br />
-  Downloads a file. You can start at given offset by setting **`startAt`**.
+  Downloads a file. You can start at given offset by setting options to
+
+  ```js
+  {
+    startAt: 65.536;
+  }
+  ```
+
   <br />
 
   ```js
-  const { createWriteStream } = require('fs');
-  const { resolve } = require('path');
+  import { createWriteStream } from 'fs';
+  import { resolve } from 'path';
 
-  const localPath = resolve('downloads', 'downloaded file.rar');
+  const localPath = resolve('downloads', 'downloaded.rar');
 
-  const res = await client.download('file.rar', createWriteStream(localPath));
+  client.on('progress', e => {
+    const rate = ((e.buffered / e.size) * 100).toFixed(2);
 
-  if (res.success) {
-    console.log('Downloaded');
-  } else {
-    console.log('Error occured or aborted');
-  }
+    console.log(`${rate}% ETA: ${e.eta}s`);
+  });
+
+  await client.download('file.rar', createWriteStream(localPath));
+
+  console.log('Downloaded!');
   ```
 
 <a name="clientExists"></a>
@@ -226,8 +276,7 @@ Events:
   <br />
 
   ```js
-  const path = '/home/index.ts';
-  const exists = await client.exists(path);
+  const exists = await client.exists('/home/image.png');
 
   if (exists) {
     console.log('File exists');
@@ -238,117 +287,120 @@ Events:
 
 <a name="clientMkdir"></a>
 
-- `Client.mkdir(path: string): Promise<IRes>`
+- `Client.mkdir(path: string): Promise<void>`
   <br />
   Creates a directory.
   <br />
 
   ```js
-  const path = '/home/documents/new folder';
-  const res = await client.mkdir(path);
+  await client.mkdir('/home/documents/new folder');
 
-  console.log(`Created a directory at ${path}`);
+  console.log(`Created a new directory`);
+  ```
+
+<a name="clientMove"></a>
+
+- `Client.move(srcPath: string, destPath: string): Promise<void>`
+  <br />
+  Moves a file from **`srcPath`** to **`destPath`**.
+  <br />
+
+  ```js
+  await client.move('music/film.mp4', 'videos/film.mp4');
+
+  console.log('Moved');
   ```
 
 <a name="clientPwd"></a>
 
 - `Client.pwd(): Promise<IPwdRes>`
   <br />
-  Gets path of the current working directory.
+  Returns path of current working directory.
   <br />
 
   ```js
-  const { path } = await client.pwd();
+  const path = await client.pwd();
 
-  console.log(`Current path: ${path}`);
+  console.log(`You're at ${path}`);
   ```
 
 <a name="clientReadDir"></a>
 
-- `Client.readDir(path?: string): Promise<IReadDirRes>`
+- `Client.readDir(path?: string): Promise<IFile[]>`
   <br />
-  Reads the content of a directory.
-  <br />
-
-  ```js
-  const { files } = await client.readDir('/root/');
-
-  console.log('Files', files);
-  ```
-
-<a name="clientMove"></a>
-
-- `Client.move(srcPath: string, destPath: string): Promise<IRes>`
-  <br />
-  Moves a file from **`srcPath`** to **`destPath`**.
+  Reads content of a directory. If you don't provide path, it'll use working directory.
   <br />
 
   ```js
-  const res = await client.move('music/file.mp4', 'videos/file.mp4');
+  const files = await client.readDir('/root/');
 
-  if (res.success) {
-    console.log('Moved');
-  } else {
-    console.log('Error occured');
-  }
+  console.log(files);
   ```
 
 <a name="clientRimraf"></a>
 
-- `Client.rimraf(path: string): Promise<IRes>`
+- `Client.rimraf(path: string): Promise<void>`
   <br />
-  Removes a **directory** and all of its content.
+  Removes a **directory** and all of its content, recursively.
   <br />
 
   ```js
-  const path = 'videos';
-  const res = await client.rimraf(path);
+  await client.rimraf('videos');
 
-  console.log(`Removed all files at ${path}`);
+  console.log('Removed all files');
   ```
 
 <a name="clientSend"></a>
 
-- `Client.send(command: string): Promise<ISendRes>`
+- `Client.send(command: string): Promise<string>`
   <br />
   Sends a raw command. **Output depends on a protocol and server support!**
   <br />
 
   ```js
-  // Probably will work on SFTP
-  const { message } = await client.send('whoami');
+  // It'll probably work on SFTP
+  const res = await client.send('whoami');
 
-  console.log(message);
+  console.log(res);
   ```
 
 <a name="clientSize"></a>
 
-- `Client.size(path: string): Promise<ISizeRes>`
+- `Client.size(path: string): Promise<number>`
   <br />
-  Gets size of a file in bytes.
+  Returns size of a file or folder in **bytes**.
   <br />
 
   ```js
-  const { size } = await client.size('file.rar');
+  const size = await client.size('file.rar');
 
-  console.log(`Size: ${size}`);
+  console.log(`Size: ${size} bytes`);
+  ```
+
+<a name="clientStat"></a>
+
+- `Client.stat(path: string): Promise<IStats>`
+  <br />
+  Returns info about file at given path.
+  <br />
+
+  ```js
+  const res = await client.stat('/documents/unknown');
+
+  console.log(`${res.type} - ${res.size} bytes`);
   ```
 
 <a name="clientTouch"></a>
 
 - `Client.touch(path: string): Promise<IRes>`
   <br />
-  Creates an empty file.
+  Creates an empty **file**.
   <br />
 
   ```js
-  const res = await client.touch('./empty file.txt');
+  await client.touch('./empty file.txt');
 
-  if (res.success) {
-    console.log('Created an empty file');
-  } else {
-    console.log('Error occured');
-  }
+  console.log('Created a new file!');
   ```
 
 <a name="clientUnlink"></a>
@@ -359,75 +411,100 @@ Events:
   <br />
 
   ```js
-  const res = await client.unlink('videos/file.mp4');
+  await client.unlink('videos/file.mp4');
 
-  if (res.success) {
-    console.log('Removed');
-  } else {
-    console.log('Error occured');
-  }
+  console.log('Removed a file');
   ```
 
 <a name="clientUpload"></a>
 
-- `Client.upload(path: string, source: Readable, fileSize?: number): Promise<IRes>`
+- `Client.upload(path: string, source: Readable, options?: ITransferOptions): Promise<void>`
   <br />
   Uploads a file.
   <br />
 
   ```js
-  const { createReadStream, statSync } = require('fs');
-  const { resolve } = require('path');
+  import { createReadStream, statSync } from 'fs';
+  import { resolve } from 'path';
 
-  const localPath = resolve('uploads', 'file to upload.jpg');
+  const localPath = resolve('uploads', 'file.jpg');
   const fileSize = statSync(localPath).size;
 
-  const res = await client.upload(
-    'image.jpg',
-    createReadStream(path),
-    fileSize, // Optional but recommended for further tracking the progress
-  );
+  client.on('progress', e => {
+    const rate = ((e.buffered / e.size) * 100).toFixed(2);
 
-  if (res.success) {
-    console.log('Uploaded');
-  } else {
-    console.log('Error occured or aborted');
-  }
+    console.log(`${rate}% ETA: ${e.eta}s`);
+  });
+
+  await client.upload('uploaded file.jpg', createReadStream(path));
+
+  console.log('Uploaded');
   ```
 
-### Class `Traversal`
+### Class `TransferClient`
 
-An utility for tree traversal.
+An utility class to split transfers.
 
 #### Methods
 
-<a name="traversalConnect"></a>
+<a name="transferClientConstructor"></a>
 
-- `Traversal.connect(config: IConfig): Promise<IRes>`
+- `TransferClient(type: ITransferType, splits = 1)`
 
-<a name="traversalInit"></a>
+<a name="transferClientConnect"></a>
 
-- `Traversal.init(options: ITreeOptions): Promise<void>`
+- `TransferClient.connect(config: IConfig): Promise<void>`
   <br />
-  Starts traversing tree. You can set `options` to for example change max depth.
+  Connects clients to server.
   <br />
 
   ```js
-  const tree = new Traversal();
-
-  tree.on('fetch', item => {
-    console.log(item.path);
+  await client.connect({
+    host: 'www.example.com',
   });
 
-  await tree.init({
-    path: '/',
-    maxDepth: 0,
-    filter: item => {
-      return item.file.type === 'directory';
-    },
+  console.log(`All clients are connected!`);
+  ```
+
+<a name="transferClientGetSplits"></a>
+
+- `TransferClient.getSplits(): number`
+  <br />
+  Gets splits length.
+
+<a name="transferClientSetSplits"></a>
+
+- `TransferClient.setSplits(count: number, config?: IConfig): Promise<void>`
+  <br />
+  Sets splits. If you're setting more than you had, you must provide config. If you're setting less than you had, it will automatically close rest of client.
+  <br />
+
+  ```js
+  const client = new TransferClient('download', 2);
+
+  console.log(client.getSplits()); // 2
+
+  await client.setSplits(6, {
+    host: 'www.example.com',
   });
 
-  console.log('Finished traversing!');
+  console.log(client.getSplits()); // 6
+
+  await client.setSplits(4);
+
+  console.log(client.getSplits()); // 4
+  ```
+
+<a name="transferClientTransfer"></a>
+
+- `TransferClient.transfer(localPath: string, remotePath: string, id?: string): Promise<void>`
+  <br />
+  Transfers a file. You can set your own `id` or it'll be unique hash. To track progress, use event `progress`. With 2 splits, you can transfer files twice as fast.
+  <br />
+
+  ```js
+  await client.transfer('logs.txt', '/documents/logs.txt');
+  await client.transfer('video.mp4', '/content/video.mp4');
   ```
 
 <a name="config"></a>
@@ -437,10 +514,20 @@ An utility for tree traversal.
 ```ts
 interface IConfig {
   protocol?: IProtocol;
-  host: string;
+  host?: string;
   port?: number;
   user?: string;
   password?: string;
+}
+```
+
+<a name="downloadOptions"></a>
+
+### Interface `IDownloadOptions`
+
+```ts
+interface IDownloadOptions extends ITransferOptions {
+  startAt?: number;
 }
 ```
 
@@ -450,123 +537,93 @@ interface IConfig {
 
 ```ts
 interface IFile {
-  name: string;
-  type: IFileType;
-  size: number;
-  user: string;
-  group: string;
-  date: Date;
-  ext: string;
-  permissions: {
-    user: number;
-    group: number;
+  name?: string;
+  type?: IFileType;
+  size?: number;
+  user?: string;
+  group?: string;
+  date?: Date;
+  ext?: string;
+  permissions?: {
+    user?: number;
+    group?: number;
   };
 }
 ```
 
-<a name="progressEvent"></a>
+<a name="progress"></a>
 
-### Interface `IProgressEvent`
+### Interface `IProgress`
 
 ```ts
-interface IProgressEvent extends IStreamInfo {
-  bytes: number;
+interface IProgress {
+  chunkSize?: number; // single chunk size in bytes
+  buffered?: number; // already buffered size in bytes
+  size?: number; // file size in bytes
+  localPath?: string; // local file path
+  remotePath?: string; // remote file path
+  eta?: number; // estimated time arrival in seconds
+  speed?: number; // transfer speed in KB/s
+  startAt?: Date; // transfer start
+  context?: Client;
 }
 ```
 
-<a name="res"></a>
+<a name="stats"></a>
 
-### Interface `IRes`
-
-```ts
-interface IRes {
-  success: boolean;
-  error?: Error;
-}
-```
-
-<a name="sizeRes"></a>
-
-### Interface `ISizeRes`
+### Interface `IStats`
 
 ```ts
-interface ISizeRes extends IRes {
+interface IStats {
   size?: number;
+  type?: IFileType;
 }
 ```
 
-<a name="sendRes"></a>
+<a name="transferClientNew"></a>
 
-### Interface `ISendRes`
+### Interface `ITransferClientNew`
 
 ```ts
-interface ISendRes extends IRes {
-  message?: string;
+interface ITransferClientNew {
+  id?: string;
+  type?: ITransferType;
+  localPath?: string;
+  remotePath?: string;
+  context?: Client;
 }
 ```
 
-<a name="pwdRes"></a>
+<a name="transferClientProgress"></a>
 
-### Interface `IPwdRes`
+### Interface `ITransferClientProgress`
 
 ```ts
-interface IPwdRes extends IRes {
-  path?: string;
+interface ITransferClientProgress extends IProgress {
+  id?: string;
+  type?: ITransferType;
 }
 ```
 
-<a name="readDirRes"></a>
+<a name="transferOptions"></a>
 
-### Interface `IReadDirRes`
+### Interface `ITransferOptions`
 
 ```ts
-interface IReadDirRes extends IRes {
-  files?: IFile[];
+interface ITransferOptions {
+  quiet?: boolean;
 }
 ```
 
-<a name="abortRes"></a>
+<a name="fileType"></a>
 
-### Interface `IAbortRes`
+### Type `IFileType`
 
 ```ts
-interface IAbortRes extends IRes {
-  bytes?: number;
-}
+type IFileType = 'unknown' | 'file' | 'folder' | 'symbolic-link';
 ```
 
-<a name="createBlankRes"></a>
-
-### Interface `ICreateBlankRes`
-
-```ts
-interface ICreateBlankRes extends IRes {
-  fileName?: string;
-}
-```
-
-<a name="traversalItem"></a>
-
-### Interface `ITraversalItem`
-
-```ts
-interface ITraversalItem {
-  path?: string;
-  file?: IFile;
-}
-```
-
-<a name="traversalOptions"></a>
-
-### Interface `ITraversalOptions`
-
-```ts
-interface ITraversalOptions {
-  path?: string;
-  maxDepth?: number;
-  filter?: (item: ITraversalItem) => boolean;
-}
-```
+<a name="protocol"></a>
 
 ### Type `IProtocol`
 
@@ -574,15 +631,21 @@ interface ITraversalOptions {
 type IProtocol = 'sftp' | 'ftp' | 'ftps';
 ```
 
-### Type `IFileType`
+<a name="transferType"></a>
+
+### Type `ITransferType`
 
 ```ts
-type IFileType = 'unknown' | 'file' | 'directory' | 'symbolic-link';
+type ITransferType = 'download' | 'upload';
 ```
 
 ### Events
 
 **Client**
+
+<a name="clientOnAbort"></a>
+
+- `Client.on('abort')` - File transfer has been aborted.
 
 <a name="clientOnConnect"></a>
 
@@ -592,45 +655,51 @@ type IFileType = 'unknown' | 'file' | 'directory' | 'symbolic-link';
 
 - `Client.on('disconnect')` - Client has disconnected from server.
 
-<a name="clientOnAbort"></a>
-
-- `Client.on('abort')` - File transfer has been aborted.
-
 <a name="clientOnProgress"></a>
 
-- `Client.on('progress')` - Triggered while transfering a file.
+- `Client.on('progress', e: IProgress)` - Triggered while transfering a file.
   <br />
 
   ```ts
-  client.on('progress', (data: IProgressEvent) => {
-    const { bytes, size, path } = data;
+  client.on('progress', (e: IProgress) => {
+    const { buffered, size, eta, speed } = data;
     const percent = (bytes / size * 100).toFixed(2);
 
-    console.log(`${path}: ${percent}%`);
+    console.log(`${buffered}/${size}, ETA: ${eta}s, speed: ${speed}KB/s`);
   });
 
   client.download(...);
   ```
 
-**Traversal**
+**TransferClient**
 
-<a name="traversalOnFetch"></a>
+<a name="transferClientOnNew"></a>
 
-- `Traversal.on('fetch')` - Invoked when file is fetched.
-  <br />
+- `TransferClient.on('new', e: ITransferClientNew)` - Invoked on every new file transfer.
 
-  ```ts
-  tree.on('fetch', (item: ITreeItem) => {
-    const { path, file } = item;
+<a name="transferClientOnProgress"></a>
 
-    console.log(`${path}: ${file.size}`);
-  });
-  ```
+- `TransferClient.on('progress', e: ITransferClientProgress)` - Triggered while transfering a file.
+  This event comes with a lot of information. Some of that are:
+  - Id, which you can use to identify transfer.
+  - Type of transfer `ITransferType`
+  - Single chunk size in _bytes_
+  - Buffered size
+  - File size
+  - Estimated time arrival in _seconds_
+  - Transfer speed in _KB/s_
+  - Start time
 
-<a name="traversalOnFinish"></a>
+```ts
+client.on('progress', (e: ITransferClientProgress) => {
+  const { id, type, eta } = data;
 
-- `Traversal.on('finish')` - Invoked on finish.
+  console.log(`${id}: ${eta}s (${type}`);
+});
+
+client.transfer(...);
+```
 
 # Related
 
-- [Qusly](https://www.github.com/qusly/qusly) - full-featured FTP client.
+- [Qusly](https://www.github.com/qusly/qusly) - Elegant, full-featured FTP client.
