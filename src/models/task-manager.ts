@@ -5,52 +5,62 @@ import { makeId } from '../utils';
 interface IQueueItem {
   id: string;
   f: Function;
-  args: any[];
 }
 
 export class TaskManager extends EventEmitter {
   protected _queue: IQueueItem[] = [];
 
-  protected _taskId: string;
+  protected _tasksCount = 0;
 
-  public handle<T>(f: Function, ...args: any[]): Promise<T> {
+  constructor(public splits = 1) {
+    super();
+  }
+
+  protected get _available() {
+    return this._tasksCount < this.splits;
+  }
+
+  public handle<T>(f: Function): Promise<T> {
     return new Promise((resolve, reject) => {
       const id = makeId(32);
 
-      this._queue.push({ id, f, args });
+      this._queue.push({ id, f });
 
       this.once(`complete-${id}`, (data, error) => {
         if (error) return reject(error);
         resolve(data);
       });
 
-      if (!this._taskId) {
-        this._taskId = id;
-        this._exec();
+      if (this._available) {
+        this._exec(id);
       }
     });
   }
 
-  protected async _exec() {
-    if (!this._taskId || !this._queue.length) return;
+  protected async _exec(taskId: string) {
+    if (!taskId || !this._queue.length) return;
 
-    const { id, f, args } = this._queue[0];
+    this._tasksCount++;
 
-    if (id === this._taskId) {
-      let response: any;
-      let error: Error;
+    const queueIndex = this._queue.findIndex(r => r.id === taskId);
+    const { id, f } = this._queue[queueIndex];
 
-      try {
-        response = await f(...args);
-      } catch (err) {
-        error = err;
-      }
+    this._queue.splice(queueIndex, 1);
 
-      this._queue.shift();
-      this._taskId = this._queue.length && this._queue[0].id;
+    let response: any;
+    let error: Error;
 
-      this.emit(`complete-${id}`, response, error);
-      this._exec();
+    try {
+      response = await f(this._tasksCount - 1);
+    } catch (err) {
+      error = err;
+    }
+
+    this._tasksCount--;
+    this.emit(`complete-${id}`, response, error);
+
+    if (this._queue.length) {
+      this._exec(this._queue[0].id);
     }
   }
 }
