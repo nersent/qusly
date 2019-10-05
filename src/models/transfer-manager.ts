@@ -1,11 +1,11 @@
 import { Readable, Writable } from 'stream';
 
 import { Client } from './client';
-import { IDownloadOptions, ITransferOptions, IProgress } from '../interfaces';
+import { IDownloadOptions, ITransferOptions, IProgress, ITransferType } from '../interfaces';
 import { calcElapsed, calcEta, getFilePath, getFileSize } from '../utils';
 
 interface ITransferData {
-  type?: 'download' | 'upload';
+  type?: ITransferType;
   size?: number;
   localPath?: string;
   remotePath?: string;

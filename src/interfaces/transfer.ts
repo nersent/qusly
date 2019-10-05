@@ -1,5 +1,7 @@
 import { Client } from '../models';
 
+export type ITransferType = 'download' | 'upload';
+
 export interface ITransferOptions {
   quiet?: boolean;
 }
@@ -18,4 +20,17 @@ export interface IProgress {
   speed?: number;
   startAt?: Date;
   context?: Client;
+}
+
+export interface ITransferClientNew {
+  id?: string;
+  type?: ITransferType;
+  localPath?: string;
+  remotePath?: string;
+  context?: Client;
+}
+
+export interface ITransferClientProgress extends IProgress {
+  id?: string;
+  type?: ITransferType;
 }

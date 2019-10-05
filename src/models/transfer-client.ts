@@ -1,15 +1,24 @@
-import { createWriteStream } from 'fs';
+import { createWriteStream, createReadStream } from 'fs';
+import { EventEmitter } from 'events';
 
-import { IConfig } from '../interfaces';
+import { IConfig, ITransferClientNew, ITransferClientProgress, ITransferType } from '../interfaces';
 import { Client } from './client';
 import { TaskManager } from './task-manager';
+import { makeId } from '../utils';
 
-export class TransferClient {
+export declare interface TransferClient {
+  on(event: 'new-transfer', listener: (e: ITransferClientNew) => void): this;
+  on(event: 'progress', listener: (e: ITransferClientProgress) => void): this;
+}
+
+export class TransferClient extends EventEmitter {
   private _clients: Client[] = [];
 
   private _tasks: TaskManager;
 
-  constructor(private _config: IConfig, public type: 'download' | 'upload', private _splits = 1) {
+  constructor(private _config: IConfig, public type: ITransferType, private _splits = 1) {
+    super();
+
     this._tasks = new TaskManager(_splits);
     this.setSplits(_splits);
   }
@@ -36,15 +45,32 @@ export class TransferClient {
     }
   }
 
-  public async transfer(localPath: string, remotePath: string) {
-    return this._tasks.handle(index => {
+  public transfer(localPath: string, remotePath: string, id?: string) {
+    return this._tasks.handle<void>(index => {
       console.log(index);
 
+      id = id || makeId(32);
+
+      const client = this._clients[index];
+
+      this.emit('new-transfer', {
+        id,
+        localPath,
+        remotePath,
+        type: this.type,
+        context: client,
+      } as ITransferClientNew);
+
+      client.on('progress', e => {
+        const data = { ...e, id, type: this.type } as ITransferClientProgress;
+        this.emit('progress', data);
+      });
+
       if (this.type === 'download') {
-        return this._clients[index].download(remotePath, createWriteStream(localPath, 'utf8'));
+        return client.download(remotePath, createWriteStream(localPath, 'utf8'));
       }
 
-      return null;
+      return client.upload(remotePath, createReadStream(localPath, 'utf8'));
     });
   }
 }
