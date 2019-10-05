@@ -63,7 +63,9 @@ export class Client extends EventEmitter {
   }
 
   public async disconnect() {
-    this.connected = true;
+    if (!this.connected) return;
+
+    this.connected = false;
     this._transfer.closeStreams();
 
     if (this.isSftp) {
