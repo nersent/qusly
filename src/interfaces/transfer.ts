@@ -2,6 +2,8 @@ import { Client } from '../models';
 
 export type ITransferType = 'download' | 'upload';
 
+export type ITransferStatus = 'pending' | 'transfering' | 'finished';
+
 export interface ITransferOptions {
   quiet?: boolean;
 }
@@ -22,15 +24,8 @@ export interface IProgress {
   context?: Client;
 }
 
-export interface ITransferClientNew {
+export interface ITransferClientItem extends IProgress {
   id?: string;
   type?: ITransferType;
-  localPath?: string;
-  remotePath?: string;
-  context?: Client;
-}
-
-export interface ITransferClientProgress extends IProgress {
-  id?: string;
-  type?: ITransferType;
+  status?: ITransferStatus;
 }

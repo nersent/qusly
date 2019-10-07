@@ -1,16 +1,18 @@
 import { createWriteStream, createReadStream } from 'fs';
 import { EventEmitter } from 'events';
 
-import { IConfig, ITransferClientNew, ITransferClientProgress, ITransferType } from '../interfaces';
+import { IConfig, ITransferClientItem, ITransferType } from '../interfaces';
 import { Client } from './client';
 import { TaskManager } from './task-manager';
 import { makeId, ensureExists } from '../utils';
 
 export declare interface TransferClient {
-  on(event: 'new', listener: (e: ITransferClientNew) => void): this;
-  on(event: 'progress', listener: (e: ITransferClientProgress) => void): this;
-  once(event: 'new', listener: (e: ITransferClientNew) => void): this;
-  once(event: 'progress', listener: (e: ITransferClientProgress) => void): this;
+  on(event: 'new', listener: (e: ITransferClientItem) => void): this;
+  on(event: 'progress', listener: (e: ITransferClientItem) => void): this;
+  on(event: 'finish', listener: (e: ITransferClientItem) => void): this;
+  once(event: 'new', listener: (e: ITransferClientItem) => void): this;
+  once(event: 'progress', listener: (e: ITransferClientItem) => void): this;
+  once(event: 'finish', listener: (e: ITransferClientItem) => void): this;
 }
 
 export class TransferClient extends EventEmitter {
@@ -51,7 +53,7 @@ export class TransferClient extends EventEmitter {
     }
   }
 
-  public transfer(localPath: string, remotePath: string, id?: string) {
+  public async transfer(localPath: string, remotePath: string, id?: string) {
     return this._tasks.handle<void>(async (index) => {
       id = id || makeId(32);
 
@@ -59,24 +61,37 @@ export class TransferClient extends EventEmitter {
 
       const client = this._clients[index];
 
-      this.emit('new', {
+      let item: ITransferClientItem = {
         id,
         localPath,
         remotePath,
         type: this.type,
         context: client,
-      } as ITransferClientNew);
+        speed: 0,
+        buffered: 0,
+        chunkSize: 0,
+        eta: 0,
+        size: 0,
+        status: 'pending',
+      };
+
+      this.emit('new', item);
 
       client.on('progress', e => {
-        const data = { ...e, id, type: this.type } as ITransferClientProgress;
-        this.emit('progress', data);
+        item = { ...e, status: 'transfering' };
+
+        this.emit('progress', item);
       });
 
       if (this.type === 'download') {
-        return client.download(remotePath, createWriteStream(localPath, 'utf8'));
+        await client.download(remotePath, createWriteStream(localPath, 'utf8'));
       }
 
-      return client.upload(remotePath, createReadStream(localPath, 'utf8'));
+      await client.upload(remotePath, createReadStream(localPath, 'utf8'));
+
+      item.status = 'finished';
+
+      this.emit('finish', item);
     });
   }
 }
