@@ -22,7 +22,7 @@ export declare interface Client {
 export class Client extends EventEmitter {
   public connected = false;
 
-  protected _config: IConfig;
+  public config: IConfig;
 
   public _ftpClient: FtpClient;
 
@@ -39,7 +39,7 @@ export class Client extends EventEmitter {
       await this.disconnect();
     }
 
-    this._config = config;
+    this.config = config;
     this.connected = false;
 
     if (this.isSftp) {
@@ -228,7 +228,7 @@ export class Client extends EventEmitter {
       this._aborting = true;
       this._transfer.closeStreams();
 
-      await this.connect(this._config);
+      await this.connect(this.config);
 
       this._aborting = false;
 
@@ -282,7 +282,7 @@ export class Client extends EventEmitter {
   }
 
   public get protocol(): IProtocol {
-    return this._config ? this._config.protocol : null;
+    return this.config ? this.config.protocol : null;
   }
 
   public get isSftp() {
