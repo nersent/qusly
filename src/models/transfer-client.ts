@@ -77,20 +77,23 @@ export class TransferClient extends EventEmitter {
 
       this.emit('new', item);
 
-      client.on('progress', e => {
+      const onProgress = e => {
         item = { ...e, id, status: 'transfering' };
 
         this.emit('progress', item);
-      });
+      }
+
+      client.on('progress', onProgress);
 
       if (this.type === 'download') {
         await client.download(remotePath, createWriteStream(localPath, 'utf8'));
+      } else {
+        await client.upload(remotePath, createReadStream(localPath, 'utf8'));
       }
 
-      await client.upload(remotePath, createReadStream(localPath, 'utf8'));
+      client.removeListener('progress', onProgress);
 
       item.status = 'finished';
-
       this.emit('finish', item);
     });
   }
