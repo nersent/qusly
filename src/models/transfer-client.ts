@@ -4,7 +4,7 @@ import { EventEmitter } from 'events';
 import { IConfig, ITransferClientNew, ITransferClientProgress, ITransferType } from '../interfaces';
 import { Client } from './client';
 import { TaskManager } from './task-manager';
-import { makeId } from '../utils';
+import { makeId, ensureExists } from '../utils';
 
 export declare interface TransferClient {
   on(event: 'new', listener: (e: ITransferClientNew) => void): this;
@@ -52,8 +52,10 @@ export class TransferClient extends EventEmitter {
   }
 
   public transfer(localPath: string, remotePath: string, id?: string) {
-    return this._tasks.handle<void>(index => {
+    return this._tasks.handle<void>(async (index) => {
       id = id || makeId(32);
+
+      await ensureExists(localPath);
 
       const client = this._clients[index];
 
