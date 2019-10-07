@@ -33,7 +33,7 @@ export class TransferManager extends EventEmitter {
     super();
   }
 
-  public async download(remotePath: string, dest: Writable, options?: IDownloadOptions) {
+  public async download(remotePath: string, dest: Writable, options: IDownloadOptions = {}) {
     const localPath = getFilePath(dest);
     const size = this._client.isSftp ? await this._client._sftpClient.size(remotePath) : await this._client._ftpClient.size(remotePath);
 
@@ -55,7 +55,7 @@ export class TransferManager extends EventEmitter {
     });
   }
 
-  public async upload(remotePath: string, source: Readable, options?: ITransferOptions) {
+  public async upload(remotePath: string, source: Readable, options: ITransferOptions = {}) {
     const localPath = getFilePath(source);
     const size = await getFileSize(source);
 
