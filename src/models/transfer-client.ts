@@ -44,11 +44,7 @@ export class TransferClient extends EventEmitter {
         this._clients[i] = new Client();
       }
 
-      if (config) {
-        await this.connect(config);
-      } else {
-        throw new Error('You must provide config!');
-      }
+      if (config) await this.connect(config);
     } else if (count < length) {
       const deleted = this._clients.splice(0, length - count);
       await Promise.all(deleted.map(r => r.disconnect));
@@ -57,8 +53,6 @@ export class TransferClient extends EventEmitter {
 
   public transfer(localPath: string, remotePath: string, id?: string) {
     return this._tasks.handle<void>(index => {
-      console.log(index);
-
       id = id || makeId(32);
 
       const client = this._clients[index];
