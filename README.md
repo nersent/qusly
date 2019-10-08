@@ -559,8 +559,9 @@ interface IProgress {
   localPath?: string; // local file path
   remotePath?: string; // remote file path
   eta?: number; // estimated time arrival in seconds
-  speed?: number; // transfer speed in KB/s
+  speed?: number; // transfer speed in bytes/s
   startAt?: Date; // transfer start
+  percent?: number; // percent of buffered size
   context?: Client;
 }
 ```
@@ -683,7 +684,8 @@ type ITransferType = 'download' | 'upload';
   - Buffered size
   - File size
   - Estimated time arrival in _seconds_
-  - Transfer speed in _KB/s_
+  - Transfer speed in _bytes/s_
+  - Percent of buffered size
   - Start time
 
 ```ts
