@@ -53,32 +53,31 @@ export class TransferClient extends EventEmitter {
     }
   }
 
-  public async transfer(localPath: string, remotePath: string, id?: string) {
-    return this._tasks.handle<void>(async (index) => {
-      id = id || makeId(32);
+  public async transfer(localPath: string, remotePath: string, data?: any) {
+    const id = makeId(32);
 
+    let item: ITransferClientItem = {
+      id,
+      localPath,
+      remotePath,
+      type: this.type,
+      speed: 0,
+      buffered: 0,
+      chunkSize: 0,
+      eta: 0,
+      size: 0,
+      status: 'pending',
+    };
+
+    this.emit('new', item);
+
+    return this._tasks.handle<void>(async (index) => {
       await ensureExists(localPath);
 
       const client = this._clients[index];
 
-      let item: ITransferClientItem = {
-        id,
-        localPath,
-        remotePath,
-        type: this.type,
-        context: client,
-        speed: 0,
-        buffered: 0,
-        chunkSize: 0,
-        eta: 0,
-        size: 0,
-        status: 'pending',
-      };
-
-      this.emit('new', item);
-
       const onProgress = e => {
-        item = { ...e, id, status: 'transfering' };
+        item = { ...e, id, context: null, status: 'transfering' };
 
         this.emit('progress', item);
       }
@@ -87,7 +86,7 @@ export class TransferClient extends EventEmitter {
 
       if (this.type === 'download') {
         await client.download(remotePath, createWriteStream(localPath, 'utf8'));
-      } else {
+      } else if (this.type === 'upload') {
         await client.upload(remotePath, createReadStream(localPath, 'utf8'));
       }
 

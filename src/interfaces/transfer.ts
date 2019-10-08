@@ -24,8 +24,9 @@ export interface IProgress {
   context?: Client;
 }
 
-export interface ITransferClientItem extends IProgress {
+export interface ITransferClientItem extends Omit<IProgress, 'context'> {
   id?: string;
   type?: ITransferType;
   status?: ITransferStatus;
+  data?: any;
 }
