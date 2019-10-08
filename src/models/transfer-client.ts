@@ -1,18 +1,18 @@
 import { createWriteStream, createReadStream } from 'fs';
 import { EventEmitter } from 'events';
 
-import { IConfig, ITransferClientItem, ITransferType } from '../interfaces';
+import { IConfig, ITransferItem, ITransferType } from '../interfaces';
 import { Client } from './client';
 import { TaskManager } from './task-manager';
 import { makeId, ensureExists } from '../utils';
 
 export declare interface TransferClient {
-  on(event: 'new', listener: (e: ITransferClientItem) => void): this;
-  on(event: 'progress', listener: (e: ITransferClientItem) => void): this;
-  on(event: 'finish', listener: (e: ITransferClientItem) => void): this;
-  once(event: 'new', listener: (e: ITransferClientItem) => void): this;
-  once(event: 'progress', listener: (e: ITransferClientItem) => void): this;
-  once(event: 'finish', listener: (e: ITransferClientItem) => void): this;
+  on(event: 'new', listener: (e: ITransferItem) => void): this;
+  on(event: 'progress', listener: (e: ITransferItem) => void): this;
+  on(event: 'finish', listener: (e: ITransferItem) => void): this;
+  once(event: 'new', listener: (e: ITransferItem) => void): this;
+  once(event: 'progress', listener: (e: ITransferItem) => void): this;
+  once(event: 'finish', listener: (e: ITransferItem) => void): this;
 }
 
 export class TransferClient extends EventEmitter {
@@ -56,19 +56,21 @@ export class TransferClient extends EventEmitter {
   public async transfer(localPath: string, remotePath: string, data?: any) {
     const id = makeId(32);
 
-    let item: ITransferClientItem = {
+    const item: ITransferItem = {
       id,
-      localPath,
-      remotePath,
-      type: this.type,
-      speed: 0,
-      buffered: 0,
-      chunkSize: 0,
-      eta: 0,
-      size: 0,
-      percent: 0,
-      data,
       status: 'pending',
+      data,
+      type: this.type,
+      info: {
+        localPath,
+        remotePath,
+        speed: 0,
+        buffered: 0,
+        chunkSize: 0,
+        eta: 0,
+        size: 0,
+        percent: 0,
+      }
     };
 
     this.emit('new', item);
@@ -79,7 +81,8 @@ export class TransferClient extends EventEmitter {
       const client = this._clients[index];
 
       const onProgress = e => {
-        item = { ...e, id, context: null, data, status: 'transfering' };
+        item.status = 'transfering';
+        item.info = e;
 
         this.emit('progress', item);
       }
@@ -95,6 +98,7 @@ export class TransferClient extends EventEmitter {
       client.removeListener('progress', onProgress);
 
       item.status = 'finished';
+
       this.emit('finish', item);
     });
   }
