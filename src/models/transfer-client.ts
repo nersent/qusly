@@ -67,6 +67,7 @@ export class TransferClient extends EventEmitter {
       eta: 0,
       size: 0,
       percent: 0,
+      data,
       status: 'pending',
     };
 
@@ -78,7 +79,7 @@ export class TransferClient extends EventEmitter {
       const client = this._clients[index];
 
       const onProgress = e => {
-        item = { ...e, id, context: null, status: 'transfering' };
+        item = { ...e, id, context: null, data, status: 'transfering' };
 
         this.emit('progress', item);
       }
