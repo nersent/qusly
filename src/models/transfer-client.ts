@@ -66,6 +66,7 @@ export class TransferClient extends EventEmitter {
       chunkSize: 0,
       eta: 0,
       size: 0,
+      percent: 0,
       status: 'pending',
     };
 

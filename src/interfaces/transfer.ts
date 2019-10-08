@@ -20,6 +20,7 @@ export interface IProgress {
   remotePath?: string;
   eta?: number;
   speed?: number;
+  percent?: number;
   startAt?: Date;
   context?: Client;
 }

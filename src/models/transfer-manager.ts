@@ -151,11 +151,13 @@ export class TransferManager extends EventEmitter {
       const elapsed = calcElapsed(this._startAt);
       const speed = this._buffered / elapsed; // bytes per second
       const eta = calcEta(elapsed, this._buffered, size); // second
+      const percent = Math.round(this._buffered / size * 100);
 
       const data: IProgress = {
         buffered: this._buffered,
         startAt: new Date(this._startAt),
         context: this._client,
+        percent,
         chunkSize,
         remotePath,
         localPath,
