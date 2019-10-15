@@ -10,9 +10,13 @@ export declare interface TransferClient {
   on(event: 'new', listener: (e: ITransferItem) => void): this;
   on(event: 'progress', listener: (e: ITransferItem) => void): this;
   on(event: 'finish', listener: (e: ITransferItem) => void): this;
+  on(event: 'cancel', listener: (e: ITransferItem) => void): this;
+  on(event: '_cancel', listener: (id: string) => void): this;
   once(event: 'new', listener: (e: ITransferItem) => void): this;
   once(event: 'progress', listener: (e: ITransferItem) => void): this;
   once(event: 'finish', listener: (e: ITransferItem) => void): this;
+  once(event: 'cancel', listener: (e: ITransferItem) => void): this;
+  once(event: '_cancel', listener: (id: string) => void): this;
 }
 
 export class TransferClient extends EventEmitter {
@@ -80,6 +84,15 @@ export class TransferClient extends EventEmitter {
 
       const client = this._clients[index];
 
+      const onCancel = async (taskId: string) => {
+        if (id === taskId) {
+          const buffered = await client.abort();
+
+          item.info.buffered = buffered;
+          this.emit('cancel', item);
+        }
+      }
+
       const onProgress = e => {
         item.status = 'transfering';
         item.info = e;
@@ -87,7 +100,10 @@ export class TransferClient extends EventEmitter {
         this.emit('progress', item);
       }
 
+      this.on('_cancel', onCancel);
       client.on('progress', onProgress);
+
+      await this._delayAborting(client);
 
       if (this.type === 'download') {
         await client.download(remotePath, createWriteStream(localPath, 'utf8'));
@@ -100,6 +116,22 @@ export class TransferClient extends EventEmitter {
       item.status = 'finished';
 
       this.emit('finish', item);
+      this.removeListener('_cancel', onCancel);
+    }, id);
+  }
+
+  public cancel(id: string) {
+    this._tasks.cancel(id);
+    this.emit('_cancel', id);
+  }
+
+  private _delayAborting(client: any) {
+    if (!client._aborting) return null;
+
+    return new Promise(resolve => {
+      client.once('abort', () => {
+        resolve();
+      });
     });
   }
 }

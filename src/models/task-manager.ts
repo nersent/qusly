@@ -3,8 +3,13 @@ import { EventEmitter } from 'events';
 import { makeId } from '../utils';
 
 interface IQueueItem {
-  id: string;
+  id: any;
   f: Function;
+}
+
+interface ITask<T> {
+  id: any;
+  callback: Promise<T>
 }
 
 export class TaskManager extends EventEmitter {
@@ -20,9 +25,9 @@ export class TaskManager extends EventEmitter {
     return this._tasksCount < this.splits;
   }
 
-  public handle<T>(f: Function): Promise<T> {
+  public handle<T>(f: Function, id?: any): Promise<T> {
     return new Promise((resolve, reject) => {
-      const id = makeId(32);
+      id = id || makeId(32);
 
       this._queue.push({ id, f });
 
@@ -35,6 +40,13 @@ export class TaskManager extends EventEmitter {
         this._exec(id);
       }
     });
+  }
+
+  /**
+   * __Works only with pending tasks!__
+   */
+  public cancel(taskId: string) {
+    this._queue = this._queue.filter(r => r.id !== taskId);
   }
 
   protected async _exec(taskId: string) {

@@ -92,7 +92,6 @@ export class TransferManager extends EventEmitter {
 
     await new Promise((resolve, reject) => {
       onAbort = () => {
-        console.log('on abort');
         resolve();
       };
 
