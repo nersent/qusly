@@ -32,7 +32,7 @@ describe('String utils', () => {
     it('supports unix date format', () => {
       const date = getValidDate('Oct 24 17:51');
 
-      // TODO: node-ssh doesn't seems to support year in file listenings
+      // TODO: node-ssh doesn't seem to support year in file listenings
       // expect(date.getFullYear()).equals(19);
       expect(date.getMonth()).equals(9);
       expect(date.getDate()).equals(24);
@@ -41,28 +41,26 @@ describe('String utils', () => {
       expect(date.getMinutes()).equals(51);
     });
 
-    it('supports ms-dos date format', () => {
-      it('AM', () => {
-        const date = getValidDate('08-11-19 02:46AM');
+    it('supports ms-dos date (AM) format', () => {
+      const date = getValidDate('08-11-19 05:46AM');
 
-        expect(date.getFullYear()).equals(2019);
-        expect(date.getMonth()).equals(10);
-        expect(date.getDate()).equals(8);
+      expect(date.getFullYear()).equals(2019);
+      expect(date.getMonth()).equals(7);
+      expect(date.getDate()).equals(11);
 
-        expect(date.getHours()).equals(2);
-        expect(date.getMinutes()).equals(46);
-      });
+      expect(date.getHours()).equals(5);
+      expect(date.getMinutes()).equals(46);
+    })
 
-      it('PM', () => {
-        const date = getValidDate('21-12-02 17:54PM');
+    it('supports ms-dos date (PM) format', () => {
+      const date = getValidDate('11-21-02 08:54PM');
 
-        expect(date.getFullYear()).equals(2002);
-        expect(date.getMonth()).equals(11);
-        expect(date.getDate()).equals(21);
+      expect(date.getFullYear()).equals(2002);
+      expect(date.getMonth()).equals(10);
+      expect(date.getDate()).equals(21);
 
-        expect(date.getHours()).equals(17);
-        expect(date.getMinutes()).equals(54);
-      });
+      expect(date.getHours()).equals(20);
+      expect(date.getMinutes()).equals(54);
     });
   });
 });
