@@ -10,7 +10,9 @@
   "exclude": [
     "node_modules/**",
     "**/*.d.ts",
-    "tests/**/*.ts"
+    "tests/**/*.ts",
+    "src/constants/*.ts",
+    "src/interfaces/*.ts"
   ],
   "sourceMap": true,
   "reporter": [
