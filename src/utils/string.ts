@@ -10,8 +10,8 @@ export const makeId = (length: number, possible: string = 'abcdefghijklmnopqrstu
   return id;
 };
 
-export const getValidDate = (date: string) => {
-  date = date.trim();
+export const getValidDate = (_date: string) => {
+  const date = _date.trim();
 
   const match = date.match(MSDOS_DATE_REGEX);
   if (!match) return new Date(date);
