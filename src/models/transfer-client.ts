@@ -103,7 +103,7 @@ export class TransferClient extends EventEmitter {
       this.on('_cancel', onCancel);
       client.on('progress', onProgress);
 
-      await this._delayAborting(client);
+      await client.delayAbortion();
 
       if (this.type === 'download') {
         await client.download(remotePath, createWriteStream(localPath, 'utf8'));
@@ -120,18 +120,23 @@ export class TransferClient extends EventEmitter {
     }, id);
   }
 
-  public cancel(id: string) {
-    this._tasks.cancel(id);
-    this.emit('_cancel', id);
+  public cancel(id: string): Promise<ITransferItem> {
+    return new Promise(resolve => {
+      this.once('cancel', e => {
+        resolve(e);
+      });
+
+      this._tasks.cancel(id);
+      this.emit('_cancel', id);
+    });
   }
 
-  private _delayAborting(client: any) {
-    if (!client._aborting) return null;
+  public async pause(id: string) {
+    this.emit('_pause', id);
+    /*this._tasks.reserve();
 
-    return new Promise(resolve => {
-      client.once('abort', () => {
-        resolve();
-      });
-    });
+    await this.cancel(id);
+
+    console.log('canceled');*/
   }
 }

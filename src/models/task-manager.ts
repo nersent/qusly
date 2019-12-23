@@ -17,12 +17,14 @@ export class TaskManager extends EventEmitter {
 
   protected _tasksCount = 0;
 
+  protected _reserved = 0;
+
   constructor(public splits = 1) {
     super();
   }
 
   protected get _available() {
-    return this._tasksCount < this.splits;
+    return this._tasksCount < this.splits - this._reserved;
   }
 
   public handle<T>(f: Function, id?: any): Promise<T> {
@@ -40,13 +42,6 @@ export class TaskManager extends EventEmitter {
         this._exec(id);
       }
     });
-  }
-
-  /**
-   * __Works only with pending tasks!__
-   */
-  public cancel(taskId: string) {
-    this._queue = this._queue.filter(r => r.id !== taskId);
   }
 
   protected async _exec(taskId: string) {
@@ -73,6 +68,25 @@ export class TaskManager extends EventEmitter {
 
     if (this._queue.length) {
       this._exec(this._queue[0].id);
+    }
+  }
+
+  /**
+   * __Works only with pending tasks!__
+   */
+  public cancel(taskId: string) {
+    this._queue = this._queue.filter(r => r.id !== taskId);
+  }
+
+  public reserve() {
+    if (++this._reserved > this.splits) {
+      throw new Error('Can\'t reserve more clients!');
+    }
+  }
+
+  public free() {
+    if (--this._reserved < 0) {
+      this._reserved = 0;
     }
   }
 }

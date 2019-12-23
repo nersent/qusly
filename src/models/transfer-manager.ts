@@ -4,6 +4,7 @@ import { Readable, Writable } from 'stream';
 import { Client } from './client';
 import { IDownloadOptions, ITransferOptions, IProgress, ITransferType } from '../interfaces';
 import { calcElapsed, calcEta, getFilePath, getFileSize } from '../utils';
+import { Socket } from 'net';
 
 interface ITransferData {
   type?: ITransferType;
@@ -25,6 +26,8 @@ export class TransferManager extends EventEmitter {
 
   public _buffered = 0;
 
+  protected _size = 0;
+
   protected _aborting = false;
 
   protected _startAt: number;
@@ -33,22 +36,32 @@ export class TransferManager extends EventEmitter {
     super();
   }
 
-  public async download(remotePath: string, dest: Writable, options: IDownloadOptions) {
+  public async download(remotePath: string, dest: Writable, options: IDownloadOptions, resume?: boolean) {
     const localPath = getFilePath(dest);
-    const size = this._client.isSftp ? await this._client._sftpClient.size(remotePath) : await this._client._ftpClient.size(remotePath);
 
     options = { startAt: 0, ...options };
+
+    let size = this._size;
+
+    if (!resume) {
+      size = this._client.isSftp ? await this._client._sftpClient.size(remotePath) : await this._client._ftpClient.size(remotePath);
+      size -= options.startAt;
+
+      this._size = size;
+    }
 
     if (this._client.isSftp) {
       this._readable = this._client._sftpClient.createReadStream(remotePath, options.startAt);
     }
 
-    this._buffered = 0;
+    this._buffered = resume ? options.startAt : 0;
     this._writable = dest;
+
+    console.log(this._buffered, size);
 
     return this._handleStream({
       type: 'download',
-      size: size - options.startAt,
+      size,
       remotePath,
       localPath,
       options
@@ -84,7 +97,7 @@ export class TransferManager extends EventEmitter {
       await this._handleFtp(data);
     }
 
-    this.closeStreams();
+    this.clean();
   }
 
   protected async _handleSftp(data: ITransferData) {
@@ -94,8 +107,6 @@ export class TransferManager extends EventEmitter {
       onAbort = () => {
         resolve();
       };
-
-      this._buffered = 0;
 
       this.once('abort', onAbort);
 
@@ -136,10 +147,20 @@ export class TransferManager extends EventEmitter {
       }
     });
 
-    if (type === 'download') {
-      await this._client._ftpClient.download(this._writable, remotePath, options.startAt);
-    } else {
-      await this._client._ftpClient.upload(this._readable, remotePath);
+    try {
+      if (type === 'download') {
+        await this._client._ftpClient.download(this._writable, remotePath, options.startAt);
+      } else {
+        await this._client._ftpClient.upload(this._readable, remotePath);
+      }
+    } catch (err) {
+      const msg = err.message;
+
+      console.log(err);
+
+      if (msg !== 'User closed client during task' && msg !== 'Client is closed') {
+        throw err;
+      }
     }
   }
 
@@ -169,7 +190,27 @@ export class TransferManager extends EventEmitter {
     }
   }
 
-  public closeStreams() {
+  public async clean(abort = false) {
+    this._closeStreams();
+
+    if (!this._client.isSftp) {
+      this._client._ftpClient.trackProgress(undefined);
+
+      if (this._client._ftpClient.ftp.dataSocket) {
+        this._client._ftpClient.ftp.dataSocket.unpipe(this._writable);
+      }
+
+      if (abort) {
+        await this._closeFtp();
+      }
+    }
+
+    console.log('done');
+  }
+
+  protected _closeStreams() {
+    this._startAt = null;
+
     if (this._readable) {
       this._readable.removeAllListeners();
       this._readable.unpipe(this._writable);
@@ -188,15 +229,37 @@ export class TransferManager extends EventEmitter {
     } else if (this._writable) {
       this._writable.end();
     }
+  }
 
-    if (!this._client.isSftp) {
-      this._client._ftpClient.trackProgress(undefined);
+  protected async _closeFtp() {
+    const ftp = this._client._ftpClient.ftp as any;
 
-      if (this._client._ftpClient.ftp.dataSocket) {
-        this._client._ftpClient.ftp.dataSocket.unpipe(this._writable);
-      }
+    if (ftp._task) {
+      ftp._task.resolver.resolve()
     }
 
-    this._startAt = null;
+    const err = new Error('User closed client');
+
+    ftp._closingError = err;
+    ftp._closeSocket(ftp._socket);
+
+    await this._closeSocket(ftp._socket);
+    await this._closeSocket(ftp._dataSocket);
+
+    ftp._passToHandler(err);
+    ftp._stopTrackingTask();
+  }
+
+  protected _closeSocket(socket: Socket) {
+    if (!socket) return null;
+
+    return new Promise(resolve => {
+      socket.once('close', () => {
+        socket.removeAllListeners();
+        resolve();
+      });
+
+      socket.destroy();
+    });
   }
 }

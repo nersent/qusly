@@ -13,10 +13,14 @@ export declare interface Client {
   on(event: 'disconnect', listener: Function): this;
   on(event: 'abort', listener: Function): this;
   on(event: 'progress', listener: (data?: IProgress) => void): this;
+  on(event: 'pause', listener: Function): this;
+  on(event: 'resume', listener: Function): this;
   once(event: 'connect', listener: Function): this;
   once(event: 'disconnect', listener: Function): this;
   once(event: 'abort', listener: Function): this;
   once(event: 'progress', listener: Function): this;
+  once(event: 'pause', listener: Function): this;
+  once(event: 'resume', listener: Function): this;
 }
 
 export class Client extends EventEmitter {
@@ -32,18 +36,17 @@ export class Client extends EventEmitter {
 
   protected _transfer = new TransferManager(this);
 
-  protected _aborting = false;
+  public aborting = false;
+
+  public paused = false;
 
   public async connect(config: IConfig): Promise<void> {
-    if (this.connected) {
-      await this.disconnect();
-    }
-
     this.config = config;
     this.connected = false;
 
     if (this.isSftp) {
       this._sftpClient = new SftpClient();
+
       await this._sftpClient.connect(config);
     } else {
       this._ftpClient = new FtpClient();
@@ -67,7 +70,9 @@ export class Client extends EventEmitter {
     if (!this.connected) return;
 
     this.connected = false;
-    this._transfer.closeStreams();
+    console.log('before');
+    await this._transfer.clean(this.aborting);
+    console.log(new Date());
 
     if (this.isSftp) {
       this._sftpClient.disconnect();
@@ -78,9 +83,29 @@ export class Client extends EventEmitter {
     this._sftpClient = null;
     this._ftpClient = null;
 
-    if (!this._aborting) {
+    if (!this.aborting) {
       this.emit('disconnect');
     }
+  }
+
+  public async abort(): Promise<number> {
+    if (!this.aborting) {
+      this._transfer.emit('abort');
+      this.aborting = true;
+
+      await this.disconnect();
+      console.log("XDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+
+      await this.connect(this.config);
+
+      this.aborting = false;
+
+
+      this.emit('abort');
+      return this._transfer._buffered;
+    }
+
+    return null;
   }
 
   public async readDir(path?: string): Promise<IFile[]> {
@@ -222,26 +247,31 @@ export class Client extends EventEmitter {
     });
   }
 
-  public async abort(): Promise<number> {
-    if (!this._aborting) {
-      this._transfer.emit('abort');
-      this._aborting = true;
-      this._transfer.closeStreams();
-
-      await this.connect(this.config);
-
-      this._aborting = false;
-
-      this.emit('abort');
-      return this._transfer._buffered;
-    }
-
-    return null;
-  }
-
-  public download(path: string, dest: Writable, options?: IDownloadOptions): Promise<void> {
+  public download(path: string, dest: Writable, options: IDownloadOptions = {}): Promise<void> {
     return this._tasks.handle(() => {
-      return this._transfer.download(path, dest, options);
+      return new Promise(resolve => {
+        let resumed = false;
+
+        const transfer = async () => {
+          await this.delayAbortion();
+          console.log('wtf');
+          await this._transfer.download(path, dest, options, resumed);
+
+          console.log('aha');
+
+          if (!this.paused) {
+            resolve();
+          } else {
+            this.once('resume', () => {
+              //resumed = true;
+              // options.startAt = this._transfer._buffered;
+              transfer();
+            });
+          }
+        }
+
+        transfer();
+      });
     });
   }
 
@@ -249,6 +279,20 @@ export class Client extends EventEmitter {
     return this._tasks.handle(() => {
       return this._transfer.upload(path, source, options);
     });
+  }
+
+  public async pauseTransfer() {
+    this.paused = true;
+
+    const buffered = await this.abort();
+    this.emit('pause');
+
+    return buffered;
+  }
+
+  public async resumeTransfer() {
+    this.paused = false;
+    this.emit('resume');
   }
 
   public touch(path: string): Promise<void> {
@@ -287,5 +331,15 @@ export class Client extends EventEmitter {
 
   public get isSftp() {
     return this.protocol === 'sftp';
+  }
+
+  public delayAbortion() {
+    if (!this.aborting) return null;
+
+    return new Promise(resolve => {
+      this.once('abort', () => {
+        resolve();
+      });
+    });
   }
 }
