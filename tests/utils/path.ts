@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import * as path from 'path';
 import 'mocha';
 import { promises as fs } from 'fs';
 
@@ -8,13 +7,13 @@ import * as pathUtils from '../../src/utils/path';
 
 describe('Path utils', () => {
   describe('formatPath', () => {
-    it('supports absolute path', () => {
+    it('supports start path', () => {
       const str = pathUtils.formatPath('/var/www', { name: 'test' });
 
       expect(str).equals('/var/www/test');
     });
 
-    it('supports root path', () => {
+    it('supports no start path', () => {
       const str = pathUtils.formatPath('', { name: 'test' });
 
       expect(str).equals('/test');
