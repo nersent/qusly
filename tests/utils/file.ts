@@ -208,5 +208,11 @@ describe('File utils', () => {
 
       expect(stub.calledOnceWith(path)).equals(true);
     });
+
+    it('returns -1 if stream does\'t have path', async () => {
+      const size = await fileUtils.getFileSize({} as any);
+
+      expect(size).equals(-1);
+    });
   });
 });
