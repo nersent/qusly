@@ -11,7 +11,7 @@ describe('Network utils', () => {
 
       const elapsed = calcElapsed(time);
 
-      expect(elapsed).equals(seconds);
+      expect(Math.floor(elapsed)).equals(seconds);
     });
   });
 
