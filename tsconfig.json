@@ -21,12 +21,6 @@
       "~/*": ["src/*"]
     }
   },
-  "exclude": [
-    "node_modules",
-    "build",
-    "src/models/client.ts",
-    "src/models/transfer-manager.ts",
-    "src/models/transfer-client.ts"
-  ],
+  "exclude": ["node_modules", "build"],
   "include": ["./src"]
 }
