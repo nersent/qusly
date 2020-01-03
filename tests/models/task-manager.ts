@@ -2,97 +2,101 @@ import { expect } from 'chai';
 import * as sinon from 'sinon';
 import 'mocha';
 
+import { delay, checkTime, getTime } from '../../src/utils/tests';
 import { TaskManager } from '../../src/models/task-manager';
 
-const fn = (str: string) => () => {
-  return str;
+const getSyncTest = async (splits: number) => {
+  const manager = new TaskManager(splits);
+
+  const start = getTime();
+
+  const first = await manager.handle(delay('a', 10));
+  const second = await manager.handle(delay('b', 5));
+  const third = await manager.handle(delay('c', 10));
+
+  expect(first).equals('a');
+  expect(second).equals('b');
+  expect(third).equals('c');
+
+  expect(checkTime(start, null, 25)).equals(true);
 }
 
-const delay = (ms: number) => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve();
-    }, ms);
-  });
-}
+const getAsyncTest = async (splits: number, time = 40, delays = [10, 10, 10, 10], log = false) => {
+  const manager = new TaskManager(splits);
 
-const currentTime = (time?: number | [number, number]) => {
-  if (!time) return process.hrtime();
-  const end = process.hrtime(time as any);
-  return Math.floor((end[0] * 1000) + (end[1] / 1000000));
-}
+  const start = getTime();
 
-const validate = (start: number | [number, number], delay: number, padding = 3) => {
-  const time = currentTime(start) as number;
-  return Math.abs(time - delay) <= padding;
+  const [first, second, third, fourth] = await Promise.all([
+    manager.handle(delay('a', delays[0])),
+    manager.handle(delay('b', delays[1])),
+    manager.handle(delay('c', delays[2])),
+    manager.handle(delay('d', delays[3]))
+  ]);
+
+  expect(first).equals('a');
+  expect(second).equals('b');
+  expect(third).equals('c');
+  expect(fourth).equals('d');
+
+  const end = getTime(start);
+
+  if (log) console.log(`Time: ${end}`);
+
+  expect(checkTime(start, end, time)).equals(true);
 }
 
 describe('TaskManager', () => {
-  describe('supports splitting', () => {
-    const sandbox = sinon.createSandbox();
-
-    afterEach(sandbox.restore);
-
+  describe('synchronous splitting', () => {
     it('1 split', async () => {
-      const manager = new TaskManager(1);
-
-      const res = await Promise.all([manager.handle(fn('a')), manager.handle(fn('b')), manager.handle(fn('c'))]);
-
-      expect(res[0]).equals('a');
-      expect(res[1]).equals('b');
-      expect(res[2]).equals('c');
-    });
-
-    it('2 splits', async () => {
-      const manager = new TaskManager(2);
-
-      const res = await Promise.all([manager.handle(fn('a')), manager.handle(fn('b')), manager.handle(fn('c'))]);
-
-      expect(res[0]).equals('a');
-      expect(res[1]).equals('b');
-      expect(res[2]).equals('c');
-    });
-
-    it('3 splits', async () => {
-      const manager = new TaskManager(3);
-
-      const res = await Promise.all([manager.handle(fn('a')), manager.handle(fn('b')), manager.handle(fn('c'))]);
-
-      expect(res[0]).equals('a');
-      expect(res[1]).equals('b');
-      expect(res[2]).equals('c');
+      await getSyncTest(1);
     });
 
     it('4 splits', async () => {
-      const manager = new TaskManager(4);
+      await getSyncTest(4);
+    });
+  });
 
-      const res = await Promise.all([manager.handle(fn('a')), manager.handle(fn('b')), manager.handle(fn('c'))]);
-
-      expect(res[0]).equals('a');
-      expect(res[1]).equals('b');
-      expect(res[2]).equals('c');
+  describe('asynchronous splitting with the same delay', () => {
+    it('1 split', async () => {
+      await getAsyncTest(1);
     });
 
-    it('time delay with 1 split', async () => {
-      const manager = new TaskManager(1);
-
-      const start = currentTime();
-
-      await manager.handle(delay(10));
-      await manager.handle(delay(10));
-      await manager.handle(delay(10));
-
-      expect(validate(start, 30)).equals(true);
+    it('2 splits', async () => {
+      await getAsyncTest(2, 20);
     });
 
-    it('time delay with 3 splits', async () => {
-      const manager = new TaskManager(3);
+    it('3 splits', async () => {
+      await getAsyncTest(3, 20);
+    });
 
-      const start = currentTime();
+    it('4 splits', async () => {
+      await getAsyncTest(4, 10);
+    });
 
-      await Promise.all([manager.handle(delay(10)), manager.handle(delay(10)), manager.handle(delay(10))]);
+    it('8 splits', async () => {
+      await getAsyncTest(8, 10);
+    });
+  });
 
-      expect(validate(start, 10)).equals(true);
+  describe('asynchronous splitting different delays', () => {
+    it('1 split', async () => {
+      await getAsyncTest(1, 30, [10, 5, 5, 10]);
+    });
+
+    it('2 splits', async () => {
+      await getAsyncTest(2, 20, [10, 5, 5, 10]);
+    });
+
+    it('3 splits', async () => {
+      await getAsyncTest(3, 15, [10, 5, 5, 10]);
+    });
+
+    it('4 splits', async () => {
+      await getAsyncTest(4, 10, [10, 5, 5, 10]);
+    });
+
+    it('8 splits', async () => {
+      await getAsyncTest(4, 10, [10, 5, 5, 10]);
     });
   });
 });
