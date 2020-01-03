@@ -1,92 +1,81 @@
 import { EventEmitter } from 'events';
 
-import { makeId } from '../utils';
-
-interface IQueueItem {
-  id: any;
-  f: Function;
-}
-
-interface ITask<T> {
-  id: any;
-  callback: Promise<T>
-}
+import { makeId, safeExec } from '../utils';
+import { ITask, ITaskResponse } from '../interfaces';
 
 export class TaskManager extends EventEmitter {
-  protected _queue: IQueueItem[] = [];
+  protected _queue: ITask[] = [];
 
-  protected _tasksCount = 0;
+  protected _usedThreads = 0;
 
-  protected _reserved = 0;
-
-  constructor(public splits = 1) {
+  constructor(public threads = 1) {
     super();
   }
 
-  protected get _available() {
-    return this._tasksCount < this.splits - this._reserved;
-  }
-
-  public handle<T>(f: Function, id?: any): Promise<T> {
+  public handle<T>(f: Function, id?: string): Promise<T> {
     return new Promise((resolve, reject) => {
-      id = id || makeId(32);
+      const _id = id || makeId(32);
 
-      this._queue.push({ id, f });
+      this._queue.push({ id: _id, cb: f as any, status: 'pending' });
 
-      this.once(`complete-${id}`, (data, error) => {
+      this.once(`complete-${_id}`, ({ data, error }: ITaskResponse) => {
         if (error) return reject(error);
         resolve(data);
       });
 
-      if (this._available) {
-        this._exec(id);
+      if (this.available) {
+        this._process(_id);
       }
     });
   }
 
-  protected async _exec(taskId: string) {
-    if (!taskId || !this._queue.length) return;
+  public get available() {
+    return this._usedThreads < this.threads;
+  }
 
-    this._tasksCount++;
-
-    const queueIndex = this._queue.findIndex(r => r.id === taskId);
-    const { id, f } = this._queue[queueIndex];
-
-    this._queue.splice(queueIndex, 1);
-
-    let response: any;
-    let error: Error;
-
-    try {
-      response = await f(this._tasksCount - 1);
-    } catch (err) {
-      error = err;
+  protected async _process(task: string | ITask) {
+    const _task = typeof task === 'string' ? this._queue.find(r => r.id === task) : task;
+    switch (_task.status) {
+      case 'busy': throw new Error('Task is already executed!');
+      case 'finished': throw new Error('Task is already finished!');
+      case 'deleted': throw new Error('Task is deleted!');
     }
 
-    this._tasksCount--;
-    this.emit(`complete-${id}`, response, error);
+    this._usedThreads++;
+    _task.status = 'busy';
 
-    if (this._queue.length) {
-      this._exec(this._queue[0].id);
+    const res = await safeExec(_task.cb, _task.id);
+
+    this._usedThreads--;
+    _task.status = 'finished';
+
+    this.emit(`complete-${_task.id}`, res);
+    this._next();
+  }
+
+  protected _next() {
+    const task = this._queue.find(r => r.status === 'pending');
+
+    if (task) {
+      this._process(task);
+    } else if (this._usedThreads === 0) {
+      this._clearQueue();
     }
   }
 
-  /**
-   * __Works only with pending tasks!__
-   */
-  public cancel(taskId: string) {
-    this._queue = this._queue.filter(r => r.id !== taskId);
+  protected _clearQueue() {
+    this._queue = [];
   }
 
-  public reserve() {
-    if (++this._reserved > this.splits) {
-      throw new Error('Can\'t reserve more clients!');
-    }
-  }
+  public delete(taskId: string) {
+    const task = this._queue.find(r => r.id === taskId);
 
-  public free() {
-    if (--this._reserved < 0) {
-      this._reserved = 0;
+    switch (task.status) {
+      case 'busy': throw new Error('Cannot delete task while it\'s executing!');
+      case 'finished': throw new Error('Cannot delete finished task!');
+      case 'deleted': throw new Error('Cannot delete removed task!');
     }
+
+    task.status = 'deleted';
   }
 }

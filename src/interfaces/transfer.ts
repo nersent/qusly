@@ -1,4 +1,4 @@
-import { Client } from '../models';
+// import { Client } from '../models';
 
 export type ITransferType = 'download' | 'upload';
 
@@ -22,7 +22,7 @@ export interface IProgress {
   speed?: number;
   percent?: number;
   startAt?: Date;
-  context?: Client;
+  context?: any; //Client;
 }
 
 export interface ITransferItem {

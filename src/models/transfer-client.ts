@@ -41,7 +41,7 @@ export class TransferClient extends EventEmitter {
   }
 
   public async setSplits(count: number, config?: IConfig) {
-    this._tasks.splits = count;
+    this._tasks.threads = count;
 
     const length = this._clients.length;
 
@@ -120,16 +120,16 @@ export class TransferClient extends EventEmitter {
     }, id);
   }
 
-  public cancel(id: string): Promise<ITransferItem> {
-    return new Promise(resolve => {
-      this.once('cancel', e => {
-        resolve(e);
-      });
+  // public cancel(id: string): Promise<ITransferItem> {
+  //   return new Promise(resolve => {
+  //     this.once('cancel', e => {
+  //       resolve(e);
+  //     });
 
-      this._tasks.cancel(id);
-      this.emit('_cancel', id);
-    });
-  }
+  //     this._tasks.cancel(id);
+  //     this.emit('_cancel', id);
+  //   });
+  // }
 
   public async pause(id: string) {
     this.emit('_pause', id);

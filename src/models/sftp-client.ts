@@ -1,16 +1,16 @@
-import { Client as SshClient, SFTPWrapper } from 'ssh2';
+import { Client, SFTPWrapper } from 'ssh2';
 import { FileEntry, Stats } from 'ssh2-streams';
 
 import { IConfig } from '../interfaces';
 
 export class SftpClient {
-  private _ssh: SshClient;
+  public _ssh: Client;
 
-  private _wrapper: SFTPWrapper;
+  public _wrapper: SFTPWrapper;
 
   public connect(config: IConfig) {
     return new Promise((resolve, reject) => {
-      this._ssh = new SshClient();
+      this._ssh = new Client();
 
       this._ssh.once('error', (e) => {
         this._ssh.removeAllListeners();
@@ -26,7 +26,7 @@ export class SftpClient {
         });
       });
 
-      this._ssh.connect({ username: config.user, ...config })
+      this._ssh.connect({ username: config.user, ...config });
     });
   }
 
