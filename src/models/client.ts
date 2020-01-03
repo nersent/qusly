@@ -70,9 +70,9 @@ export class Client extends EventEmitter {
     if (!this.connected) return;
 
     this.connected = false;
-    console.log('before');
+    // console.log('before');
     await this._transfer.clean(this.aborting);
-    console.log(new Date());
+    // console.log(new Date());
 
     if (this.isSftp) {
       this._sftpClient.disconnect();
@@ -112,7 +112,10 @@ export class Client extends EventEmitter {
     return this._tasks.handle(async () => {
       if (this.isSftp) {
         const list = await this._sftpClient.readDir(path || './');
-        return list.map(file => formatFile(parseList(file.longname)[0]));
+        return list.map(file => {
+          console.log(file);
+          return formatFile(parseList(file.longname)[0])
+        });
       } else {
         const list = await this._ftpClient.list(path);
         return list.map(file => formatFile(file));

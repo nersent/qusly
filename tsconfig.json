@@ -15,7 +15,11 @@
     "declaration": true,
     "sourceMap": true,
 
-    "baseUrl": "./"
+    "baseUrl": "./",
+
+    "paths": {
+      "~/*": ["src/*"]
+    }
   },
   "exclude": ["node_modules", "build"],
   "include": ["./src"]

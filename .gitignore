@@ -10,3 +10,5 @@ dist
 server.js
 .env
 test
+.nyc_output
+coverage
