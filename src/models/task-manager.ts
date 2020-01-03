@@ -27,7 +27,7 @@ export class TaskManager extends EventEmitter {
     return this._tasksCount < this.splits - this._reserved;
   }
 
-  public handle<T>(f: Function, id?: any): Promise<T> {
+  public handle<T>(f: any, id?: any): Promise<T> {
     return new Promise((resolve, reject) => {
       id = id || makeId(32);
 
@@ -58,6 +58,7 @@ export class TaskManager extends EventEmitter {
     let error: Error;
 
     try {
+      console.log(this._queue);
       response = await f(this._tasksCount - 1);
     } catch (err) {
       error = err;
