@@ -5,7 +5,7 @@ import 'mocha';
 import { delay, checkTime, getTime } from '../../src/utils/tests';
 import { TaskManager } from '../../src/models/task-manager';
 
-const getSyncTest = async (splits: number) => {
+const getSyncTest = async (splits: number, log = false) => {
   const manager = new TaskManager(splits);
 
   const start = getTime();
@@ -18,7 +18,11 @@ const getSyncTest = async (splits: number) => {
   expect(second).equals('b');
   expect(third).equals('c');
 
-  expect(checkTime(start, null, 25)).equals(true);
+  const end = getTime(start);
+
+  if (log) console.log(`Time: ${end}`);
+
+  expect(checkTime(start, end, 25)).equals(true);
 }
 
 const getAsyncTest = async (splits: number, time = 40, delays = [10, 10, 10, 10], log = false) => {
@@ -78,7 +82,7 @@ describe('TaskManager', () => {
     });
   });
 
-  describe('asynchronous splitting different delays', () => {
+  describe('asynchronous splitting with different delays', () => {
     it('1 split', async () => {
       await getAsyncTest(1, 30, [10, 5, 5, 10]);
     });

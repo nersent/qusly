@@ -8,7 +8,7 @@ export class TaskManager extends EventEmitter {
 
   protected _usedThreads = 0;
 
-  constructor(protected _threads = 1) {
+  constructor(public threads = 1) {
     super();
   }
 
@@ -30,7 +30,7 @@ export class TaskManager extends EventEmitter {
   }
 
   public get available() {
-    return this._usedThreads < this._threads;
+    return this._usedThreads < this.threads;
   }
 
   protected async _process(task: string | ITask) {
