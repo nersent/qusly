@@ -2,7 +2,7 @@ import { Writable, Readable } from 'stream';
 import { EventEmitter } from 'events';
 import { Client as FtpClient, parseList } from 'basic-ftp';
 
-import { IConfig, IProtocol, IFile, IStats, IDownloadOptions, ITransferOptions, IProgress } from '../interfaces';
+import { IConfig, IProtocol, IFile, IStats, IDownloadOptions, ITransferOptions } from '../interfaces';
 import { formatFile, getFileTypeFromStats, getFileType, createFileName } from '../utils';
 import { TaskManager } from './task-manager';
 import { SftpClient } from './sftp-client';
@@ -11,16 +11,15 @@ import { TransferManager } from './transfer-manager';
 export declare interface Client {
   on(event: 'connect', listener: Function): this;
   on(event: 'disconnect', listener: Function): this;
-  on(event: 'abort', listener: Function): this;
-  on(event: 'progress', listener: (data?: IProgress) => void): this;
-  on(event: 'pause', listener: Function): this;
-  on(event: 'resume', listener: Function): this;
+
+  on(event: 'progress', listener: (buffered: number) => void): this;
+  // on(event: 'progress', listener: (data?: IProgress) => void): this;
+
   once(event: 'connect', listener: Function): this;
   once(event: 'disconnect', listener: Function): this;
-  once(event: 'abort', listener: Function): this;
+
   once(event: 'progress', listener: Function): this;
-  once(event: 'pause', listener: Function): this;
-  once(event: 'resume', listener: Function): this;
+  once(event: 'disconnect', listener: Function): this;
 }
 
 export class Client extends EventEmitter {
@@ -34,18 +33,14 @@ export class Client extends EventEmitter {
 
   protected _tasks = new TaskManager();
 
-  protected _transfer = new TransferManager(this);
-
-  public aborting = false;
-
-  public paused = false;
+  public _transfer = new TransferManager(this);
 
   public async connect(config: IConfig): Promise<void> {
     this.config = config;
     this.connected = false;
 
     if (this.isSftp) {
-      this._sftpClient = new SftpClient();
+      this._sftpClient = new SftpClient(this);
 
       await this._sftpClient.connect(config);
     } else {
@@ -70,9 +65,6 @@ export class Client extends EventEmitter {
     if (!this.connected) return;
 
     this.connected = false;
-    // console.log('before');
-    await this._transfer.clean(this.aborting);
-    // console.log(new Date());
 
     if (this.isSftp) {
       this._sftpClient.disconnect();
@@ -80,32 +72,7 @@ export class Client extends EventEmitter {
       this._ftpClient.close();
     }
 
-    this._sftpClient = null;
-    this._ftpClient = null;
-
-    if (!this.aborting) {
-      this.emit('disconnect');
-    }
-  }
-
-  public async abort(): Promise<number> {
-    if (!this.aborting) {
-      this._transfer.emit('abort');
-      this.aborting = true;
-
-      await this.disconnect();
-      console.log("XDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
-
-      await this.connect(this.config);
-
-      this.aborting = false;
-
-
-      this.emit('abort');
-      return this._transfer._buffered;
-    }
-
-    return null;
+    this.emit('disconnect');
   }
 
   public async readDir(path?: string): Promise<IFile[]> {
@@ -250,65 +217,34 @@ export class Client extends EventEmitter {
     });
   }
 
-  public download(path: string, dest: Writable, options: IDownloadOptions = {}): Promise<void> {
+  public async abort() {
+    await this.disconnect();
+    // await this.connect(this.config);
+  }
+
+  public download(path: string, dest: Writable) {
     return this._tasks.handle(() => {
-      return new Promise(resolve => {
-        let resumed = false;
-
-        const transfer = async () => {
-          await this.delayAbortion();
-          console.log('wtf');
-          await this._transfer.download(path, dest, options, resumed);
-
-          console.log('aha');
-
-          if (!this.paused) {
-            resolve();
-          } else {
-            this.once('resume', () => {
-              //resumed = true;
-              // options.startAt = this._transfer._buffered;
-              transfer();
-            });
-          }
-        }
-
-        transfer();
-      });
+      return this._transfer.download(path, dest);
     });
   }
 
-  public upload(path: string, source: Readable, options?: ITransferOptions): Promise<void> {
+  public upload(path: string, source: Readable) {
     return this._tasks.handle(() => {
-      return this._transfer.upload(path, source, options);
+      return this._transfer.upload(path, source);
     });
   }
 
-  public async pauseTransfer() {
-    this.paused = true;
+  public touch(path: string) {
+    // if (this.isSftp) {
+    //   return this._tasks.handle(() => {
+    //     return this._sftpClient.touch(path);
+    //   });
+    // }
 
-    const buffered = await this.abort();
-    this.emit('pause');
+    // const source = new Readable({ read() { } });
+    // source.push(null);
 
-    return buffered;
-  }
-
-  public async resumeTransfer() {
-    this.paused = false;
-    this.emit('resume');
-  }
-
-  public touch(path: string): Promise<void> {
-    if (this.isSftp) {
-      return this._tasks.handle(() => {
-        return this._sftpClient.touch(path);
-      });
-    }
-
-    const source = new Readable({ read() { } });
-    source.push(null);
-
-    return this.upload(path, source, { quiet: true });
+    // return this.upload(path, source, { quiet: true });
   }
 
   public async createBlank(type: 'folder' | 'file', path = './', files?: IFile[]): Promise<string> {
@@ -334,15 +270,5 @@ export class Client extends EventEmitter {
 
   public get isSftp() {
     return this.protocol === 'sftp';
-  }
-
-  public delayAbortion() {
-    if (!this.aborting) return null;
-
-    return new Promise(resolve => {
-      this.once('abort', () => {
-        resolve();
-      });
-    });
   }
 }

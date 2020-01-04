@@ -1,16 +1,27 @@
-import { Client, SFTPWrapper } from 'ssh2';
+import { EventEmitter } from 'events';
+import { Client as SshClient, SFTPWrapper } from 'ssh2';
 import { FileEntry, Stats } from 'ssh2-streams';
+import { Writable, Readable } from 'stream';
 
 import { IConfig } from '../interfaces';
+import { Client } from '../models';
 
-export class SftpClient {
-  public _ssh: Client;
+export declare interface SftpClient {
+  on(event: 'progress', listener: (buffered: number) => void): this;
+}
+
+export class SftpClient extends EventEmitter {
+  public _ssh: SshClient;
 
   public _wrapper: SFTPWrapper;
 
+  constructor(protected _client: Client) {
+    super();
+  }
+
   public connect(config: IConfig) {
     return new Promise((resolve, reject) => {
-      this._ssh = new Client();
+      this._ssh = new SshClient();
 
       this._ssh.once('error', (e) => {
         this._ssh.removeAllListeners();
@@ -167,6 +178,54 @@ export class SftpClient {
           resolve();
         })
       })
+    });
+  }
+
+  public download(path: string, dest: Writable, startAt = 0) {
+    return new Promise((resolve, reject) => {
+      const source = this.createReadStream(path, startAt);
+
+      this._client.once('disconnect', resolve);
+
+      source.on('data', chunk => {
+        this.emit('progress', chunk);
+      });
+
+      source.once('error', err => {
+        this._client.removeListener('disconnect', resolve);
+        reject(err);
+      });
+
+      source.once('close', () => {
+        this._client.removeListener('disconnect', resolve);
+        resolve();
+      });
+
+      source.pipe(dest);
+    });
+  }
+
+  public upload(path: string, source: Readable) {
+    return new Promise((resolve, reject) => {
+      const dest = this.createWriteStream(path);
+
+      this._client.once('disconnect', resolve);
+
+      source.on('data', chunk => {
+        this.emit('progress', chunk);
+      });
+
+      dest.once('error', err => {
+        this._client.removeListener('disconnect', resolve);
+        reject(err);
+      });
+
+      dest.once('close', () => {
+        this._client.removeListener('disconnect', resolve);
+        resolve();
+      });
+
+      source.pipe(dest);
     });
   }
 }
