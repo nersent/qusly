@@ -37,6 +37,7 @@ export class SftpClient extends EventEmitter {
         this._ssh.removeAllListeners();
         this._ssh.sftp((err, sftp) => {
           if (err) return reject(err);
+
           this._wrapper = sftp;
           resolve();
         });
@@ -47,13 +48,20 @@ export class SftpClient extends EventEmitter {
   }
 
   public disconnect() {
-    this._ssh.end();
-    this._wrapper = null;
-    this._ssh = null;
+    return new Promise(resolve => {
+      this.socket.addListener('close', () => {
+        this._wrapper = null;
+        this._ssh = null;
+        resolve();
+      });
+
+      this._ssh.end();
+    });
   }
 
   public size(path: string): Promise<number> {
     return new Promise((resolve, reject) => {
+      console.log(!!this._wrapper);
       this._wrapper.stat(path, (err, stats) => {
         if (err) return reject(err);
         resolve(stats.size);

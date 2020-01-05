@@ -66,7 +66,7 @@ export class Client extends EventEmitter {
     this.connected = false;
 
     if (this.isSftp) {
-      this._sftpClient.disconnect();
+      await this._sftpClient.disconnect();
     } else {
       this._ftpClient.close();
     }

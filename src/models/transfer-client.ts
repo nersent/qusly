@@ -46,32 +46,36 @@ export class TransferClient extends EventEmitter {
 
     this.emit('new', info);
 
-    return this._tasks.handle(async (taskId, taskIndex) => {
-      const client = this._clients[taskIndex];
+    return this._tasks.handle((taskId, taskIndex) => {
+      return new Promise(async resolve => {
+        const client = this._clients[taskIndex];
 
-      await ensureExists(localPath);
+        await ensureExists(localPath);
 
-      const onProgress = (progress: ITransferProgress) => {
-        this.emit('progress', progress, { ...info, status: 'transfering' } as IParallelTransferInfo);
-      }
-
-      const onAbort = (id: string) => {
-        if (id === info.id) {
-          client.abort();
+        const onProgress = (progress: ITransferProgress) => {
+          this.emit('progress', progress, { ...info, status: 'transfering' } as IParallelTransferInfo);
         }
-      }
 
-      client.addListener('progress', onProgress);
-      this.addListener('abort', onAbort);
+        const onAbort = async (id: string) => {
+          if (id === info.id) {
+            await client.abort();
+            resolve('aborted');
+          }
+        }
 
-      const status = await client.download(remotePath, createWriteStream(localPath, 'utf8'));
+        client.addListener('progress', onProgress);
+        this.addListener('abort', onAbort);
 
-      client.removeListener('progress', onProgress);
-      this.removeListener('abort', onAbort);
+        const status = await client.download(remotePath, createWriteStream(localPath, 'utf8'));
 
-      this.emit('finish', { ...info, status } as IParallelTransferInfo);
+        client.removeListener('progress', onProgress);
+        this.removeListener('abort', onAbort);
 
-      return status;
+        if (status !== 'aborted') {
+          this.emit('finish', { ...info, status } as IParallelTransferInfo);
+          resolve(status);
+        }
+      });
     });
   }
 
