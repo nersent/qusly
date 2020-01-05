@@ -35,6 +35,7 @@ export class TaskManager extends EventEmitter {
 
   protected async _process(task: string | ITask) {
     const _task = typeof task === 'string' ? this._queue.find(r => r.id === task) : task;
+
     switch (_task.status) {
       case 'busy': throw new Error('Task is already executed!');
       case 'finished': throw new Error('Task is already finished!');

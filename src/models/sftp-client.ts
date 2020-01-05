@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { Client as SshClient, SFTPWrapper } from 'ssh2';
 import { FileEntry, Stats } from 'ssh2-streams';
 import { Writable, Readable } from 'stream';
+import { Socket } from 'net';
 
 import { IConfig } from '../interfaces';
 import { Client } from '../models';
@@ -17,6 +18,10 @@ export class SftpClient extends EventEmitter {
 
   constructor(protected _client: Client) {
     super();
+  }
+
+  public get socket(): Socket {
+    return (this._ssh as any)._sock;
   }
 
   public connect(config: IConfig) {
@@ -151,8 +156,8 @@ export class SftpClient extends EventEmitter {
     });
   }
 
-  public createReadStream(path: string, startAt?: number) {
-    return this._wrapper.createReadStream(path, { start: startAt });
+  public createReadStream(path: string, start = 0) {
+    return this._wrapper.createReadStream(path, { start, autoClose: true });
   }
 
   public createWriteStream(path: string) {
@@ -181,7 +186,7 @@ export class SftpClient extends EventEmitter {
     });
   }
 
-  public download(path: string, dest: Writable, startAt = 0) {
+  public download(path: string, dest: Writable, startAt?: number) {
     return new Promise((resolve, reject) => {
       const source = this.createReadStream(path, startAt);
 
