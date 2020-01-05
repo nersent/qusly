@@ -1,3 +1,3 @@
 export * from './client';
-// export * from './transfer-client';
 export * from './task-manager';
+export * from './transfer-client';

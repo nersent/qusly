@@ -2,7 +2,7 @@ import { Writable, Readable } from 'stream';
 import { EventEmitter } from 'events';
 import { Client as FtpClient, parseList } from 'basic-ftp';
 
-import { IConfig, IProtocol, IFile, IStats, ITransferOptions, IProgressEvent } from '../interfaces';
+import { IConfig, IProtocol, IFile, IStats, ITransferOptions, ITransferInfo, ITransferProgress, ITransferStatus } from '../interfaces';
 import { formatFile, getFileTypeFromStats, getFileType, createFileName } from '../utils';
 import { TaskManager } from './task-manager';
 import { SftpClient } from './sftp-client';
@@ -12,7 +12,7 @@ export declare interface Client {
   on(event: 'connect', listener: Function): this;
   on(event: 'disconnect', listener: Function): this;
 
-  on(event: 'progress', listener: (e?: IProgressEvent) => void): this;
+  on(event: 'progress', listener: (progress: ITransferProgress, info: ITransferInfo) => void): this;
 
   once(event: 'connect', listener: Function): this;
   once(event: 'disconnect', listener: Function): this;
@@ -79,13 +79,13 @@ export class Client extends EventEmitter {
     await this.connect(this.config);
   }
 
-  public download(path: string, dest: Writable, options?: ITransferOptions) {
+  public download(path: string, dest: Writable, options?: ITransferOptions): Promise<ITransferStatus> {
     return this._tasks.handle(() => {
       return this._transfer.download(path, dest, options);
     });
   }
 
-  public upload(path: string, source: Readable, options?: ITransferOptions) {
+  public upload(path: string, source: Readable, options?: ITransferOptions): Promise<ITransferStatus> {
     return this._tasks.handle(() => {
       return this._transfer.upload(path, source, options);
     });

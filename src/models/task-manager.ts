@@ -8,11 +8,14 @@ export class TaskManager extends EventEmitter {
 
   protected _usedThreads = 0;
 
+  protected _indexies: boolean[] = [];
+
   constructor(public threads = 1) {
     super();
+    this._indexies.length = threads;
   }
 
-  public handle<T>(f: Function, id?: string): Promise<T> {
+  public handle<T>(f: (taskId: string, taskIndex: number) => void, id?: string): Promise<T> {
     return new Promise((resolve, reject) => {
       const _id = id || makeId(32);
 
@@ -35,6 +38,7 @@ export class TaskManager extends EventEmitter {
 
   protected async _process(task: string | ITask) {
     const _task = typeof task === 'string' ? this._queue.find(r => r.id === task) : task;
+    const index = this._reserve();
 
     switch (_task.status) {
       case 'busy': throw new Error('Task is already executed!');
@@ -45,9 +49,11 @@ export class TaskManager extends EventEmitter {
     this._usedThreads++;
     _task.status = 'busy';
 
-    const res = await safeExec(_task.cb, _task.id);
+    const res = await safeExec(_task.cb, _task.id, index);
 
     this._usedThreads--;
+    this._free(index);
+
     _task.status = 'finished';
 
     this.emit(`complete-${_task.id}`, res);
@@ -78,5 +84,21 @@ export class TaskManager extends EventEmitter {
     }
 
     task.status = 'deleted';
+  }
+
+  protected _reserve() {
+    const index = this._indexies.findIndex(r => !r);
+
+    if (index === -1) {
+      throw new Error();
+    }
+
+    this._indexies[index] = true;
+
+    return index;
+  }
+
+  protected _free(index: number) {
+    this._indexies[index] = false;
   }
 }

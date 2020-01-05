@@ -15,12 +15,8 @@
     "declaration": true,
     "sourceMap": true,
 
-    "baseUrl": "./",
-
-    "paths": {
-      "~/*": ["src/*"]
-    }
+    "baseUrl": "./"
   },
-  "exclude": ["node_modules", "build", "src/models/transfer-client.ts"],
+  "exclude": ["node_modules", "build"],
   "include": ["./src"]
 }

@@ -1,54 +1,62 @@
-import { EventEmitter } from 'events';
 import { Writable, Readable } from 'stream';
 
-import { ITransferStatus, ITransferType, ITransferOptions, IProgressEvent } from '../interfaces';
+import { ITransferStatus, ITransferOptions, ITransferProgress, ITransferInfo } from '../interfaces';
 import { Client } from './client';
 import { calcElapsed, calcEta, getFilePath, getFileSize } from '../utils';
 
-interface ITransferInfo {
-  type?: ITransferType;
-  localPath?: string;
-  remotePath?: string;
+interface ITransferData {
+  info?: Partial<ITransferInfo>;
   size?: number;
   options?: ITransferOptions;
   stream?: Writable | Readable;
 }
 
-export declare interface TransferManager {
-  on(event: 'progress', listener: (buffered: number) => void): this;
-}
-
-export class TransferManager extends EventEmitter {
-  protected _buffered = 0;
+export class TransferManager {
+  public buffered = 0;
 
   protected _status: ITransferStatus;
 
-  protected _info: ITransferInfo;
+  protected _data: ITransferData;
 
-  protected _startAt: Date;
-
-  constructor(protected _client: Client) {
-    super();
-  }
+  constructor(protected _client: Client) { }
 
   public async download(remotePath: string, dest: Writable, options: ITransferOptions = {}) {
     const localPath = getFilePath(dest);
     const size = await this._getFileSize(remotePath);
 
-    return this._handle({ type: 'download', remotePath, localPath, size, options, stream: dest });
+    return this._handleTransfer({
+      info: {
+        type: 'download',
+        remotePath,
+        localPath,
+      },
+      stream: dest,
+      options,
+      size,
+    });
   }
 
   public async upload(remotePath: string, source: Readable, options: ITransferOptions = {}) {
     const localPath = getFilePath(source);
     const size = await getFileSize(source);
 
-    return this._handle({ type: 'upload', remotePath, localPath, size, options, stream: source });
+    return this._handleTransfer({
+      info: {
+        type: 'upload',
+        remotePath,
+        localPath,
+      },
+      stream: source,
+      options,
+      size,
+    });
   }
 
-  protected async _handle(info: ITransferInfo) {
-    const { type, remotePath, options, stream } = info;
+  protected async _handleTransfer(data: ITransferData) {
+    const { info, options, stream } = data;
+    const { type, remotePath } = info;
 
-    this._info = info;
+    this._data = data;
     this._prepare();
 
     try {
@@ -90,16 +98,16 @@ export class TransferManager extends EventEmitter {
   }
 
   protected _prepare() {
-    this._buffered = 0;
+    this.buffered = 0;
     this._status = null;
-    this._startAt = new Date();
+    this._data.info = { ...this._data.info, startAt: new Date(), context: this._client };
     this._client.once('disconnect', this._onDisconnect);
 
     if (this._client.isSftp) {
       this._client._sftpClient.addListener('progress', this._onSftpProgress);
     } else {
       this._client._ftpClient.trackProgress(info => {
-        this._buffered = info.bytes;
+        this.buffered = info.bytes;
         this._onProgress()
       });
     }
@@ -113,12 +121,13 @@ export class TransferManager extends EventEmitter {
     }
 
     this._client.removeListener('disconnect', this._onDisconnect);
+    this._data = undefined;
   }
 
   protected _onDisconnect = () => {
     this._status = 'aborted';
 
-    const { stream } = this._info;
+    const { stream } = this._data;
 
     if (!this._client.isSftp) {
       stream.destroy();
@@ -126,33 +135,29 @@ export class TransferManager extends EventEmitter {
   }
 
   protected _onSftpProgress = (chunk: any) => {
-    this._buffered += chunk.length;
+    this.buffered += chunk.length;
     this._onProgress();
   }
 
   protected _onProgress() {
-    const { type, remotePath, localPath, size, options } = this._info;
+    const { info, options, size } = this._data;
+    const { startAt } = info;
 
     if (!options.quiet) {
-      const elapsed = calcElapsed(this._startAt.getTime());
-      const speed = this._buffered / elapsed; // bytes per second
-      const eta = calcEta(elapsed, this._buffered, size); // seconds
-      const percent = Math.round(this._buffered / size * 100);
+      const elapsed = calcElapsed(startAt.getTime());
+      const speed = this.buffered / elapsed; // bytes per second
+      const eta = calcEta(elapsed, this.buffered, size); // seconds
+      const percent = Math.round(this.buffered / size * 100);
 
-      const event: IProgressEvent = {
-        context: this._client,
-        buffered: this._buffered,
-        startAt: this._startAt,
+      const progress: ITransferProgress = {
+        buffered: this.buffered,
         speed,
-        eta,
         percent,
+        eta,
         size,
-        remotePath,
-        type,
-        localPath,
       }
 
-      this._client.emit('progress', event);
+      this._client.emit('progress', progress, info);
     }
   }
 
