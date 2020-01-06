@@ -285,8 +285,6 @@ export class Client extends EventEmitter implements IClientMethods {
   }
 
   public async createBlank(type: 'folder' | 'file', path = './', files?: IFile[]): Promise<string> {
-    console.log("XDDD");
-
     if (!files) {
       files = await this.readDir(path);
     }
