@@ -5,6 +5,12 @@ import { promises as fs } from 'fs';
 
 import * as pathUtils from '../../src/utils/path';
 
+class Aha {
+  public test() {
+    return 1;
+  }
+}
+
 describe('Path utils', () => {
   describe('formatPath', () => {
     it('supports start path', () => {

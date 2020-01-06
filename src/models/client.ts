@@ -8,17 +8,13 @@ import { TaskManager } from './task-manager';
 import { SftpClient } from './sftp-client';
 import { TransferManager } from './transfer-manager';
 
-export interface IClientMethods {
+export interface IClientBaseMethods {
   /**Connects to a server.*/
   connect(config: IConfig): Promise<void>;
   /**Disconnects from the server. Closes all opened sockets and streams.*/
   disconnect(): Promise<void>;
   /**Aborts the current file transfer by reconnecting with the server.*/
   abort(): Promise<void>;
-  /**Downloads a remote file and and pipes it to a writable stream.*/
-  download(path: string, dest: Writable, options?: ITransferOptions): Promise<ITransferStatus>;
-  /**Uploads a local file from readable stream.*/
-  upload(path: string, source: Readable, options?: ITransferOptions): Promise<ITransferStatus>;
   /**Lists files and folders in specified directory.*/
   readDir(path?: string): Promise<IFile[]>;
   /**Returns the size of a file.*/
@@ -46,6 +42,13 @@ export interface IClientMethods {
   /**Creates an empty file or folder with unique name and returns the name.
    * If you don't provide the `files` argument, it will list the directory. */
   createBlank(type: 'folder' | 'file', path: string, files?: IFile[]): Promise<string>;
+}
+
+interface IClientMethods extends IClientBaseMethods {
+  /**Downloads a remote file and and pipes it to a writable stream.*/
+  download(path: string, dest: Writable, options?: ITransferOptions): Promise<ITransferStatus>;
+  /**Uploads a local file from readable stream.*/
+  upload(path: string, source: Readable, options?: ITransferOptions): Promise<ITransferStatus>;
 }
 
 export declare interface Client {
@@ -282,6 +285,8 @@ export class Client extends EventEmitter implements IClientMethods {
   }
 
   public async createBlank(type: 'folder' | 'file', path = './', files?: IFile[]): Promise<string> {
+    console.log("XDDD");
+
     if (!files) {
       files = await this.readDir(path);
     }

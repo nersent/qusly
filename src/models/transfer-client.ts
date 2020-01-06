@@ -1,19 +1,34 @@
 import { EventEmitter } from 'events';
 import { createWriteStream } from 'fs';
 
-import { IConfig, IParallelTransferInfo, ITransferProgress, ITransferStatus, IFile } from '../interfaces';
-import { Client } from './client';
+import { IConfig, IParallelTransferInfo, ITransferProgress, ITransferStatus, IFile, IStats } from '../interfaces';
+import { Client, IClientBaseMethods } from './client';
 import { TaskManager } from './task-manager';
 import { makeId, ensureExists } from '../utils';
+
+interface ITransferClientMethods extends IClientBaseMethods {
+  /**Connects every client to the server.*/
+  connect(config: IConfig): Promise<void>;
+  /**Disconnects every client to the server.*/
+  disconnect(): Promise<void>;
+  /**Aborts every file transfer.*/
+  abort(): Promise<void>;
+  /**Aborts specified file transfer.*/
+  abortSingle(transferId: string): Promise<void>;
+  /**Downloads a remote file.*/
+  download(remotePath: string, localPath: string): Promise<ITransferStatus>;
+}
 
 export declare interface TransferClient {
   on(event: 'new', listener: (info: IParallelTransferInfo) => void): this;
   on(event: 'progress', listener: (progress: ITransferProgress, info: IParallelTransferInfo) => void): this;
   on(event: 'finish', listener: (info: IParallelTransferInfo) => void): this;
   on(event: 'abort', listener: (id: string) => void): this;
+  on(event: 'aborted', listener: (id?: string) => void): this;
+  once(event: 'aborted', listener: (id?: string) => void): this;
 }
 
-export class TransferClient extends EventEmitter {
+export class TransferClient extends EventEmitter implements ITransferClientMethods {
   protected _clients: Client[] = [];
 
   protected _tasks: TaskManager;
@@ -23,12 +38,22 @@ export class TransferClient extends EventEmitter {
     this._tasks = new TaskManager(this._transferClients);
   }
 
-  private get _transferClients(): number {
+  protected get _transferClients(): number {
     return this.reserveClient ? Math.max(1, this.maxClients - 1) : this.maxClients;
   }
 
-  private get _reservedClient(): Client {
+  protected get _reservedClient(): Client {
     return this.reserveClient && this._transferClients > 1 ? this._clients[this._clients.length - 1] : null;
+  }
+
+  protected _callClientMethod(methodName: Extract<keyof Client, string>, ...args: any[]) {
+    if (this._reservedClient) {
+      return this._reservedClient[methodName as any](...args);
+    }
+
+    return this._tasks.handle((taskId, taskIndex) => {
+      return this._clients[taskIndex][methodName as any](...args);
+    });
   }
 
   public async connect(config: IConfig) {
@@ -41,6 +66,26 @@ export class TransferClient extends EventEmitter {
     }
 
     await Promise.all(promises);
+  }
+
+  public async disconnect() {
+    await Promise.all(this._clients.map(r => r.disconnect()));
+  }
+
+  public async abort() {
+    await Promise.all(this._clients.map(r => r.abort()));
+  }
+
+  public async abortSingle(transferId: string) {
+    return new Promise<void>(resolve => {
+      this.once('aborted', id => {
+        if (transferId === id) {
+          resolve();
+        }
+      });
+
+      this.emit('abort', transferId);
+    });
   }
 
   public async download(remotePath: string, localPath: string): Promise<ITransferStatus> {
@@ -67,6 +112,7 @@ export class TransferClient extends EventEmitter {
         const onAbort = async (id: string) => {
           if (id === info.id) {
             await client.abort();
+            this.emit('aborted', info.id);
             resolve('aborted');
           }
         }
@@ -87,21 +133,29 @@ export class TransferClient extends EventEmitter {
     });
   }
 
-  public async abort(id: string) {
-    this.emit('abort', id);
-  }
+  public readDir = (path?: string): Promise<IFile[]> => this._callClientMethod('readDir', path);
 
-  private async _callClientMethod(methodName: string, ...args: any[]) {
-    if (this._reservedClient) {
-      return await this._reservedClient[methodName](...args);
-    }
+  public size = (path: string): Promise<number> => this._callClientMethod('size', path);
 
-    return await this._tasks.handle(async (taskId, taskIndex) => {
-      return await this._clients[taskIndex][methodName](...args);
-    });
-  }
+  public move = (srcPath: string, destPath: string): Promise<void> => this._callClientMethod('move', srcPath, destPath);
 
-  public readDir = async (path?: string): Promise<IFile[]> => await this._callClientMethod('readDir', path);
+  public stat = (path: string): Promise<IStats> => this._callClientMethod('stat', path);
 
-  public unlink = async (path: string): Promise<void> => await this._callClientMethod('unlink', path);
+  public unlink = (path: string): Promise<void> => this._callClientMethod('unlink', path);
+
+  public rimraf = (path: string): Promise<void> => this._callClientMethod('rimraf', path);
+
+  public delete = (path: string): Promise<void> => this._callClientMethod('delete', path);
+
+  public mkdir = (path: string): Promise<void> => this._callClientMethod('mkdir', path);
+
+  public pwd = (): Promise<string> => this._callClientMethod('pwd');
+
+  public exists = (path: string): Promise<boolean> => this._callClientMethod('exists', path);
+
+  public send = (command: string): Promise<string> => this._callClientMethod('send', command);
+
+  public touch = (path: string): Promise<void> => this._callClientMethod('touch', path);
+
+  public createBlank = (type: 'folder' | 'file', path?: string, files?: IFile[]): Promise<string> => this._callClientMethod('createBlank', type, path, files);
 }
