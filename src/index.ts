@@ -1,3 +1,3 @@
-export * from './models';
+export { Client, TransferClient } from './models';
 export * from './interfaces';
-export * from './utils/path';
+export { formatPath, makeId } from './utils';

@@ -11,9 +11,9 @@ import { TransferManager } from './transfer-manager';
 export interface IClientMethods {
   /**Connects to a server.*/
   connect(config: IConfig): Promise<void>;
-  /**Disconnects from a server. Closes all opened sockets and streams.*/
+  /**Disconnects from the server. Closes all opened sockets and streams.*/
   disconnect(): Promise<void>;
-  /**Aborts a file transfer by reconnecting with a server.*/
+  /**Aborts the current file transfer by reconnecting with the server.*/
   abort(): Promise<void>;
   /**Downloads a remote file and and pipes it to a writable stream.*/
   download(path: string, dest: Writable, options?: ITransferOptions): Promise<ITransferStatus>;
