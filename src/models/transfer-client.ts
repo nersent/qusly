@@ -90,15 +90,18 @@ export class TransferClient extends EventEmitter {
   public async abort(id: string) {
     this.emit('abort', id);
   }
-  
-  public async readDir(path?: string): Promise<IFile[]> {
+
+  private async _callClientBasicMethod(methodName: string, ...args: any[]) {
     if (this._reservedClient) {
-      return await this._reservedClient.readDir(path);
+      return await this._reservedClient[methodName](...args);
     }
 
     return await this._tasks.handle(async (taskId, taskIndex) => {
-      const client = this._clients[taskIndex];
-      return await client.readDir(path);
+      return await this._clients[taskIndex][methodName](...args);
     });
   }
+  
+  public readDir = async (path?: string): Promise<IFile[]> => await this._callClientBasicMethod('readDir', path);
+
+  public unlink = async (path: string): Promise<void> => await this._callClientBasicMethod('unlink', path);
 }
