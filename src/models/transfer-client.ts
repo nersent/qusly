@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { createWriteStream } from 'fs';
 
-import { IConfig, IParallelTransferInfo, ITransferProgress, ITransferStatus } from '../interfaces';
+import { IConfig, IParallelTransferInfo, ITransferProgress, ITransferStatus, IFile } from '../interfaces';
 import { Client } from './client';
 import { TaskManager } from './task-manager';
 import { makeId, ensureExists } from '../utils';
@@ -23,8 +23,12 @@ export class TransferClient extends EventEmitter {
     this._tasks = new TaskManager(this._transferClients);
   }
 
-  private get _transferClients() {
+  private get _transferClients(): number {
     return this.reserveClient ? Math.max(1, this.maxClients - 1) : this.maxClients;
+  }
+
+  private get _reservedClient(): Client {
+    return this.reserveClient ? this._clients[this._clients.length - 1] : null;
   }
 
   public async connect(config: IConfig) {
@@ -85,5 +89,16 @@ export class TransferClient extends EventEmitter {
 
   public async abort(id: string) {
     this.emit('abort', id);
+  }
+  
+  public async readDir(path?: string): Promise<IFile[]> {
+    if (this._reservedClient) {
+      return await this._reservedClient.readDir(path);
+    }
+
+    return await this._tasks.handle(async (taskId, taskIndex) => {
+      const client = this._clients[taskIndex];
+      return await client.readDir(path);
+    });
   }
 }
