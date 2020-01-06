@@ -18,15 +18,19 @@ export class TransferClient extends EventEmitter {
 
   protected _tasks: TaskManager;
 
-  constructor(public threads = 1) {
+  constructor(public maxClients = 1, public reserveClient = false) {
     super();
-    this._tasks = new TaskManager(threads);
+    this._tasks = new TaskManager(this._transferClients);
+  }
+
+  private get _transferClients() {
+    return this.reserveClient ? Math.max(1, this.maxClients - 1) : this.maxClients;
   }
 
   public async connect(config: IConfig) {
     let promises: Promise<void>[] = [];
 
-    for (let i = 0; i < this.threads; i++) {
+    for (let i = 0; i < this.maxClients; i++) {
       this._clients[i] = new Client();
 
       promises.push(this._clients[i].connect(config));
