@@ -61,7 +61,6 @@ export class SftpClient extends EventEmitter {
 
   public size(path: string): Promise<number> {
     return new Promise((resolve, reject) => {
-      console.log(!!this._wrapper);
       this._wrapper.stat(path, (err, stats) => {
         if (err) return reject(err);
         resolve(stats.size);
