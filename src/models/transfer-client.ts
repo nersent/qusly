@@ -28,7 +28,7 @@ export class TransferClient extends EventEmitter {
   }
 
   private get _reservedClient(): Client {
-    return this.reserveClient ? this._clients[this._clients.length - 1] : null;
+    return this.reserveClient && this._transferClients > 1 ? this._clients[this._clients.length - 1] : null;
   }
 
   public async connect(config: IConfig) {
