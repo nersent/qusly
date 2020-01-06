@@ -69,6 +69,7 @@ export class Client extends EventEmitter {
       await this._sftpClient.disconnect();
     } else {
       this._ftpClient.close();
+      this._ftpClient = undefined;
     }
 
     this.emit('disconnect');
