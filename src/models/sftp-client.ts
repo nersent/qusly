@@ -197,19 +197,19 @@ export class SftpClient extends EventEmitter {
     return new Promise((resolve, reject) => {
       const source = this.createReadStream(path, startAt);
 
-      this._client.once('disconnect', resolve);
+      this._client.once('disconnected', resolve);
 
       source.on('data', chunk => {
         this.emit('progress', chunk);
       });
 
       source.once('error', err => {
-        this._client.removeListener('disconnect', resolve);
+        this._client.removeListener('disconnected', resolve);
         reject(err);
       });
 
       source.once('close', () => {
-        this._client.removeListener('disconnect', resolve);
+        this._client.removeListener('disconnected', resolve);
         resolve();
       });
 
@@ -221,19 +221,19 @@ export class SftpClient extends EventEmitter {
     return new Promise((resolve, reject) => {
       const dest = this.createWriteStream(path);
 
-      this._client.once('disconnect', resolve);
+      this._client.once('disconnected', resolve);
 
       source.on('data', chunk => {
         this.emit('progress', chunk);
       });
 
       dest.once('error', err => {
-        this._client.removeListener('disconnect', resolve);
+        this._client.removeListener('disconnected', resolve);
         reject(err);
       });
 
       dest.once('close', () => {
-        this._client.removeListener('disconnect', resolve);
+        this._client.removeListener('disconnected', resolve);
         resolve();
       });
 

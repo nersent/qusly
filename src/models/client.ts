@@ -50,11 +50,18 @@ export interface IClientMethods {
 
 export declare interface Client {
   /**Emitted when the client has connected with a server.*/
-  on(event: 'connect', listener: Function): this;
+  on(event: 'connected', listener: (context: Client) => void): this;
   /**Emitted when the client has disconnected from a server.*/
-  on(event: 'disconnect', listener: Function): this;
+  on(event: 'disconnected', listener: (context: Client) => void): this;
   /**Emitted when a chunk of a file was read and sent.*/
   on(event: 'progress', listener: (progress: ITransferProgress, info: ITransferInfo) => void): this;
+  /**Emitted when any operation is aborted.*/
+  on(event: 'aborted', listener: (context: Client) => void): this;
+  once(event: 'connected', listener: (context: Client) => void): this;
+  once(event: 'disconnected', listener: (context: Client) => void): this;
+  once(event: 'progress', listener: (progress: ITransferProgress, info: ITransferInfo) => void): this;
+  once(event: 'aborted', listener: (context: Client) => void): this;
+  removeListener(event: 'connected' | 'disconnected' | 'progress' | 'aborted', listener: Function): this;
 }
 
 export class Client extends EventEmitter implements IClientMethods {
@@ -73,6 +80,10 @@ export class Client extends EventEmitter implements IClientMethods {
   public async connect(config: IConfig): Promise<void> {
     this.config = config;
     this.connected = false;
+
+    if (!this.config.port) {
+      this.config.port = this.config.protocol === 'sftp' ? 22 : 21;
+    }
 
     if (this.isSftp) {
       this._sftpClient = new SftpClient(this);
@@ -93,7 +104,7 @@ export class Client extends EventEmitter implements IClientMethods {
     }
 
     this.connected = true;
-    this.emit('connect');
+    this.emit('connected', this);
   }
 
   public async disconnect() {
@@ -108,12 +119,14 @@ export class Client extends EventEmitter implements IClientMethods {
       this._ftpClient = undefined;
     }
 
-    this.emit('disconnect');
+    this.emit('disconnected', this);
   }
 
   public async abort() {
     await this.disconnect();
     await this.connect(this.config);
+
+    this.emit('aborted', this);
   }
 
   public download(path: string, dest: Writable, options?: ITransferOptions): Promise<ITransferStatus> {

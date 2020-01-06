@@ -101,7 +101,7 @@ export class TransferManager {
     this.buffered = 0;
     this._status = null;
     this._data.info = { ...this._data.info, startAt: new Date(), context: this._client };
-    this._client.once('disconnect', this._onDisconnect);
+    this._client.once('disconnected', this._onDisconnect);
 
     if (this._client.isSftp) {
       this._client._sftpClient.addListener('progress', this._onSftpProgress);
@@ -120,7 +120,7 @@ export class TransferManager {
       this._client._ftpClient.trackProgress(undefined);
     }
 
-    this._client.removeListener('disconnect', this._onDisconnect);
+    this._client.removeListener('disconnected', this._onDisconnect);
     this._data = undefined;
   }
 

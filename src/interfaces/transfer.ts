@@ -7,41 +7,41 @@ export type ITransferType = 'download' | 'upload';
 export type IParallelTransferStatus = 'pending' | 'transfering' | ITransferStatus;
 
 export interface ITransferOptions {
-  /**If it's set to `true`, it will prevent `progress` event from emitting*/
+  /**If set to `true`, will prevent emitting `progress` event.*/
   quiet?: boolean;
-  /**Offset in `bytes` to start uploading from. __Works only with downloading!__*/
+  /**Offset in `bytes` to start uploading from.*/
   startAt?: number;
 }
 
 export interface ITransferInfo {
-  /**Type of the transfer*/
+  /**Type of the transfer.*/
   type: ITransferType;
-  /**Path of the local file*/
+  /**Path to a local file.*/
   localPath: string;
-  /**Path of the remote file*/
+  /**Path to a remote file.*/
   remotePath: string;
-  /**Date when the transfer started*/
+  /**Date when the transfer has started.*/
   startAt: Date;
-  /**Instance of `Client`*/
+  /**Instance of `Client`.*/
   context: Client;
 }
 
 export interface ITransferProgress {
-  /**Sent bytes*/
+  /**Sent bytes.*/
   buffered: number;
-  /**Estimated time arrival in `seconds`*/
+  /**Estimated time arrival in `seconds`.*/
   eta: number;
-  /**Speed of the transfer in `MB/s`*/
+  /**Speed of the transfer in `MB/s`.*/
   speed: number;
-  /**Progress of the transfer in `%`*/
+  /**Progress of the transfer in `%`.*/
   percent: number;
-  /**Size of the file in `bytes`*/
+  /**Size of the file in `bytes`.*/
   size: number;
 }
 
 export type IParallelTransferInfo = Omit<ITransferInfo, 'context' | 'startAt'> & {
-  /**Unique id of the transfer*/
+  /**Unique id of the transfer.*/
   id: string;
-  /**Status of the transfer*/
+  /**Status of the transfer.*/
   status: IParallelTransferStatus;
 }

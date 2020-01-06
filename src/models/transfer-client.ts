@@ -100,7 +100,7 @@ export class TransferClient extends EventEmitter {
       return await this._clients[taskIndex][methodName](...args);
     });
   }
-  
+
   public readDir = async (path?: string): Promise<IFile[]> => await this._callClientMethod('readDir', path);
 
   public unlink = async (path: string): Promise<void> => await this._callClientMethod('unlink', path);
