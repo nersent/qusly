@@ -91,7 +91,7 @@ export class TransferClient extends EventEmitter {
     this.emit('abort', id);
   }
 
-  private async _callClientBasicMethod(methodName: string, ...args: any[]) {
+  private async _callClientMethod(methodName: string, ...args: any[]) {
     if (this._reservedClient) {
       return await this._reservedClient[methodName](...args);
     }
@@ -101,7 +101,7 @@ export class TransferClient extends EventEmitter {
     });
   }
   
-  public readDir = async (path?: string): Promise<IFile[]> => await this._callClientBasicMethod('readDir', path);
+  public readDir = async (path?: string): Promise<IFile[]> => await this._callClientMethod('readDir', path);
 
-  public unlink = async (path: string): Promise<void> => await this._callClientBasicMethod('unlink', path);
+  public unlink = async (path: string): Promise<void> => await this._callClientMethod('unlink', path);
 }
