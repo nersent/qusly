@@ -22,7 +22,7 @@ export class TransferManager {
 
   public async download(remotePath: string, dest: Writable, options: ITransferOptions = {}) {
     const localPath = getFilePath(dest);
-    const size = await this._getFileSize(remotePath);
+    const size = await this._getFileSize(remotePath, options);
 
     return this._handleTransfer({
       info: {
