@@ -23,7 +23,6 @@ interface IParallelClientMethods extends IClientBaseMethods {
 
 export type IParallelClientEvents = 'abort-all' | 'new' | 'finished' | IClientEvents;
 
-/**High-level API for file transfer using queue, which you can speed up by setting the number of clients in the constructor. You can also use the same methods like in the `Client` class, if you set `reserveClient` to true. */
 export declare interface ParallelClient {
   /**Emitted when every client has connected with a server.*/
   on(event: 'connected', listener: Function): this;
@@ -53,6 +52,7 @@ export declare interface ParallelClient {
   emit(event: IParallelClientEvents, ...args: any[]): boolean;
 }
 
+/**API to transfer files using queue, which you can speed up by setting the number of clients in the constructor. You can also use the same methods like in the `Client` class in parallel to transfer, if you set `reserveClient` to true. */
 export class ParallelClient extends EventEmitter implements IParallelClientMethods {
   protected _clients: Client[] = [];
 
@@ -82,7 +82,7 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
       return this._reservedClient[methodName as any](...args);
     }
 
-    return this._tasks.handle((taskId, taskIndex) => {
+    return this._tasks.handle((_, taskIndex) => {
       return this._clients[taskIndex][methodName as any](...args);
     });
   }
