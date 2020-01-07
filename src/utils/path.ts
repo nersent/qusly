@@ -1,12 +1,6 @@
 import { dirname } from 'path';
 import { promises as fs, constants } from 'fs';
 
-import { IFile } from '../interfaces';
-
-export const formatPath = (path: string, file: IFile) => {
-  return `${path !== '/' ? path : ''}/${file.name.trim()}`;
-}
-
 export const checkIfExists = async (path: string) => {
   try {
     await fs.access(path, constants.F_OK);
