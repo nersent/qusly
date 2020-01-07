@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import { createWriteStream, createReadStream } from 'fs';
 
 import { IConfig, IParallelTransferInfo, ITransferProgress, ITransferStatus, IFile, IStats, ITransferType } from '../interfaces';
-import { Client, IClientBaseMethods } from './client';
+import { Client, IClientBaseMethods, IClientEvents } from './client';
 import { TaskManager } from './task-manager';
 import { makeId, ensureExists } from '../utils';
 
@@ -21,13 +21,35 @@ interface IParallelClientMethods extends IClientBaseMethods {
   upload(localPath: string, remotePath: string): Promise<ITransferStatus>;
 }
 
+export type IParallelClientEvents = 'abort-all' | 'new' | 'finished' | IClientEvents;
+
 export declare interface ParallelClient {
-  on(event: 'new', listener: (info: IParallelTransferInfo) => void): this;
-  on(event: 'progress', listener: (progress: ITransferProgress, info: IParallelTransferInfo) => void): this;
-  on(event: 'finish', listener: (info: IParallelTransferInfo) => void): this;
+  /**Emitted when every client has connected with a server.*/
+  on(event: 'connected', listener: Function): this;
+  /**Emitted when every client has disconnected from a server.*/
+  on(event: 'disconnected', listener: Function): this;
+  /**Emitted when `ParallelClient.abort` is called.*/
   on(event: 'abort', listener: (id: string) => void): this;
-  on(event: 'aborted', listener: (id?: string) => void): this;
-  once(event: 'aborted', listener: (id?: string) => void): this;
+  /**Emitted when `ParallelClient.abortAll` is called.*/
+  on(event: 'abort-all', listener: Function): this;
+  /**Emitted when a new file transfer is requested.*/
+  on(event: 'new', listener: (info: IParallelTransferInfo) => void): this;
+  /**Emitted when a chunk of a file was read and sent.*/
+  on(event: 'progress', listener: (progress: ITransferProgress, info: IParallelTransferInfo) => void): this;
+  /**Emitted when a file transfer has finished or has been aborted.*/
+  on(event: 'finished', listener: (info: IParallelTransferInfo) => void): this;
+
+  once(event: 'connected', listener: Function): this;
+  once(event: 'disconnected', listener: Function): this;
+  once(event: 'abort', listener: (id: string) => void): this;
+  once(event: 'abort-all', listener: Function): this;
+  once(event: 'new', listener: (info: IParallelTransferInfo) => void): this;
+  once(event: 'progress', listener: (progress: ITransferProgress, info: IParallelTransferInfo) => void): this;
+  once(event: 'finished', listener: (info: IParallelTransferInfo) => void): this;
+
+  addListener(event: IParallelClientEvents, listener: Function): this;
+  removeListener(event: IParallelClientEvents, listener: Function): this;
+  emit(event: IParallelClientEvents, ...args: any[]): boolean;
 }
 
 export class ParallelClient extends EventEmitter implements IParallelClientMethods {
@@ -117,9 +139,10 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
         client.removeListener('progress', onProgress);
         this._activeTransfers.delete(info.id);
 
+        this.emit('finished', { ...info, status } as IParallelTransferInfo);
+
         if (status !== 'aborted') {
           client.removeListener('abort', onAbort);
-          this.emit('finish', { ...info, status } as IParallelTransferInfo);
           resolve(status);
         }
       });
@@ -138,19 +161,27 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
     }
 
     await Promise.all(promises);
+
+    this.emit('connected');
   }
 
   public async disconnect() {
     await Promise.all(this._clients.map(r => r.disconnect()));
+
+    this.emit('disconnected');
   }
 
   public async abortAll() {
+    this.emit('abort-all');
+
     this._tasks.deleteAll();
 
     await this._abortActiveTransfers();
   }
 
   public async abort(transferId: string) {
+    this.emit('abort');
+
     const client = this._activeTransfers.get(transferId);
 
     await client.abort();

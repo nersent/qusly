@@ -7,7 +7,6 @@ import { formatFile, getFileTypeFromStats, getFileType, createFileName } from '.
 import { TaskManager } from './task-manager';
 import { SftpClient } from './sftp-client';
 import { TransferManager } from './transfer-manager';
-import { delay } from '../utils';
 
 export interface IClientBaseMethods {
   /**Connects to a server.*/
@@ -52,6 +51,8 @@ interface IClientMethods extends IClientBaseMethods {
   upload(path: string, source: Readable, options?: ITransferOptions): Promise<ITransferStatus>;
 }
 
+export type IClientEvents = 'connected' | 'disconnected' | 'abort' | 'progress';
+
 export declare interface Client {
   /**Emitted when the client has connected with a server.*/
   on(event: 'connected', listener: (context: Client) => void): this;
@@ -67,7 +68,9 @@ export declare interface Client {
   once(event: 'progress', listener: (progress: ITransferProgress, info: ITransferInfo) => void): this;
   once(event: 'abort', listener: (context: Client) => void): this;
 
-  removeListener(event: 'connected' | 'disconnected' | 'abort' | 'progress', listener: Function): this;
+  addListener(event: IClientEvents, listener: Function): this;
+  removeListener(event: IClientEvents, listener: Function): this;
+  emit(event: IClientEvents, ...args: any[]): boolean;
 }
 
 export class Client extends EventEmitter implements IClientMethods {
