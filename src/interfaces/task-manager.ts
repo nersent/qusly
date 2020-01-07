@@ -1,10 +1,10 @@
 export type ITaskStatus = 'busy' | 'pending' | 'finished' | 'deleted';
 
-export type ITaskCallback = (taskId: string, taskIndex: number, aborted?: boolean) => void;
+export type ITaskCallback = (taskId: string, taskIndex: number) => void;
 
 export interface ITask {
   id?: string;
-  cb?: Function;
+  cb?: ITaskCallback;
   status?: ITaskStatus;
 }
 

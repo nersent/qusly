@@ -102,7 +102,7 @@ export class TaskManager extends EventEmitter {
     this._queue.forEach(r => {
       if (r.status === 'pending') {
         r.status = 'deleted';
-        this.emit('abort', r.id);
+        this.emit(`abort-${r.id}`);
       }
     });
   }

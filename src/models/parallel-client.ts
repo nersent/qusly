@@ -14,8 +14,10 @@ interface IParallelClientMethods extends IClientBaseMethods {
   connect(config: IConfig): Promise<void>;
   /**Disconnects every client from the server.*/
   disconnect(): Promise<void>;
-  /**Aborts single file transfer with specified id.*/
+  /**Aborts a file transfer with specified id.*/
   abort(transferId: string): Promise<void>;
+  /**Aborts every file transfer.*/
+  abortAll(): Promise<void>;
   /**Downloads a remote file.*/
   download(remotePath: string, localPath: string): Promise<ITransferStatus>;
   /**Uploads a local file.*/
@@ -36,7 +38,7 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
 
   protected _tasks: TaskManager;
 
-  protected _transfers: Map<string, Client> = new Map();
+  protected _activeTransfers: Map<string, Client> = new Map();
 
   constructor(public maxClients = 1, public reserveClient = false) {
     super();
@@ -61,7 +63,17 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
     });
   }
 
-  protected _handleParallelTransfer(type: ITransferType, localPath: string, remotePath: string): Promise<ITransferStatus> {
+  protected async _abortActiveTransfers() {
+    const promises: Promise<void>[] = [];
+
+    this._activeTransfers.forEach(r => {
+      promises.push(r.abort());
+    });
+
+    await Promise.all(promises);
+  }
+
+  protected async _handleParallelTransfer(type: ITransferType, localPath: string, remotePath: string) {
     const info: IParallelTransferInfo = {
       id: makeId(32),
       type,
@@ -72,15 +84,13 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
 
     this.emit('new', info);
 
-    return this._tasks.handle((taskId, taskIndex) => {
+    const status = await this._tasks.handle<ITransferStatus>((taskId, taskIndex) => {
       return new Promise<ITransferStatus>(async resolve => {
-        console.log("NEXT: ", remotePath);
-
         let status: ITransferStatus;
 
         const client = this._clients[taskIndex];
 
-        this._transfers.set(info.id, client);
+        this._activeTransfers.set(info.id, client);
 
         await ensureExists(localPath);
 
@@ -108,8 +118,7 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
         }
 
         client.removeListener('progress', onProgress);
-
-        this._transfers.delete(info.id);
+        this._activeTransfers.delete(info.id);
 
         if (status !== 'aborted') {
           client.removeListener('abort', onAbort);
@@ -118,6 +127,8 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
         }
       });
     });
+
+    return status || 'aborted';
   }
 
   public async connect(config: IConfig) {
@@ -137,18 +148,15 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
   }
 
   public async abortAll() {
-    // const transfers = Array.from(this._transfers.keys());
-    // const promises = transfers.map(id => this.abort(id));
+    this._tasks.deleteAll();
 
-    // this._tasks.deleteAll();
-
-    // await Promise.all(promises);
+    await this._abortActiveTransfers();
   }
 
-  public abort(transferId: string) {
-    const client = this._transfers.get(transferId);
+  public async abort(transferId: string) {
+    const client = this._activeTransfers.get(transferId);
 
-    return client.abort();
+    await client.abort();
   }
 
   public download = (remotePath: string, localPath: string) => this._handleParallelTransfer('download', localPath, remotePath);
