@@ -7,14 +7,13 @@ import { formatFile, getFileTypeFromStats, getFileType, createFileName } from '.
 import { TaskManager } from './task-manager';
 import { SftpClient } from './sftp-client';
 import { TransferManager } from './transfer-manager';
+import { delay } from '../utils';
 
 export interface IClientBaseMethods {
   /**Connects to a server.*/
   connect(config: IConfig): Promise<void>;
   /**Disconnects from the server. Closes all opened sockets and streams.*/
   disconnect(): Promise<void>;
-  /**Aborts the current file transfer by reconnecting with the server.*/
-  abort(): Promise<void>;
   /**Lists files and folders in specified directory.*/
   readDir(path?: string): Promise<IFile[]>;
   /**Returns the size of a file.*/
@@ -45,6 +44,8 @@ export interface IClientBaseMethods {
 }
 
 interface IClientMethods extends IClientBaseMethods {
+  /**Aborts the current file transfer by reconnecting with the server.*/
+  abort(): Promise<void>;
   /**Downloads a remote file and and pipes it to a writable stream.*/
   download(path: string, dest: Writable, options?: ITransferOptions): Promise<ITransferStatus>;
   /**Uploads a local file from readable stream.*/
@@ -56,15 +57,17 @@ export declare interface Client {
   on(event: 'connected', listener: (context: Client) => void): this;
   /**Emitted when the client has disconnected from a server.*/
   on(event: 'disconnected', listener: (context: Client) => void): this;
+  /**Emitted when `Client.abort` is called.*/
+  on(event: 'abort', listener: (context: Client) => void): this;
   /**Emitted when a chunk of a file was read and sent.*/
   on(event: 'progress', listener: (progress: ITransferProgress, info: ITransferInfo) => void): this;
-  /**Emitted when any operation is aborted.*/
-  on(event: 'aborted', listener: (context: Client) => void): this;
+
   once(event: 'connected', listener: (context: Client) => void): this;
   once(event: 'disconnected', listener: (context: Client) => void): this;
   once(event: 'progress', listener: (progress: ITransferProgress, info: ITransferInfo) => void): this;
-  once(event: 'aborted', listener: (context: Client) => void): this;
-  removeListener(event: 'connected' | 'disconnected' | 'progress' | 'aborted', listener: Function): this;
+  once(event: 'abort', listener: (context: Client) => void): this;
+
+  removeListener(event: 'connected' | 'disconnected' | 'abort' | 'progress', listener: Function): this;
 }
 
 export class Client extends EventEmitter implements IClientMethods {
@@ -126,10 +129,10 @@ export class Client extends EventEmitter implements IClientMethods {
   }
 
   public async abort() {
+    this.emit('abort', this);
+
     await this.disconnect();
     await this.connect(this.config);
-
-    this.emit('aborted', this);
   }
 
   public download(path: string, dest: Writable, options?: ITransferOptions): Promise<ITransferStatus> {

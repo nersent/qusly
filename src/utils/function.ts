@@ -12,3 +12,9 @@ export const safeExec = async (f: Function, ...args: any): Promise<ITaskResponse
 
   return { data, error };
 }
+
+export const delay = (time: number) => {
+  return new Promise(resolve => {
+    setTimeout(resolve, time);
+  });
+}

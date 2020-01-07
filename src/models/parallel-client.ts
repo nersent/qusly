@@ -11,10 +11,10 @@ interface IParallelClientMethods extends IClientBaseMethods {
   connect(config: IConfig): Promise<void>;
   /**Disconnects every client from the server.*/
   disconnect(): Promise<void>;
+  /**Aborts a file transfer with specified id.*/
+  abort(transferId: string): Promise<void>;
   /**Aborts every file transfer.*/
-  abort(): Promise<void>;
-  /**Aborts single file transfer with specified id.*/
-  abortSingle(transferId: string): Promise<void>;
+  abortAll(): Promise<void>;
   /**Downloads a remote file.*/
   download(remotePath: string, localPath: string): Promise<ITransferStatus>;
   /**Uploads a local file.*/
@@ -34,6 +34,8 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
   protected _clients: Client[] = [];
 
   protected _tasks: TaskManager;
+
+  protected _activeTransfers: Map<string, Client> = new Map();
 
   constructor(public maxClients = 1, public reserveClient = false) {
     super();
@@ -58,7 +60,17 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
     });
   }
 
-  protected _handleParallelTransfer(type: ITransferType, localPath: string, remotePath: string): Promise<ITransferStatus> {
+  protected async _abortActiveTransfers() {
+    const promises: Promise<void>[] = [];
+
+    this._activeTransfers.forEach(r => {
+      promises.push(r.abort());
+    });
+
+    await Promise.all(promises);
+  }
+
+  protected async _handleParallelTransfer(type: ITransferType, localPath: string, remotePath: string) {
     const info: IParallelTransferInfo = {
       id: makeId(32),
       type,
@@ -69,27 +81,32 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
 
     this.emit('new', info);
 
-    return this._tasks.handle((taskId, taskIndex) => {
-      return new Promise(async resolve => {
-        const client = this._clients[taskIndex];
+    const status = await this._tasks.handle<ITransferStatus>((taskId, taskIndex) => {
+      return new Promise<ITransferStatus>(async resolve => {
         let status: ITransferStatus;
+
+        const client = this._clients[taskIndex];
+
+        this._activeTransfers.set(info.id, client);
 
         await ensureExists(localPath);
 
         const onProgress = (progress: ITransferProgress) => {
-          this.emit('progress', progress, { ...info, status: 'transfering' } as IParallelTransferInfo);
-        }
-
-        const onAbort = async (id: string) => {
-          if (id === info.id) {
-            await client.abort();
-            this.emit('aborted', info.id);
-            resolve('aborted');
+          if (status !== 'aborted') {
+            this.emit('progress', progress, { ...info, status: 'transfering' } as IParallelTransferInfo);
           }
         }
 
+        const onAbort = () => {
+          status = 'aborted';
+
+          client.once('connected', () => {
+            resolve('aborted');
+          });
+        }
+
         client.addListener('progress', onProgress);
-        this.addListener('abort', onAbort);
+        client.once('abort', onAbort);
 
         if (type === 'download') {
           status = await client.download(remotePath, createWriteStream(localPath, 'utf8'));
@@ -98,14 +115,17 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
         }
 
         client.removeListener('progress', onProgress);
-        this.removeListener('abort', onAbort);
+        this._activeTransfers.delete(info.id);
 
         if (status !== 'aborted') {
+          client.removeListener('abort', onAbort);
           this.emit('finish', { ...info, status } as IParallelTransferInfo);
           resolve(status);
         }
       });
     });
+
+    return status || 'aborted';
   }
 
   public async connect(config: IConfig) {
@@ -124,20 +144,16 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
     await Promise.all(this._clients.map(r => r.disconnect()));
   }
 
-  public async abort() {
-    await Promise.all(this._clients.map(r => r.abort()));
+  public async abortAll() {
+    this._tasks.deleteAll();
+
+    await this._abortActiveTransfers();
   }
 
-  public async abortSingle(transferId: string) {
-    return new Promise<void>(resolve => {
-      this.once('aborted', id => {
-        if (transferId === id) {
-          resolve();
-        }
-      });
+  public async abort(transferId: string) {
+    const client = this._activeTransfers.get(transferId);
 
-      this.emit('abort', transferId);
-    });
+    await client.abort();
   }
 
   public download = (remotePath: string, localPath: string) => this._handleParallelTransfer('download', localPath, remotePath);
