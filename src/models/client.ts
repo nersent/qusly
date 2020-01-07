@@ -2,28 +2,72 @@ import { Writable, Readable } from 'stream';
 import { EventEmitter } from 'events';
 import { Client as FtpClient, parseList } from 'basic-ftp';
 
-import { IConfig, IProtocol, IFile, IStats, IDownloadOptions, ITransferOptions, IProgress } from '../interfaces';
+import { IConfig, IProtocol, IFile, IStats, ITransferOptions, ITransferInfo, ITransferProgress, ITransferStatus } from '../interfaces';
 import { formatFile, getFileTypeFromStats, getFileType, createFileName } from '../utils';
 import { TaskManager } from './task-manager';
 import { SftpClient } from './sftp-client';
 import { TransferManager } from './transfer-manager';
 
-export declare interface Client {
-  on(event: 'connect', listener: Function): this;
-  on(event: 'disconnect', listener: Function): this;
-  on(event: 'abort', listener: Function): this;
-  on(event: 'progress', listener: (data?: IProgress) => void): this;
-  on(event: 'pause', listener: Function): this;
-  on(event: 'resume', listener: Function): this;
-  once(event: 'connect', listener: Function): this;
-  once(event: 'disconnect', listener: Function): this;
-  once(event: 'abort', listener: Function): this;
-  once(event: 'progress', listener: Function): this;
-  once(event: 'pause', listener: Function): this;
-  once(event: 'resume', listener: Function): this;
+export interface IClientBaseMethods {
+  /**Connects to a server.*/
+  connect(config: IConfig): Promise<void>;
+  /**Disconnects from the server. Closes all opened sockets and streams.*/
+  disconnect(): Promise<void>;
+  /**Aborts the current file transfer by reconnecting with the server.*/
+  abort(): Promise<void>;
+  /**Lists files and folders in specified directory.*/
+  readDir(path?: string): Promise<IFile[]>;
+  /**Returns the size of a file.*/
+  size(path: string): Promise<number>;
+  /**Moves a file.*/
+  move(srcPath: string, destPath: string): Promise<void>;
+  /**Returns details about a file*/
+  stat(path: string): Promise<IStats>;
+  /**Removes a file.*/
+  unlink(path: string): Promise<void>;
+  /**Removes a folder and all of its content.*/
+  rimraf(path: string): Promise<void>;
+  /**Removes any file and folder. */
+  delete(path: string): Promise<void>;
+  /**Creates a new folder. */
+  mkdir(path: string): Promise<void>;
+  /**Returns path of the current working directory.*/
+  pwd(): Promise<string>;
+  /**Checks if a file exists. */
+  exists(path: string): Promise<boolean>;
+  /**Sends a raw command. Output depends on protocol and server support!*/
+  send(command: string): Promise<string>;
+  /**Creates an empty file. */
+  touch(path: string): Promise<void>;
+  /**Creates an empty file or folder with unique name and returns the name.
+   * If you don't provide the `files` argument, it will list the directory. */
+  createBlank(type: 'folder' | 'file', path: string, files?: IFile[]): Promise<string>;
 }
 
-export class Client extends EventEmitter {
+interface IClientMethods extends IClientBaseMethods {
+  /**Downloads a remote file and and pipes it to a writable stream.*/
+  download(path: string, dest: Writable, options?: ITransferOptions): Promise<ITransferStatus>;
+  /**Uploads a local file from readable stream.*/
+  upload(path: string, source: Readable, options?: ITransferOptions): Promise<ITransferStatus>;
+}
+
+export declare interface Client {
+  /**Emitted when the client has connected with a server.*/
+  on(event: 'connected', listener: (context: Client) => void): this;
+  /**Emitted when the client has disconnected from a server.*/
+  on(event: 'disconnected', listener: (context: Client) => void): this;
+  /**Emitted when a chunk of a file was read and sent.*/
+  on(event: 'progress', listener: (progress: ITransferProgress, info: ITransferInfo) => void): this;
+  /**Emitted when any operation is aborted.*/
+  on(event: 'aborted', listener: (context: Client) => void): this;
+  once(event: 'connected', listener: (context: Client) => void): this;
+  once(event: 'disconnected', listener: (context: Client) => void): this;
+  once(event: 'progress', listener: (progress: ITransferProgress, info: ITransferInfo) => void): this;
+  once(event: 'aborted', listener: (context: Client) => void): this;
+  removeListener(event: 'connected' | 'disconnected' | 'progress' | 'aborted', listener: Function): this;
+}
+
+export class Client extends EventEmitter implements IClientMethods {
   public connected = false;
 
   public config: IConfig;
@@ -34,18 +78,18 @@ export class Client extends EventEmitter {
 
   protected _tasks = new TaskManager();
 
-  protected _transfer = new TransferManager(this);
-
-  public aborting = false;
-
-  public paused = false;
+  public _transfer = new TransferManager(this);
 
   public async connect(config: IConfig): Promise<void> {
     this.config = config;
     this.connected = false;
 
+    if (!this.config.port) {
+      this.config.port = this.config.protocol === 'sftp' ? 22 : 21;
+    }
+
     if (this.isSftp) {
-      this._sftpClient = new SftpClient();
+      this._sftpClient = new SftpClient(this);
 
       await this._sftpClient.connect(config);
     } else {
@@ -63,57 +107,49 @@ export class Client extends EventEmitter {
     }
 
     this.connected = true;
-    this.emit('connect');
+    this.emit('connected', this);
   }
 
   public async disconnect() {
     if (!this.connected) return;
 
     this.connected = false;
-    // console.log('before');
-    await this._transfer.clean(this.aborting);
-    // console.log(new Date());
 
     if (this.isSftp) {
-      this._sftpClient.disconnect();
+      await this._sftpClient.disconnect();
     } else {
       this._ftpClient.close();
+      this._ftpClient = undefined;
     }
 
-    this._sftpClient = null;
-    this._ftpClient = null;
-
-    if (!this.aborting) {
-      this.emit('disconnect');
-    }
+    this.emit('disconnected', this);
   }
 
-  public async abort(): Promise<number> {
-    if (!this.aborting) {
-      this._transfer.emit('abort');
-      this.aborting = true;
+  public async abort() {
+    await this.disconnect();
+    await this.connect(this.config);
 
-      await this.disconnect();
-      console.log("XDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+    this.emit('aborted', this);
+  }
 
-      await this.connect(this.config);
+  public download(path: string, dest: Writable, options?: ITransferOptions): Promise<ITransferStatus> {
+    return this._tasks.handle(() => {
+      return this._transfer.download(path, dest, options);
+    });
+  }
 
-      this.aborting = false;
-
-
-      this.emit('abort');
-      return this._transfer._buffered;
-    }
-
-    return null;
+  public upload(path: string, source: Readable, options?: ITransferOptions): Promise<ITransferStatus> {
+    return this._tasks.handle(() => {
+      return this._transfer.upload(path, source, options);
+    });
   }
 
   public async readDir(path?: string): Promise<IFile[]> {
     return this._tasks.handle(async () => {
       if (this.isSftp) {
         const list = await this._sftpClient.readDir(path || './');
+
         return list.map(file => {
-          console.log(file);
           return formatFile(parseList(file.longname)[0])
         });
       } else {
@@ -160,9 +196,6 @@ export class Client extends EventEmitter {
     });
   }
 
-  /**
-   * Removes a file.
-   */
   public unlink(path: string): Promise<void> {
     return this._tasks.handle(() => {
       if (this.isSftp) {
@@ -173,9 +206,6 @@ export class Client extends EventEmitter {
     });
   }
 
-  /**
-   * Removes a folder and all of its content.
-   */
   public async rimraf(path: string): Promise<void> {
     return this._tasks.handle(() => {
       if (this.isSftp) {
@@ -186,9 +216,6 @@ export class Client extends EventEmitter {
     });
   }
 
-  /**
-   * Removes files and folders
-   */
   public async delete(path: string): Promise<void> {
     const { type } = await this.stat(path);
 
@@ -209,9 +236,6 @@ export class Client extends EventEmitter {
     });
   };
 
-  /**
-   * Returns path of current working directory.
-   */
   public pwd(): Promise<string> {
     return this._tasks.handle(() => {
       if (this.isSftp) {
@@ -236,9 +260,6 @@ export class Client extends EventEmitter {
     return true;
   }
 
-  /**
-    * Sends a raw command. **Output depends on a protocol and server support!**
-    */
   public send(command: string): Promise<string> {
     return this._tasks.handle(async () => {
       if (this.isSftp) {
@@ -250,55 +271,7 @@ export class Client extends EventEmitter {
     });
   }
 
-  public download(path: string, dest: Writable, options: IDownloadOptions = {}): Promise<void> {
-    return this._tasks.handle(() => {
-      return new Promise(resolve => {
-        let resumed = false;
-
-        const transfer = async () => {
-          await this.delayAbortion();
-          console.log('wtf');
-          await this._transfer.download(path, dest, options, resumed);
-
-          console.log('aha');
-
-          if (!this.paused) {
-            resolve();
-          } else {
-            this.once('resume', () => {
-              //resumed = true;
-              // options.startAt = this._transfer._buffered;
-              transfer();
-            });
-          }
-        }
-
-        transfer();
-      });
-    });
-  }
-
-  public upload(path: string, source: Readable, options?: ITransferOptions): Promise<void> {
-    return this._tasks.handle(() => {
-      return this._transfer.upload(path, source, options);
-    });
-  }
-
-  public async pauseTransfer() {
-    this.paused = true;
-
-    const buffered = await this.abort();
-    this.emit('pause');
-
-    return buffered;
-  }
-
-  public async resumeTransfer() {
-    this.paused = false;
-    this.emit('resume');
-  }
-
-  public touch(path: string): Promise<void> {
+  public async touch(path: string): Promise<void> {
     if (this.isSftp) {
       return this._tasks.handle(() => {
         return this._sftpClient.touch(path);
@@ -308,7 +281,7 @@ export class Client extends EventEmitter {
     const source = new Readable({ read() { } });
     source.push(null);
 
-    return this.upload(path, source, { quiet: true });
+    await this.upload(path, source, { quiet: true });
   }
 
   public async createBlank(type: 'folder' | 'file', path = './', files?: IFile[]): Promise<string> {
@@ -334,15 +307,5 @@ export class Client extends EventEmitter {
 
   public get isSftp() {
     return this.protocol === 'sftp';
-  }
-
-  public delayAbortion() {
-    if (!this.aborting) return null;
-
-    return new Promise(resolve => {
-      this.once('abort', () => {
-        resolve();
-      });
-    });
   }
 }

@@ -1,4 +1,4 @@
-import { ITaskResponse } from '~/interfaces';
+import { ITaskResponse } from '../interfaces';
 
 export const safeExec = async (f: Function, ...args: any): Promise<ITaskResponse> => {
   let data: any;

@@ -1,5 +1,8 @@
 import { MSDOS_DATE_REGEX } from '../constants';
 
+/**
+ * Returns a random string.
+ */
 export const makeId = (length: number, possible: string = 'abcdefghijklmnopqrstuvwxyz') => {
   let id = '';
 
@@ -8,7 +11,7 @@ export const makeId = (length: number, possible: string = 'abcdefghijklmnopqrstu
   }
 
   return id;
-};
+}
 
 export const getValidDate = (str: string) => {
   const date = str.trim();
