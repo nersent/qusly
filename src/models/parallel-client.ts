@@ -60,6 +60,10 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
 
   protected _activeTransfers: Map<string, Client> = new Map();
 
+  /**
+   * @param maxClients - How many clients  you want to allocate for file transfer.
+   * @param reserveClient - Allocate one client for general methods like `readDir`. This will substract one from `maxClients`, if its greater than 1.
+  */
   constructor(public maxClients = 1, public reserveClient = false) {
     super();
     this._tasks = new TaskManager(this._transferClients);
@@ -104,7 +108,7 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
 
     this.emit('new', info);
 
-    const status = await this._tasks.handle<ITransferStatus>((taskId, taskIndex) => {
+    const status = await this._tasks.handle<ITransferStatus>((_, taskIndex) => {
       return new Promise<ITransferStatus>(async resolve => {
         let status: ITransferStatus;
 
@@ -147,7 +151,7 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
           resolve(status);
         }
       });
-    }, null, 'transfer');
+    }, info.id, 'transfer');
 
     return status || 'aborted';
   }
