@@ -6,7 +6,7 @@ import { Client, IClientBaseMethods } from './client';
 import { TaskManager } from './task-manager';
 import { makeId, ensureExists } from '../utils';
 
-interface ITransferClientMethods extends IClientBaseMethods {
+interface IParallelClientMethods extends IClientBaseMethods {
   /**Connects every client to the server.*/
   connect(config: IConfig): Promise<void>;
   /**Disconnects every client from the server.*/
@@ -21,7 +21,7 @@ interface ITransferClientMethods extends IClientBaseMethods {
   upload(localPath: string, remotePath: string): Promise<ITransferStatus>;
 }
 
-export declare interface TransferClient {
+export declare interface ParallelClient {
   on(event: 'new', listener: (info: IParallelTransferInfo) => void): this;
   on(event: 'progress', listener: (progress: ITransferProgress, info: IParallelTransferInfo) => void): this;
   on(event: 'finish', listener: (info: IParallelTransferInfo) => void): this;
@@ -30,7 +30,7 @@ export declare interface TransferClient {
   once(event: 'aborted', listener: (id?: string) => void): this;
 }
 
-export class TransferClient extends EventEmitter implements ITransferClientMethods {
+export class ParallelClient extends EventEmitter implements IParallelClientMethods {
   protected _clients: Client[] = [];
 
   protected _tasks: TaskManager;
