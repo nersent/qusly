@@ -6,9 +6,6 @@ import { Client, IClientBaseMethods } from './client';
 import { TaskManager } from './task-manager';
 import { makeId, ensureExists } from '../utils';
 
-/**Aborts every file transfer.*/
-// abort(): Promise<void>;
-
 interface IParallelClientMethods extends IClientBaseMethods {
   /**Connects every client to the server.*/
   connect(config: IConfig): Promise<void>;
