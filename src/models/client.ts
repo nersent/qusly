@@ -13,8 +13,6 @@ export interface IClientBaseMethods {
   connect(config: IConfig): Promise<void>;
   /**Disconnects from the server. Closes all opened sockets and streams.*/
   disconnect(): Promise<void>;
-  /**Aborts the current file transfer by reconnecting with the server.*/
-  abort(): Promise<void>;
   /**Lists files and folders in specified directory.*/
   readDir(path?: string): Promise<IFile[]>;
   /**Returns the size of a file.*/
@@ -45,6 +43,8 @@ export interface IClientBaseMethods {
 }
 
 interface IClientMethods extends IClientBaseMethods {
+  /**Aborts the current file transfer by reconnecting with the server.*/
+  abort(): Promise<void>;
   /**Downloads a remote file and and pipes it to a writable stream.*/
   download(path: string, dest: Writable, options?: ITransferOptions): Promise<ITransferStatus>;
   /**Uploads a local file from readable stream.*/
