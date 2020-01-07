@@ -15,10 +15,6 @@
 
 Qusly-Core is an **FTP/FTPS/SFTP** client, built around [ssh2](https://github.com/mscdex/ssh2) and [basic-ftp](https://github.com/patrickjuchli/basic-ftp). Its used in [Qusly](https://www.github.com/qusly/qusly) - _elegant desktop client_.
 
-<a href="https://www.patreon.com/bePatron?u=21429620">
-  <img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" width="160">
-</a>
-
 ### Features
 
 - Supports **FTP, FTPS, SFTP**
@@ -84,7 +80,11 @@ Output:
 ## Table of contents
 
 - [Client](#)
-- [ParallelClient](#)
-- [Utilities](#)
-- [Types and interfaces](#)
 - [Examples](#)
+- [ParallelClient](#)
+- [Types and interfaces](#)
+- [Utilities](#)
+
+<a href="https://www.patreon.com/bePatron?u=21429620">
+  <img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" width="160">
+</a>
