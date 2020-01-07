@@ -73,7 +73,7 @@ export declare interface Client {
   emit(event: IClientEvents, ...args: any[]): boolean;
 }
 
-/**High-level API to interact with both FTP and SFTP servers.*/
+/**API to interact with both FTP and SFTP servers.*/
 export class Client extends EventEmitter implements IClientMethods {
   public connected = false;
 
