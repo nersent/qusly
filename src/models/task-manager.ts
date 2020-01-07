@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 
 import { makeId, safeExec } from '../utils';
-import { ITask, ITaskResponse, ITaskCallback } from '../interfaces';
+import { ITask, ITaskResponse, ITaskCallback, ITaskFilter } from '../interfaces';
 
 export class TaskManager extends EventEmitter {
   protected _queue: ITask[] = [];
@@ -15,11 +15,11 @@ export class TaskManager extends EventEmitter {
     this._indexies.length = threads;
   }
 
-  public handle<T>(f: ITaskCallback, id?: string): Promise<T> {
+  public handle<T>(f: ITaskCallback, id?: string, data?: any): Promise<T> {
     return new Promise((resolve, reject) => {
       const _id = id || makeId(32);
 
-      this._queue.push({ id: _id, cb: f as any, status: 'pending' });
+      this._queue.push({ id: _id, cb: f as any, status: 'pending', data });
 
       const completeEvent = `complete-${_id}`;
       const abortEvent = `abort-${_id}`;
@@ -98,11 +98,13 @@ export class TaskManager extends EventEmitter {
     task.status = 'deleted';
   }
 
-  public deleteAll() {
+  public deleteAll(filter?: ITaskFilter) {
     this._queue.forEach(r => {
       if (r.status === 'pending') {
-        r.status = 'deleted';
-        this.emit(`abort-${r.id}`);
+        if (!filter || filter(r)) {
+          r.status = 'deleted';
+          this.emit(`abort-${r.id}`);
+        }
       }
     });
   }

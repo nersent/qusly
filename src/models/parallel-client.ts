@@ -146,7 +146,7 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
           resolve(status);
         }
       });
-    });
+    }, null, 'transfer');
 
     return status || 'aborted';
   }
@@ -174,7 +174,7 @@ export class ParallelClient extends EventEmitter implements IParallelClientMetho
   public async abortAll() {
     this.emit('abort-all');
 
-    this._tasks.deleteAll();
+    this._tasks.deleteAll(r => r.data === 'transfer');
 
     await this._abortActiveTransfers();
   }
