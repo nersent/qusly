@@ -32,7 +32,7 @@
 
 ### Class `Client`
 
-> An API, which provides access to FTP/FTPS/SFTP servers. It handles every method in a queue.
+> An API, which provides access to FTP/FTPS/SFTP server. It handles every method in a queue.
 
 <a name="clientEventAbort"></a>
 
@@ -40,7 +40,7 @@
 
 - `context` [Client](#client)
 
-Emitted when [client.abort()](#) has been called and before any reconnection is requested.
+Emitted when the [client.abort()](#) has been called and before any reconnection is requested.
 
 <a name="clientEventConnected"></a>
 
@@ -48,7 +48,7 @@ Emitted when [client.abort()](#) has been called and before any reconnection is 
 
 - `context` [Client](#client)
 
-Emitted when client has connected to server.
+Emitted when client has connected to a server.
 
 <a name="clientEventDisconnected"></a>
 
@@ -56,7 +56,7 @@ Emitted when client has connected to server.
 
 - `context` [Client](#client)
 
-Emitted when client has disconnected from server.
+Emitted when client has disconnected from a server.
 
 <a name="clientEventProgress"></a>
 
@@ -65,7 +65,7 @@ Emitted when client has disconnected from server.
 - `progress` [ITransferProgress](#)
 - `info` [ITransferInfo](#)
 
-Emitted when a chunk of a file has been sent to server. You can access information like transfer speed or eta in `progress`. Basic file information for example size, remote path in `info`.
+Emitted when a chunk of a file has been sent to a server. You can access information like transfer speed or eta in `progress`. Basic file information, for example size and remote path in `info`.
 
 ```ts
 const client = new Client();
@@ -86,7 +86,7 @@ client.on('progress', (progress, info) => {
 - Returns: Promise&lt;void&gt;
 
 Emits the `abort` event.
-Then stops the current file transfer by reconnecting with server, using the same config provided using [client.connect()](#clientConnect).
+Then stops the current file transfer by reconnecting with a server, using the same config provided with the [client.connect()](#clientConnect).
 
 <a name="clientConnect"></a>
 
@@ -95,7 +95,7 @@ Then stops the current file transfer by reconnecting with server, using the same
 - `config` [IConfig](#)
 - Returns: Promise&lt;void&gt;
 
-Chooses which library to use, depending on the `protocol` provided in the `config`. Connects with server and then the `connected` event is fired.
+Chooses which library to use, depending on the `protocol` provided in the `config`. Connects with a server and then the `connected` event is fired.
 
 <a name="clientConnected"></a>
 
@@ -103,7 +103,7 @@ Chooses which library to use, depending on the `protocol` provided in the `confi
 
 - Boolean
 
-Indicates if client is connected to server.
+Indicates if client is connected to a server.
 
 <a name="clientCreateBlank"></a>
 
@@ -114,7 +114,7 @@ Indicates if client is connected to server.
 - `files` [IFile[]](#) (optional)
 - Returns: Promise&lt;string&gt;
 
-Creates an empty file or folder at `path` with an unique name. If you don't provide the `files` arg, it will fetch files. Returns name of the file.
+Creates an empty file or folder at `path` with an unique name. If you don't provide the `files` arg, it will fetch automatically. Returns name of the file.
 
 ```ts
 const client = new Client();
@@ -138,7 +138,7 @@ Removes any files and folders at `path`.
 
 - Returns: Promise&lt;void&gt;
 
-Aborts file transfer. Then after client has disconnected from server the `disconnected` event is fired.
+Aborts the current file transfer, if any. Then after client has disconnected from a server, the `disconnected` event is fired.
 
 <a name="clientDownload"></a>
 
@@ -237,7 +237,7 @@ Deletes any file and folder at `path`.
 - `command` String
 - Returns: Promise&lt;string&gt;
 
-Sends a raw command to server and then returns the response.
+Sends a raw command to a server and returns the response.
 
 <a name="clientSize"></a>
 
@@ -273,7 +273,7 @@ Creates an empty file at `path`.
 - `path` String
 - Returns: Promise&lt;void&gt;
 
-Deletes a single file (not folder) at `path`.
+Deletes a single file (not a folder) at `path`.
 
 <a name="clientUpload"></a>
 
@@ -284,7 +284,7 @@ Deletes a single file (not folder) at `path`.
 - `options` [ITransferOptions](#)
 - Returns: Promise&lt;[ITransferStatus](#)&gt;
 
-Uploads a local file. When a new chunk of a file has been sent, the `progress` event is fired.
+Uploads a local file. When a new chunk of a file has been sent, the `progress` event is fired.  Returns status of the transfer.
 
 ```ts
 import { resolve } from 'path';
