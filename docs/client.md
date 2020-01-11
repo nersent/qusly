@@ -3,73 +3,69 @@
 ## Table of contents
 
 - [Client](#/docs/client.md)
-  - [Introduction](#)
-  - [API for Client](#client)
-    - [Event: 'abort'](#clientEventAbort)
-    - [Event: 'connected'](#clientEventConnected)
-    - [Event: 'disconnected'](#clientEventDisconnected)
-    - [Event: 'progress'](#clientEventProgress)
-    - [client.\_ftpClient](#clientInternalFtp)
-    - [client.\_sftpClient](#clientInternalSftp)
-    - [client.\_tasks](#clientInternalTasks)
-    - [client.\_transfer](#clientInternalTransfer)
-    - [client.abort()](#clientAbort)
-    - [client.config](#clientInternalConfig)
-    - [client.connect(config)](#clientConnect)
-    - [client.connected](#clientConnected)
-    - [client.createBlank(type, [, path][, files])](#clientCreateBlank)
-    - [client.delete(path)](#clientDelete)
-    - [client.disconnect()](#clientDisconnect)
-    - [client.download(path, dest, [, options])](#clientDownload)
-    - [client.exists(path)](#clientExists)
-    - [client.mkdir(path)](#clientMkdir)
-    - [client.move(srcPath, destPath)](#clientMove)
-    - [client.pwd()](#clientPwd)
-    - [client.readDir([, path])](#clientReadDir)
-    - [client.rimraf(path)](#clientRimraf)
-    - [client.send(command)](#clientSend)
-    - [client.size(path)](#clientSize)
-    - [client.stat(path)](#clientStat)
-    - [client.touch(path)](#clientTouch)
-    - [client.unlink(path)](#clientUnlink)
-    - [client.upload(path, source, [, options])](#clientUpload)
+  - [Event: 'abort'](#clientEventAbort)
+  - [Event: 'connected'](#clientEventConnected)
+  - [Event: 'disconnected'](#clientEventDisconnected)
+  - [Event: 'progress'](#clientEventProgress)
+  - [client.abort()](#clientAbort)
+  - [client.config](#clientInternalConfig)
+  - [client.connect(config)](#clientConnect)
+  - [client.connected](#clientConnected)
+  - [client.createBlank(type, [, path][, files])](#clientCreateBlank)
+  - [client.delete(path)](#clientDelete)
+  - [client.disconnect()](#clientDisconnect)
+  - [client.download(path, dest, [, options])](#clientDownload)
+  - [client.exists(path)](#clientExists)
+  - [client.mkdir(path)](#clientMkdir)
+  - [client.move(srcPath, destPath)](#clientMove)
+  - [client.pwd()](#clientPwd)
+  - [client.readDir([, path])](#clientReadDir)
+  - [client.rimraf(path)](#clientRimraf)
+  - [client.send(command)](#clientSend)
+  - [client.size(path)](#clientSize)
+  - [client.stat(path)](#clientStat)
+  - [client.touch(path)](#clientTouch)
+  - [client.unlink(path)](#clientUnlink)
+  - [client.upload(path, source, [, options])](#clientUpload)
 
 <a name="client"></a>
 
 ### Class `Client`
 
+> An API, which provides access to FTP/FTPS/SFTP servers. It handles every method in a queue.
+
 <a name="clientEventAbort"></a>
 
 #### Event: 'abort'
 
-- `context` [&lt;Client&gt;](#client) an instance of the client
+- `context` [Client](#client)
 
-The `'abort'` event is emitted when the method [client.abort](#) is called and before any reconnection is done.
+Emitted when [client.abort()](#) has been called and before any reconnection is requested.
 
 <a name="clientEventConnected"></a>
 
 #### Event: 'connected'
 
-- `context` [&lt;Client&gt;](#client) an instance of the client
+- `context` [Client](#client)
 
-The `'connected'` event is emitted when the client has connected to a server.
+Emitted when client has connected to server.
 
 <a name="clientEventDisconnected"></a>
 
 #### Event: 'disconnected'
 
-- `context` [&lt;Client&gt;](#client) an instance of the client
+- `context` [Client](#client)
 
-The `'disconnected'` event is emitted when the client has closed all sockets, streams and disconnected from a server.
+Emitted when client has disconnected from server.
 
 <a name="clientEventProgress"></a>
 
 #### Event: 'progress'
 
-- `progress` [&lt;ITransferProgress&gt;](#) an object with information about progress, for example `buffered` bytes
-- `info` [&lt;ITransferInfo&gt;](#) an object with basic information about transfer, such as `type` and `path`
+- `progress` [ITransferProgress](#)
+- `info` [ITransferInfo](#)
 
-The 'progress' event is emitted when a chunk of a file has been sent to a server.
+Emitted when a chunk of a file has been sent to server. You can access information like transfer speed or eta in `progress`. Basic file information for example size, remote path in `info`.
 
 ```ts
 const client = new Client();
@@ -83,105 +79,78 @@ client.on('progress', (progress, info) => {
 });
 ```
 
-<a name="clientInternalFtp"></a>
-
-#### client.\_ftpClient
-
-The `'client._ftpClient'` is an instance of [basic-ftp `client`](https://github.com/patrickjuchli/basic-ftp/blob/master/src/Client.ts), which handles ftp connection.
-Its an internal property and must not be set or called.
-
-<a name="clientInternalSftp"></a>
-
-#### client.\_sftpClient
-
-The `'client._sftpClient'` is an instance of a [sftp client](https://github.com/qusly/qusly-core/blob/master/src/models/sftp-client.ts), which is an wrapper around [ssh2-streams `client`](https://github.com/mscdex/ssh2-streams/blob/master/lib/sftp.js), that handles sftp connection.
-Its an internal property and must not be set or called.
-
-<a name="clientInternalTasks"></a>
-
-#### client.\_tasks
-
-The `'client._tasks'` is an instance of a [task manager](https://github.com/qusly/qusly-core/blob/master/src/models/task-manager.ts), which handles the `client` methods asynchronously, even if they are called synchronously. This prevents ftp connection from crashing.
-Its an internal property and must not be set or called.
-
-<a name="clientInternalTransfer"></a>
-
-#### client.\_transfer
-
-The `'client._transfer'` is an instance of a [transfer manager](https://github.com/qusly/qusly-core/blob/master/src/models/transfer-manager.ts), which handles file transfer.
-Its an internal property and must not be set or called.
-
 <a name="clientAbort"></a>
 
 #### client.abort()
 
-- Returns: &lt;Promise&gt;
+- Returns: Promise&lt;void&gt;
 
-Stops the current file transfer, reconnects with a server using the same config provided with [client.connect()](#clientConnect).
+Emits the `abort` event.
+Then stops the current file transfer by reconnecting with server, using the same config provided using [client.connect()](#clientConnect).
 
 <a name="clientConnect"></a>
 
 #### client.connect(config)
 
-- `config` [&lt;IConfig&gt;](#)
-- Returns: &lt;Promise&gt;
+- `config` [IConfig](#)
+- Returns: Promise&lt;void&gt;
 
-Chooses which library to use, depending on the `protocol` provided in the `config`. Connects with a server and then, the `connected` event is fired.
+Chooses which library to use, depending on the `protocol` provided in the `config`. Connects with server and then the `connected` event is fired.
 
 <a name="clientConnected"></a>
 
 #### client.connected
 
-- &lt;bolean&gt;
+- Boolean
 
-Indicates if the client has connected to a server.
+Indicates if client is connected to server.
 
 <a name="clientCreateBlank"></a>
 
 #### client.createBlank(type, [, path][, files])
 
-- type &lt;'folder'&gt; | &lt;'file'&gt;
-- path &lt;string&gt; **Default:** ./
-- files [&lt;IFile[]&gt;](#)
-- Returns: &lt;Promise&gt; Name of the file.
+- `type` 'folder' | 'file'
+- `path` String (optional)
+- `files` [IFile[]](#) (optional)
+- Returns: Promise&lt;string&gt;
 
-Creates an empty file or folder, with an unique name in `path`. If you don't provide the `files` argument, it will fetch files automatically.
+Creates an empty file or folder at `path` with an unique name. If you don't provide the `files` arg, it will fetch files. Returns name of the file.
 
 ```ts
 const client = new Client();
 const name = await client.createBlank('file', '/documents');
 
-console.log(name); // new file
+console.log(`Name: ${name}`); // Name: new file
 ```
 
 <a name="clientDelete"></a>
 
 #### client.delete(path)
 
-- path &lt;string&gt;
-- Returns: &lt;Promise&gt;
+- `path` String
+- Returns: Promise&lt;void&gt;
 
-Removes any files and folders in `path`.
+Removes any files and folders at `path`.
 
 <a name="clientDisconnect"></a>
 
 #### client.disconnect()
 
-- Returns: &lt;Promise&gt;
+- Returns: Promise&lt;void&gt;
 
-Aborts active file transfer, closes opened sockets, streams and then disconnects from a server and then, the `disconnected` event is fired.
+Aborts file transfer. Then after client has disconnected from server the `disconnected` event is fired.
 
 <a name="clientDownload"></a>
 
 #### client.download(path, dest, [, options])
 
-- path &lt;string&gt;
-- dest [&lt;stream.Writable&gt;](https://nodejs.org/dist/latest-v13.x/docs/api/stream.html#stream_class_stream_writable)
-- options [&lt;ITransferOptions&gt;](#)
-- Returns: &lt;Promise&gt; Status of the transfer.
+- `path` String
+- `dest` [stream.Writable](https://nodejs.org/dist/latest-v13.x/docs/api/stream.html#stream_class_stream_writable)
+- `options` [ITransferOptions](#) (optional)
+- Returns: Promise&lt;[ITransferStatus](#)&gt;
 
-Downloads a remote file and and pipes it to the `dest`. Every time a new data chunk is sent, the `progress` event is triggered with proper info.
-You can optionally start a transfer at given offset. This can be used to resume a transfer.
+Downloads a remote file. Pipes data into `dest`. When a new chunk of a file has been sent, the `progress` event is fired.
+You can start at a given offset by setting `options`, which can be used to resume a transfer. Returns status of the transfer.
 
 ```ts
 import { resolve } from 'path';
@@ -194,7 +163,7 @@ const localPath = resolve('downloads', 'new file.txt');
 const status = await client.download(
   remotePath,
   createWriteStream(localPath, { flags: 'a' }),
-  { startAt: 24000 },
+  { startAt: 24000 }, // It will start at 24000 bytes
 );
 
 console.log(status); // finished
@@ -204,14 +173,13 @@ console.log(status); // finished
 
 #### client.exists(path)
 
-- path &lt;string&gt;
-- Returns: &lt;Promise&gt; File exists or not.
+- `path` String
+- Returns: Promise&lt;boolean&gt;
 
-Checks if a file at `path` exists.
+Checks if file at `path` exists.
 
 ```ts
 const client = new Client();
-
 const exists = await client.exists('/documents/new file.txt');
 
 console.log(exists ? 'does exists!' : "doesn't exists!");
@@ -221,8 +189,8 @@ console.log(exists ? 'does exists!' : "doesn't exists!");
 
 #### client.mkdir(path)
 
-- path &lt;string&gt;
-- Returns: &lt;Promise&gt;
+- `path` String
+- Returns: Promise&lt;void&gt;
 
 Creates a new folder at `path`.
 
@@ -230,9 +198,9 @@ Creates a new folder at `path`.
 
 #### client.move(srcPath, destPath)
 
-- srcPath &lt;string&gt;
-- destPath &lt;string&gt;
-- Returns: &lt;Promise&gt;
+- `srcPath` String
+- `destPath` String
+- Returns: Promise&lt;void&gt;
 
 Moves a file from `srcPath` to `destPath`. Can be used to rename a file.
 
@@ -240,7 +208,7 @@ Moves a file from `srcPath` to `destPath`. Can be used to rename a file.
 
 #### client.pwd()
 
-- Returns: &lt;Promise&gt;
+- Returns: Promise&lt;string&gt;
 
 Returns path of the current working directory.
 
@@ -248,35 +216,35 @@ Returns path of the current working directory.
 
 #### client.readDir([, path])
 
-- path &lt;string&gt; **Default:** ./
-- Returns: &lt;Promise&gt;
+- `path` String (optional)
+- Returns: Promise&lt;[IFile[]](#)&gt;
 
-Returns files and folders at `path`.
+Lists files and folders at `path`.
 
 <a name="clientRimraf"></a>
 
 #### client.rimraf(path)
 
-- path &lt;string&gt;
-- Returns: &lt;Promise&gt;
+- `path` string
+- Returns: Promise&lt;void&gt;
 
-Deletes any file at `path` and all of its contents.
+Deletes any file and folder at `path`.
 
 <a name="clientSend"></a>
 
 #### client.send(command)
 
-- command &lt;string&gt;
-- Returns: &lt;Promise&gt; Server response.
+- `command` String
+- Returns: Promise&lt;string&gt;
 
-Sends a raw command to a server. Output depends on the protocol and the support!
+Sends a raw command to server and then returns the response.
 
 <a name="clientSize"></a>
 
 #### client.size(path)
 
-- path &lt;string&gt;
-- Returns: &lt;Promise&gt;
+- `path` String
+- Returns: Promise&lt;number&gt;
 
 Returns size of the file at `path` in bytes.
 
@@ -284,17 +252,17 @@ Returns size of the file at `path` in bytes.
 
 #### client.stat(path)
 
-- path &lt;string&gt;
-- Returns: &lt;Promise&gt;
+- `path` String
+- Returns: Promise&lt;[IStats](#)&gt;
 
-Returns details about the file at `path`, such as size and type.
+Returns details about the file at `path`.
 
 <a name="clientTouch"></a>
 
 #### client.touch(path)
 
-- path &lt;string&gt;
-- Returns: &lt;Promise&gt;
+- `path` String
+- Returns: Promise&lt;void&gt;
 
 Creates an empty file at `path`.
 
@@ -302,21 +270,21 @@ Creates an empty file at `path`.
 
 #### client.unlink(path)
 
-- path &lt;string&gt;
-- Returns: &lt;Promise&gt;
+- `path` String
+- Returns: Promise&lt;void&gt;
 
-Deletes a file at `path`.
+Deletes a single file (not folder) at `path`.
 
 <a name="clientUpload"></a>
 
 #### client.upload(path, source, [, options])
 
-- path &lt;string&gt;
-- source [&lt;stream.Readable&gt;](https://nodejs.org/dist/latest-v13.x/docs/api/stream.html#stream_class_stream_readable)
-- options [&lt;ITransferOptions&gt;](#)
-- Returns: &lt;Promise&gt; Status of the transfer.
+- `path` String
+- `source` [stream.Readable](https://nodejs.org/dist/latest-v13.x/docs/api/stream.html#stream_class_stream_readable)
+- `options` [ITransferOptions](#)
+- Returns: Promise&lt;[ITransferStatus](#)&gt;
 
-Uploads a local file and and pipes it to the `source` at a server. Every time a new data chunk is sent, the `progress` event is triggered with proper info.
+Uploads a local file. When a new chunk of a file has been sent, the `progress` event is fired.
 
 ```ts
 import { resolve } from 'path';
