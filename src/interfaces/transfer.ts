@@ -1,34 +1,47 @@
 import { Client } from '../models';
 
+export type ITransferStatus = 'finished' | 'aborted' | 'closed';
+
 export type ITransferType = 'download' | 'upload';
 
-export type ITransferStatus = 'pending' | 'transfering' | 'finished';
+export type IParallelTransferStatus = 'pending' | 'transfering' | ITransferStatus;
 
 export interface ITransferOptions {
+  /**If set to `true`, will prevent emitting `progress` event.*/
   quiet?: boolean;
-}
-
-export interface IDownloadOptions extends ITransferOptions {
+  /**Offset in `bytes` to start uploading from.*/
   startAt?: number;
 }
 
-export interface IProgress {
-  chunkSize?: number;
-  buffered?: number;
-  size?: number;
-  localPath?: string;
-  remotePath?: string;
-  eta?: number;
-  speed?: number;
-  percent?: number;
-  startAt?: Date;
-  context?: Client;
+export interface ITransferInfo {
+  /**Type of the transfer.*/
+  type: ITransferType;
+  /**Path to a local file.*/
+  localPath: string;
+  /**Path to a remote file.*/
+  remotePath: string;
+  /**Date when the transfer has started.*/
+  startAt: Date;
+  /**Instance of `Client`.*/
+  context: Client;
 }
 
-export interface ITransferItem {
-  id?: string;
-  type?: ITransferType;
-  status?: ITransferStatus;
-  data?: any;
-  info?: IProgress;
+export interface ITransferProgress {
+  /**Sent bytes.*/
+  buffered: number;
+  /**Estimated time arrival in `seconds`.*/
+  eta: number;
+  /**Speed of the transfer in `MB/s`.*/
+  speed: number;
+  /**Progress of the transfer in `%`.*/
+  percent: number;
+  /**Size of the file in `bytes`.*/
+  size: number;
+}
+
+export type IParallelTransferInfo = Omit<ITransferInfo, 'context' | 'startAt'> & {
+  /**Unique id of the transfer.*/
+  id: string;
+  /**Status of the transfer.*/
+  status: IParallelTransferStatus;
 }

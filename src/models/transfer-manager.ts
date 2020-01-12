@@ -1,57 +1,38 @@
-import { EventEmitter } from 'events';
-import { Readable, Writable } from 'stream';
+import { Writable, Readable } from 'stream';
 
+import { ITransferStatus, ITransferOptions, ITransferProgress, ITransferInfo } from '../interfaces';
 import { Client } from './client';
-import { IDownloadOptions, ITransferOptions, IProgress, ITransferType } from '../interfaces';
 import { calcElapsed, calcEta, getFilePath, getFileSize } from '../utils';
 
 interface ITransferData {
-  type?: ITransferType;
+  info?: Partial<ITransferInfo>;
   size?: number;
-  localPath?: string;
-  remotePath?: string;
-  options?: IDownloadOptions;
+  options?: ITransferOptions;
+  stream?: Writable | Readable;
 }
 
-export declare interface TransferManager {
-  on(event: 'abort', listener: Function): this;
-  once(event: 'abort', listener: Function): this;
-}
+export class TransferManager {
+  public buffered = 0;
 
-export class TransferManager extends EventEmitter {
-  protected _readable: Readable;
+  protected _status: ITransferStatus;
 
-  protected _writable: Writable;
+  protected _data: ITransferData;
 
-  public _buffered = 0;
+  constructor(protected _client: Client) { }
 
-  protected _aborting = false;
-
-  protected _startAt: number;
-
-  constructor(protected _client: Client) {
-    super();
-  }
-
-  public async download(remotePath: string, dest: Writable, options: IDownloadOptions) {
+  public async download(remotePath: string, dest: Writable, options: ITransferOptions = {}) {
     const localPath = getFilePath(dest);
-    const size = this._client.isSftp ? await this._client._sftpClient.size(remotePath) : await this._client._ftpClient.size(remotePath);
+    const size = await this._getFileSize(remotePath, options);
 
-    options = { startAt: 0, ...options };
-
-    if (this._client.isSftp) {
-      this._readable = this._client._sftpClient.createReadStream(remotePath, options.startAt);
-    }
-
-    this._buffered = 0;
-    this._writable = dest;
-
-    return this._handleStream({
-      type: 'download',
-      size: size - options.startAt,
-      remotePath,
-      localPath,
-      options
+    return this._handleTransfer({
+      info: {
+        type: 'download',
+        remotePath,
+        localPath,
+      },
+      stream: dest,
+      options,
+      size,
     });
   }
 
@@ -59,144 +40,134 @@ export class TransferManager extends EventEmitter {
     const localPath = getFilePath(source);
     const size = await getFileSize(source);
 
-    if (this._client.isSftp) {
-      this._writable = this._client._sftpClient.createWriteStream(remotePath);
-    }
-
-    this._readable = source;
-    this._buffered = 0;
-
-    return this._handleStream({
-      type: 'upload',
-      size,
-      remotePath,
-      localPath,
-      options
-    });
-  }
-
-  protected async _handleStream(data: ITransferData) {
-    this._startAt = new Date().getTime();
-
-    if (this._client.isSftp) {
-      await this._handleSftp(data);
-    } else {
-      await this._handleFtp(data);
-    }
-
-    this.closeStreams();
-  }
-
-  protected async _handleSftp(data: ITransferData) {
-    let onAbort: Function;
-
-    await new Promise((resolve, reject) => {
-      onAbort = () => {
-        resolve();
-      };
-
-      this._buffered = 0;
-
-      this.once('abort', onAbort);
-
-      this._readable.on('data', (chunk) => {
-        if (this._aborting) return;
-
-        this._buffered += chunk.length;
-        this._emitProgress(chunk.length, data);
-      });
-
-      const onError = (err) => reject(err);
-      const onClose = () => resolve();
-
-      if (data.type === 'download') {
-        this._readable.once('error', onError);
-        this._readable.once('close', onClose);
-      } else {
-        this._writable.once('error', onError);
-        this._writable.once('finish', onClose);
-      }
-
-      this._readable.pipe(this._writable);
-    });
-
-    this.removeListener('abort', onAbort as any);
-  }
-
-  protected async _handleFtp(data: ITransferData) {
-    const { type, remotePath, options } = data;
-
-    this._client._ftpClient.trackProgress(info => {
-      if (this._aborting) return;
-
-      this._buffered = info.bytes;
-
-      if (this._buffered > 0) {
-        this._emitProgress(info.bytes, data);
-      }
-    });
-
-    if (type === 'download') {
-      await this._client._ftpClient.download(this._writable, remotePath, options.startAt);
-    } else {
-      await this._client._ftpClient.upload(this._readable, remotePath);
-    }
-  }
-
-  protected _emitProgress(chunkSize: number, transferData: ITransferData) {
-    const { options, remotePath, localPath, size } = transferData;
-
-    if (!options.quiet) {
-      const elapsed = calcElapsed(this._startAt);
-      const speed = this._buffered / elapsed; // bytes per second
-      const eta = calcEta(elapsed, this._buffered, size); // second
-      const percent = Math.round(this._buffered / size * 100);
-
-      const data: IProgress = {
-        buffered: this._buffered,
-        startAt: new Date(this._startAt),
-        context: this._client,
-        percent,
-        chunkSize,
+    return this._handleTransfer({
+      info: {
+        type: 'upload',
         remotePath,
         localPath,
-        size,
-        eta,
-        speed,
+      },
+      stream: source,
+      options,
+      size,
+    });
+  }
+
+  protected async _handleTransfer(data: ITransferData) {
+    const { info, options, stream } = data;
+    const { type, remotePath } = info;
+
+    this._data = data;
+    this._prepare();
+
+    try {
+      switch (type) {
+        case 'download': {
+          if (this._client.isSftp) {
+            await this._client._sftpClient.download(remotePath, stream as Writable, options.startAt);
+          } else {
+            await this._client._ftpClient.downloadTo(stream as Writable, remotePath, options.startAt);
+          }
+
+          break;
+        }
+        case 'upload': {
+          if (this._client.isSftp) {
+            await this._client._sftpClient.upload(remotePath, stream as Readable);
+          } else {
+            await this._client._ftpClient.uploadFrom(stream as Readable, remotePath);
+          }
+
+          break;
+        }
       }
 
-      this._client.emit('progress', data);
+      if (!this._status) {
+        this._status = 'finished';
+      }
+    } catch (err) {
+      if (err.message !== 'User closed client during task') {
+        this._status = 'closed';
+
+        throw err;
+      }
+    }
+
+    this._clean();
+
+    return this._status;
+  }
+
+  protected _prepare() {
+    this.buffered = 0;
+    this._status = null;
+    this._data.info = { ...this._data.info, startAt: new Date(), context: this._client };
+    this._client.once('disconnected', this._onDisconnect);
+
+    if (this._client.isSftp) {
+      this._client._sftpClient.addListener('progress', this._onSftpProgress);
+    } else {
+      this._client._ftpClient.trackProgress(info => {
+        this.buffered = info.bytes;
+        this._onProgress()
+      });
     }
   }
 
-  public closeStreams() {
-    if (this._readable) {
-      this._readable.removeAllListeners();
-      this._readable.unpipe(this._writable);
-
-      if (this._writable) {
-        this._writable.removeAllListeners();
-
-        this._readable.once('close', () => {
-          this._writable.end();
-          this._writable = null;
-          this._readable = null;
-        });
-
-        this._readable.destroy();
-      }
-    } else if (this._writable) {
-      this._writable.end();
+  protected _clean() {
+    if (this._client.isSftp) {
+      this._client._sftpClient.removeListener('progress', this._onSftpProgress);
+    } else {
+      this._client._ftpClient.trackProgress(undefined);
     }
+
+    this._client.removeListener('disconnected', this._onDisconnect);
+    this._data = undefined;
+  }
+
+  protected _onDisconnect = () => {
+    this._status = 'aborted';
+
+    const { stream } = this._data;
 
     if (!this._client.isSftp) {
-      this._client._ftpClient.trackProgress(undefined);
+      stream.destroy();
+    }
+  }
 
-      if (this._client._ftpClient.ftp.dataSocket) {
-        this._client._ftpClient.ftp.dataSocket.unpipe(this._writable);
+  protected _onSftpProgress = (chunk: any) => {
+    this.buffered += chunk.length;
+    this._onProgress();
+  }
+
+  protected _onProgress() {
+    const { info, options, size } = this._data;
+    const { startAt } = info;
+
+    if (!options.quiet) {
+      const elapsed = calcElapsed(startAt.getTime());
+      const speed = this.buffered / elapsed; // bytes per second
+      const eta = calcEta(elapsed, this.buffered, size); // seconds
+      const percent = Math.round(this.buffered / size * 100);
+
+      const progress: ITransferProgress = {
+        buffered: this.buffered,
+        speed,
+        percent,
+        eta,
+        size,
       }
+
+      this._client.emit('progress', progress, info);
+    }
+  }
+
+  protected async _getFileSize(path: string, options?: ITransferOptions) {
+    let size = await (this._client.isSftp ? this._client._sftpClient.size(path) : this._client._ftpClient.size(path));
+
+    if (options && options.startAt) {
+      size -= options.startAt;
     }
 
-    this._startAt = null;
+    return size;
   }
 }

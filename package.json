@@ -1,13 +1,11 @@
 {
   "name": "qusly-core",
-  "version": "2.1.5",
-  "description": "An API wrapper around ssh2 and basic-ftp for building FTP/FTPS/SFTP clients.",
+  "version": "2.2.0",
+  "description": "An FTP/FTPS/SFTP client with modern API.",
   "keywords": [
     "ftp",
     "sftp",
     "ftps",
-    "nodejs",
-    "typescript",
     "ssh2",
     "node-ftp",
     "basic-ftp",
@@ -30,17 +28,28 @@
     "dev": "tsc --watch",
     "build": "npm run clean && tsc",
     "prepublishOnly": "npm run build",
-    "clean": "rimraf ./build"
+    "clean": "rimraf ./build",
+    "test": "mocha -r ts-node/register tests/**/*.ts",
+    "coverage": "nyc npm run test"
   },
   "devDependencies": {
-    "@types/node": "12.7.11",
+    "@types/chai": "^4.2.7",
+    "@types/mocha": "^5.2.7",
+    "@types/node": "13.1.6",
+    "@types/sinon": "^7.5.1",
     "@types/ssh2": "0.5.39",
+    "chai": "^4.2.0",
+    "mocha": "^7.0.0",
+    "nyc": "^15.0.0",
     "rimraf": "3.0.0",
+    "sinon": "^8.0.4",
+    "ts-mock-imports": "^1.2.6",
+    "ts-node": "^8.6.1",
     "tslint-config-airbnb": "5.11.2",
-    "typescript": "3.6.3"
+    "typescript": "3.7.4"
   },
   "dependencies": {
-    "basic-ftp": "4.0.2",
-    "ssh2": "0.8.5"
+    "basic-ftp": "4.5.2",
+    "ssh2": "0.8.7"
   }
 }

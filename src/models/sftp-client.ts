@@ -1,12 +1,28 @@
+import { EventEmitter } from 'events';
 import { Client as SshClient, SFTPWrapper } from 'ssh2';
 import { FileEntry, Stats } from 'ssh2-streams';
+import { Writable, Readable } from 'stream';
+import { Socket } from 'net';
 
 import { IConfig } from '../interfaces';
+import { Client } from '../models';
 
-export class SftpClient {
-  private _ssh: SshClient;
+export declare interface SftpClient {
+  on(event: 'progress', listener: (buffered: number) => void): this;
+}
 
-  private _wrapper: SFTPWrapper;
+export class SftpClient extends EventEmitter {
+  public _ssh: SshClient;
+
+  public _wrapper: SFTPWrapper;
+
+  constructor(protected _client: Client) {
+    super();
+  }
+
+  public get socket(): Socket {
+    return (this._ssh as any)._sock;
+  }
 
   public connect(config: IConfig) {
     return new Promise((resolve, reject) => {
@@ -21,19 +37,26 @@ export class SftpClient {
         this._ssh.removeAllListeners();
         this._ssh.sftp((err, sftp) => {
           if (err) return reject(err);
+
           this._wrapper = sftp;
           resolve();
         });
       });
 
-      this._ssh.connect({ username: config.user, ...config })
+      this._ssh.connect({ username: config.user, ...config });
     });
   }
 
   public disconnect() {
-    this._ssh.end();
-    this._wrapper = null;
-    this._ssh = null;
+    return new Promise(resolve => {
+      this.socket.addListener('close', () => {
+        this._wrapper = null;
+        this._ssh = null;
+        resolve();
+      });
+
+      this._ssh.end();
+    });
   }
 
   public size(path: string): Promise<number> {
@@ -140,8 +163,8 @@ export class SftpClient {
     });
   }
 
-  public createReadStream(path: string, startAt?: number) {
-    return this._wrapper.createReadStream(path, { start: startAt });
+  public createReadStream(path: string, start = 0) {
+    return this._wrapper.createReadStream(path, { start, autoClose: true });
   }
 
   public createWriteStream(path: string) {
@@ -167,6 +190,54 @@ export class SftpClient {
           resolve();
         })
       })
+    });
+  }
+
+  public download(path: string, dest: Writable, startAt?: number) {
+    return new Promise((resolve, reject) => {
+      const source = this.createReadStream(path, startAt);
+
+      this._client.once('disconnected', resolve);
+
+      source.on('data', chunk => {
+        this.emit('progress', chunk);
+      });
+
+      source.once('error', err => {
+        this._client.removeListener('disconnected', resolve);
+        reject(err);
+      });
+
+      source.once('close', () => {
+        this._client.removeListener('disconnected', resolve);
+        resolve();
+      });
+
+      source.pipe(dest);
+    });
+  }
+
+  public upload(path: string, source: Readable) {
+    return new Promise((resolve, reject) => {
+      const dest = this.createWriteStream(path);
+
+      this._client.once('disconnected', resolve);
+
+      source.on('data', chunk => {
+        this.emit('progress', chunk);
+      });
+
+      dest.once('error', err => {
+        this._client.removeListener('disconnected', resolve);
+        reject(err);
+      });
+
+      dest.once('close', () => {
+        this._client.removeListener('disconnected', resolve);
+        resolve();
+      });
+
+      source.pipe(dest);
     });
   }
 }
