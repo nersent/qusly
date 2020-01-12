@@ -1,13 +1,11 @@
 {
   "name": "qusly-core",
   "version": "2.1.5",
-  "description": "An API wrapper around ssh2 and basic-ftp for building FTP/FTPS/SFTP clients.",
+  "description": "An FTP/FTPS/SFTP client with modern API.",
   "keywords": [
     "ftp",
     "sftp",
     "ftps",
-    "nodejs",
-    "typescript",
     "ssh2",
     "node-ftp",
     "basic-ftp",
@@ -37,7 +35,7 @@
   "devDependencies": {
     "@types/chai": "^4.2.7",
     "@types/mocha": "^5.2.7",
-    "@types/node": "13.1.4",
+    "@types/node": "13.1.6",
     "@types/sinon": "^7.5.1",
     "@types/ssh2": "0.5.39",
     "chai": "^4.2.0",
@@ -46,7 +44,7 @@
     "rimraf": "3.0.0",
     "sinon": "^8.0.4",
     "ts-mock-imports": "^1.2.6",
-    "ts-node": "^8.5.4",
+    "ts-node": "^8.6.1",
     "tslint-config-airbnb": "5.11.2",
     "typescript": "3.7.4"
   },
