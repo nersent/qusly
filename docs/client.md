@@ -32,7 +32,7 @@
 
 ### Class `Client`
 
-> An API, which provides access to FTP/FTPS/SFTP servers. It handles every method in a queue.
+An API, which provides access to FTP/FTPS/SFTP servers. It handles every method in a single queue.
 
 <a name="clientEventAbort"></a>
 

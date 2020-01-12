@@ -79,10 +79,10 @@ Output:
 
 ## Table of contents
 
-- [Client](#)
-- [Examples](#)
-- [ParallelClient](#)
-- [Types](#)
+- [Client](/docs/client.md)
+- [Examples](/examples)
+- [ParallelClient](/docs/parallel-client.md)
+- [Types](/docs/types.md)
 
 <a href="https://www.patreon.com/bePatron?u=21429620">
   <img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" width="160">

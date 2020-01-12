@@ -36,7 +36,7 @@
 
 ### Class `ParallelClient`
 
-An API, which provides access to FTP/FTPS/SFTP servers. The difference from a normal [Client](#) is that it can use multiple [Client](#) instances for faster file transfer. See [parallelparallelClient.constructor](#parallelClientConstructor) for more.
+An API, which provides access to FTP/FTPS/SFTP servers. The difference from a normal [Client](#/docs/client.md) is that it can use multiple [Client](#/docs/client.md#client) instances for faster file transfer. See [parallelparallelClient.constructor](#parallelClientConstructor) for more.
 
 <a name="parallelClientConstructor"></a>
 
@@ -45,9 +45,9 @@ An API, which provides access to FTP/FTPS/SFTP servers. The difference from a no
 - `maxClients` Number (optional) - **default: 1**
 - `reserveClient` Boolean (optional) - **default: false**
 
-If you want to speed up a transfer, you can set `maxClients` to for example _4_. So when you transfer 40 files, it will finish 10 times faster. ParallelClient assigns one file per client.
+ParallelClient assings one file per client. If you set `maxClients` to 4, it will transfer 4 times faster.
 
-If the `reserveClient` is set to true, then one client is locked only for the basic api like listening files. The rest is used for transfer.
+If the `reserveClient` is set to true, then one client is locked for only the basic api like listening files. The rest is used for transfer.
 Otherwise each method is handled in the same queue as file transfer.
 
 When `maxClients` equals 1, then `reserveClient` is disabled.
@@ -56,13 +56,13 @@ When `maxClients` equals 1, then `reserveClient` is disabled.
 
 #### Event: 'abort'
 
-Emitted when the [parallelClient.abort()](#) has been called and before any reconnection is requested.
+Emitted when the [parallelClient.abort()](#parallelClientAbort) has been called and before any reconnection is requested.
 
 <a name="parallelClientEventAbortAll"></a>
 
 #### Event: 'abort-all'
 
-Emitted when the [parallelClient.abortAll()](#) has been called and before any reconnection is requested.
+Emitted when the [parallelClient.abortAll()](#parallelClientAll) has been called and before any reconnection is requested.
 
 <a name="parallelClientEventConnected"></a>
 
@@ -80,7 +80,7 @@ Emitted when each of the clients has disconnected from a server.
 
 #### Event: 'finished'
 
-- `info` [IParallelTransferInfo](#)
+- `info` [IParallelTransferInfo](/docs/types.md#iParallelTransferInfo)
 
 Emitted when a transfer has finished or has been aborted.
 
@@ -88,7 +88,7 @@ Emitted when a transfer has finished or has been aborted.
 
 #### Event: 'new'
 
-- `info` [IParallelTransferInfo](#)
+- `info` [IParallelTransferInfo](/docs/types.md#iParallelTransferInfo)
 
 Emitted when `parallelClient.download` or `parallelClient.upload` have been called.
 
@@ -96,8 +96,8 @@ Emitted when `parallelClient.download` or `parallelClient.upload` have been call
 
 #### Event: 'progress'
 
-- `progress` [ITransferProgress](#)
-- `info` [IParallelTransferInfo](#)
+- `progress` [ITransferProgress](/docs/types.md#iTransferProgress)
+- `info` [IParallelTransferInfo](/docs/types.mdiIParallelTransferInfo)
 
 Emitted when a chunk of a file has been sent to a server. You can access information like transfer speed or eta in `progress`. Basic file information, for example size and remote path in `info`.
 
@@ -118,13 +118,13 @@ Then stops a specified with `transferId` file transfer. Reconnects to a server w
 - Returns: Promise&lt;void&gt;
 
 Emits the `abort-all` event.
-Then stops each of the clients from transfering a file. Reconnects to a server with the same config provided with [parallelClient.connect()](#parallelClientConnect).
+Then stops every file transfer. Reconnects to a server with the same config provided with [parallelClient.connect()](#parallelClientConnect).
 
 <a name="parallelClientConnect"></a>
 
 #### parallelClient.connect(config)
 
-- `config` [IConfig](#)
+- `config` [IConfig](/docs/types.md#iConfig)
 - Returns: Promise&lt;void&gt;
 
 Connects each of the clients to a server and then the `connected` event is fired.
@@ -135,7 +135,7 @@ Connects each of the clients to a server and then the `connected` event is fired
 
 - `type` 'folder' | 'file'
 - `path` String (optional)
-- `files` [IFile[]](#) (optional)
+- `files` [IFile[]](/docs/types.md#iFile) (optional)
 - Returns: Promise&lt;string&gt;
 
 Creates an empty file or folder at `path` with an unique name. If you don't provide the `files` arg, it will fetch automatically. Returns name of the file.
@@ -163,7 +163,7 @@ Stops each of the clients from transfering a file. Disconnects every one of them
 
 - `remotePath` String
 - `localPath` String
-- Returns: Promise&lt;[ITransferStatus](#)&gt;
+- Returns: Promise&lt;[ITransferStatus](/docs/types.md#iTransferStatus)&gt;
 
 Downloads a remote file. When a new chunk of a file has been sent, the `progress` event is fired.
 
@@ -208,7 +208,7 @@ Returns path of the current working directory.
 #### parallelClient.readDir([, path])
 
 - `path` String (optional)
-- Returns: Promise&lt;[IFile[]](#)&gt;
+- Returns: Promise&lt;[IFile[]](/docs/types.md#iFile)&gt;
 
 Lists files and folders at `path`.
 
@@ -244,7 +244,7 @@ Returns size of the file at `path` in bytes.
 #### parallelClient.stat(path)
 
 - `path` String
-- Returns: Promise&lt;[IStats](#)&gt;
+- Returns: Promise&lt;[IStats](/docs/types.md#iStats)&gt;
 
 Returns details about the file at `path`.
 
@@ -272,6 +272,6 @@ Deletes a single file (not a folder) at `path`.
 
 - `localPath` String
 - `remotePath` String
-- Returns: Promise&lt;[ITransferStatus](#)&gt;
+- Returns: Promise&lt;[ITransferStatus](/docs/types.md#iTransferStatus)&gt;
 
 Uploads a local file. When a new chunk of a file has been sent, the `progress` event is fired. Returns status of the transfer.
