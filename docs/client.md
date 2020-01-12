@@ -86,7 +86,7 @@ client.on('progress', (progress, info) => {
 - Returns: Promise&lt;void&gt;
 
 Emits the `abort` event.
-Then stops the current file transfer by reconnecting with a server, using the same config provided with the [client.connect()](#clientConnect).
+Then stops the current file transfer by reconnecting to a server, using the same config provided with the [client.connect()](#clientConnect).
 
 <a name="clientConnect"></a>
 
@@ -95,7 +95,7 @@ Then stops the current file transfer by reconnecting with a server, using the sa
 - `config` [IConfig](#)
 - Returns: Promise&lt;void&gt;
 
-Chooses which library to use, depending on the `protocol` provided in the `config`. Connects with a server and then the `connected` event is fired.
+Chooses which library to use, depending on the `protocol` provided in the `config`. Connects to a server and then the `connected` event is fired.
 
 <a name="clientConnected"></a>
 
