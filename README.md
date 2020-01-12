@@ -13,7 +13,7 @@
 
 </div>
 
-Qusly-Core is an **FTP/FTPS/SFTP** client, built around [ssh2](https://github.com/mscdex/ssh2) and [basic-ftp](https://github.com/patrickjuchli/basic-ftp). Its used in [Qusly](https://www.github.com/qusly/qusly) - _elegant desktop client_.
+Qusly-Core is an **FTP/FTPS/SFTP** client, built around [ssh2](https://github.com/mscdex/ssh2) and [basic-ftp](https://github.com/patrickjuchli/basic-ftp). It was built for **[Qusly](https://www.github.com/qusly/qusly)** - _an elegant desktop client_.
 
 ### Features
 
