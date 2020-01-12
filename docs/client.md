@@ -32,7 +32,7 @@
 
 ### Class `Client`
 
-> An API, which provides access to FTP/FTPS/SFTP server. It handles every method in a queue.
+> An API, which provides access to FTP/FTPS/SFTP servers. It handles every method in a queue.
 
 <a name="clientEventAbort"></a>
 
@@ -284,7 +284,7 @@ Deletes a single file (not a folder) at `path`.
 - `options` [ITransferOptions](#)
 - Returns: Promise&lt;[ITransferStatus](#)&gt;
 
-Uploads a local file. When a new chunk of a file has been sent, the `progress` event is fired.  Returns status of the transfer.
+Uploads a local file. When a new chunk of a file has been sent, the `progress` event is fired. Returns status of the transfer.
 
 ```ts
 import { resolve } from 'path';
