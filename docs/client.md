@@ -40,7 +40,7 @@
 
 - `context` [Client](#client)
 
-Emitted when the [client.abort()](#) has been called and before any reconnection is requested.
+Emitted when the [client.abort()](#clientAbort) has been called and before any reconnection is requested.
 
 <a name="clientEventConnected"></a>
 
@@ -62,8 +62,8 @@ Emitted when client has disconnected from a server.
 
 #### Event: 'progress'
 
-- `progress` [ITransferProgress](#)
-- `info` [ITransferInfo](#)
+- `progress` [ITransferProgress](/docs/types.md#iTransferProgress)
+- `info` [ITransferInfo](/docs/types.md#iTransferInfo)
 
 Emitted when a chunk of a file has been sent to a server. You can access information like transfer speed or eta in `progress`. Basic file information, for example size and remote path in `info`.
 
@@ -92,10 +92,10 @@ Then stops the current file transfer by reconnecting to a server, using the same
 
 #### client.connect(config)
 
-- `config` [IConfig](#)
+- `config` [IConfig](#/docs/types.md#iConfig)
 - Returns: Promise&lt;void&gt;
 
-Chooses which library to use, depending on the `protocol` provided in the `config`. Connects to a server and then the `connected` event is fired.
+Chooses which library to use, depending on the [protocol](#/docs/types.md#iProtocol) provided in the `config`. Connects to a server and then the `connected` event is fired.
 
 <a name="clientConnected"></a>
 
@@ -111,7 +111,7 @@ Indicates if client is connected to a server.
 
 - `type` 'folder' | 'file'
 - `path` String (optional)
-- `files` [IFile[]](#) (optional)
+- `files` [IFile[]](#/docs/types.md#iFile) (optional)
 - Returns: Promise&lt;string&gt;
 
 Creates an empty file or folder at `path` with an unique name. If you don't provide the `files` arg, it will fetch automatically. Returns name of the file.
@@ -146,8 +146,8 @@ Aborts the current file transfer, if any. Then after client has disconnected fro
 
 - `path` String
 - `dest` [stream.Writable](https://nodejs.org/dist/latest-v13.x/docs/api/stream.html#stream_class_stream_writable)
-- `options` [ITransferOptions](#) (optional)
-- Returns: Promise&lt;[ITransferStatus](#)&gt;
+- `options` [ITransferOptions](#/docs/types.md#iTransferOptions) (optional)
+- Returns: Promise&lt;[ITransferStatus](#/docs/types.md#iTransferStatus)&gt;
 
 Downloads a remote file. Pipes data into `dest`. When a new chunk of a file has been sent, the `progress` event is fired.
 You can start at a given offset by setting `options`, which can be used to resume a transfer. Returns status of the transfer.
@@ -217,7 +217,7 @@ Returns path of the current working directory.
 #### client.readDir([, path])
 
 - `path` String (optional)
-- Returns: Promise&lt;[IFile[]](#)&gt;
+- Returns: Promise&lt;[IFile[]](#/docs/types.md#iFile)&gt;
 
 Lists files and folders at `path`.
 
@@ -253,7 +253,7 @@ Returns size of the file at `path` in bytes.
 #### client.stat(path)
 
 - `path` String
-- Returns: Promise&lt;[IStats](#)&gt;
+- Returns: Promise&lt;[IStats](#/docs/types.md#iStats)&gt;
 
 Returns details about the file at `path`.
 
@@ -281,8 +281,8 @@ Deletes a single file (not a folder) at `path`.
 
 - `path` String
 - `source` [stream.Readable](https://nodejs.org/dist/latest-v13.x/docs/api/stream.html#stream_class_stream_readable)
-- `options` [ITransferOptions](#)
-- Returns: Promise&lt;[ITransferStatus](#)&gt;
+- `options` [ITransferOptions](#/docs/types.md#iTransferOptions)
+- Returns: Promise&lt;[ITransferStatus](#/docs/types.md#iTransferStatus)&gt;
 
 Uploads a local file. When a new chunk of a file has been sent, the `progress` event is fired. Returns status of the transfer.
 
