@@ -85,7 +85,7 @@ export class Client extends EventEmitter implements IClientMethods {
 
   protected _tasks = new TaskManager();
 
-  public _transfer = new TransferManager(this);
+  protected _transfer = new TransferManager(this);
 
   public async connect(config: IConfig): Promise<void> {
     this.config = config;
