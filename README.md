@@ -17,12 +17,10 @@ Qusly-Core is an **FTP/FTPS/SFTP** client, built around [ssh2](https://github.co
 
 ### Features
 
-- Supports **FTP, FTPS, SFTP**
+- Supports **FTP, FTPS and SFTP**
 - Modern, promise based API
 - Informative progress event, which includes **eta** and **speed rate**
 - Additional client for **parallel** file transfer
-
-Checkout [roadmap](https://github.com/qusly/qusly-core/projects/) to see what's coming.
 
 ## Installation
 
