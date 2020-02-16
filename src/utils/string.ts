@@ -3,7 +3,10 @@ import { MSDOS_DATE_REGEX } from '../constants';
 /**
  * Returns a random string.
  */
-export const makeId = (length: number, possible: string = 'abcdefghijklmnopqrstuvwxyz') => {
+export const makeId = (
+  length: number,
+  possible: string = 'abcdefghijklmnopqrstuvwxyz',
+) => {
   let id = '';
 
   for (let i = 0; i < length; i++) {
@@ -11,7 +14,7 @@ export const makeId = (length: number, possible: string = 'abcdefghijklmnopqrstu
   }
 
   return id;
-}
+};
 
 export const getValidDate = (str: string) => {
   const date = str.trim();
@@ -27,5 +30,11 @@ export const getValidDate = (str: string) => {
     hour += 12;
   }
 
-  return new Date(parseInt(`20${year}`), parseInt(month) - 1, parseInt(day), hour, parseInt(minutes));
-}
+  return new Date(
+    parseInt(`20${year}`),
+    parseInt(month) - 1,
+    parseInt(day),
+    hour,
+    parseInt(minutes),
+  );
+};

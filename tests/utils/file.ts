@@ -1,14 +1,26 @@
 import * as sinon from 'sinon';
 import { expect } from 'chai';
 import 'mocha';
-
 import { FileInfo, FileType } from 'basic-ftp';
-import { Stats } from 'ssh2-streams';
+import { Stats, FileEntry } from 'ssh2-streams';
 import { promises as fs } from 'fs';
 
 import { IFile } from '../../src/interfaces';
 import * as stringUtils from '../../src/utils/string';
 import * as fileUtils from '../../src/utils/file';
+import * as dateUtils from '../../src/utils/date';
+
+const FILE_INFO_EXAMPLE = ({
+  permissions: {
+    group: 1010,
+    user: 2020,
+  } as any,
+  size: 4096,
+  user: 'user',
+  group: 'root',
+  name: 'video.mp4',
+  type: FileType.File,
+} as any) as FileInfo;
 
 describe('File utils', () => {
   describe('getFileType', () => {
@@ -39,25 +51,34 @@ describe('File utils', () => {
 
   describe('getFileTypeFromStats', () => {
     const stats: Partial<Stats> = {
-      isDirectory: () => (false),
-      isFile: () => (false),
-      isSymbolicLink: () => (false),
-    }
+      isDirectory: () => false,
+      isFile: () => false,
+      isSymbolicLink: () => false,
+    };
 
     it('returns folder', () => {
-      const res = fileUtils.getFileTypeFromStats({ ...stats, isDirectory: () => (true) } as any);
+      const res = fileUtils.getFileTypeFromStats({
+        ...stats,
+        isDirectory: () => true,
+      } as any);
 
       expect(res).equals('folder');
     });
 
     it('returns file', () => {
-      const res = fileUtils.getFileTypeFromStats({ ...stats, isFile: () => (true) } as any);
+      const res = fileUtils.getFileTypeFromStats({
+        ...stats,
+        isFile: () => true,
+      } as any);
 
       expect(res).equals('file');
     });
 
     it('returns symbolic link', () => {
-      const res = fileUtils.getFileTypeFromStats({ ...stats, isSymbolicLink: () => (true) } as any);
+      const res = fileUtils.getFileTypeFromStats({
+        ...stats,
+        isSymbolicLink: () => true,
+      } as any);
 
       expect(res).equals('symbolic-link');
     });
@@ -70,57 +91,88 @@ describe('File utils', () => {
   });
 
   describe('formatFile', () => {
-    const dateStr = '2020-01-01T18:10:38.000Z';
-    const date = new Date(dateStr);
-
-    const sharedInfo = {
-      permissions: {
-        group: 1010,
-        user: 2020,
-      } as any,
-      size: 4096,
-      user: 'user',
-      group: 'root',
-      name: 'video.mp4',
-    }
-
-    const info: Partial<FileInfo> = {
-      ...sharedInfo,
-      date: dateStr,
-      type: FileType.File
-    }
-
     const sandbox = sinon.createSandbox();
 
     afterEach(sandbox.restore);
 
     it('formats file', () => {
-      const file: IFile = {
-        ...sharedInfo,
-        date,
+      const res = fileUtils.formatFile(FILE_INFO_EXAMPLE as FileInfo);
+
+      expect(res).deep.equal({
+        ...FILE_INFO_EXAMPLE,
         type: 'file',
         ext: '.mp4',
-      }
-
-      const data = fileUtils.formatFile(info as any);
-
-      expect(data).deep.equal(file);
-    });
-
-    it('formats date', () => {
-      const stub = sandbox.stub(stringUtils, 'getValidDate');
-
-      fileUtils.formatFile(info as any);
-
-      expect(stub.calledOnceWith(dateStr)).equals(true);
+      });
     });
 
     it('formats file type', () => {
       const stub = sandbox.stub(fileUtils, 'getFileType');
 
-      fileUtils.formatFile(info as any);
+      fileUtils.formatFile(FILE_INFO_EXAMPLE as FileInfo);
 
-      expect(stub.calledOnceWith(info.type)).equals(true);
+      expect(stub.calledOnceWith(FILE_INFO_EXAMPLE.type)).equals(true);
+    });
+  });
+
+  describe('formatFtpFile', () => {
+    const sandbox = sinon.createSandbox();
+
+    afterEach(sandbox.restore);
+
+    const dateStr = '2020-01-01T18:10:38.000Z';
+
+    const fileInfo = {
+      ...FILE_INFO_EXAMPLE,
+      date: dateStr,
+    };
+
+    it('formats file', () => {
+      const stub = sandbox.stub(fileUtils, 'formatFile');
+
+      fileUtils.formatFile(fileInfo as any);
+
+      expect(stub.calledOnceWith(fileInfo as any)).equals(true);
+    });
+
+    it('formats date', () => {
+      const spy = sandbox.spy(stringUtils, 'getValidDate');
+
+      const res = fileUtils.formatFtpFile(fileInfo as any);
+
+      expect(res.date.toString()).equals(new Date(dateStr).toString());
+      expect(spy.calledOnceWith(dateStr)).equals(true);
+    });
+  });
+
+  describe('formatSftpFile', () => {
+    const sandbox = sinon.createSandbox();
+
+    afterEach(sandbox.restore);
+
+    it('formats file', () => {
+      const stub = sandbox.stub(fileUtils, 'formatFile');
+
+      fileUtils.formatFile(FILE_INFO_EXAMPLE);
+
+      expect(stub.calledOnceWith(FILE_INFO_EXAMPLE)).equals(true);
+    });
+
+    it('formats date', () => {
+      const spy = sandbox.spy(dateUtils, 'convertUnixTimestamp');
+
+      const mtime = 1581873649;
+      const date = new Date(mtime * 1000);
+
+      const entry = {
+        attrs: {
+          mtime,
+        },
+      };
+
+      const res = fileUtils.formatSftpFile(FILE_INFO_EXAMPLE, entry as any);
+
+      expect(res.date.toString()).equals(date.toString());
+      expect(spy.calledOnceWith(mtime)).equals(true);
     });
   });
 
@@ -209,7 +261,7 @@ describe('File utils', () => {
       expect(stub.calledOnceWith(path)).equals(true);
     });
 
-    it('returns -1 if stream does\'t have path', async () => {
+    it("returns -1 if stream does't have path", async () => {
       const size = await fileUtils.getFileSize({} as any);
 
       expect(size).equals(-1);
