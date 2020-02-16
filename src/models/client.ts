@@ -2,8 +2,24 @@ import { Writable, Readable } from 'stream';
 import { EventEmitter } from 'events';
 import { Client as FtpClient, parseList } from 'basic-ftp';
 
-import { IConfig, IProtocol, IFile, IStats, ITransferOptions, ITransferInfo, ITransferProgress, ITransferStatus } from '../interfaces';
-import { formatFile, getFileTypeFromStats, getFileType, createFileName } from '../utils';
+import {
+  IConfig,
+  IProtocol,
+  IFile,
+  IStats,
+  ITransferOptions,
+  ITransferInfo,
+  ITransferProgress,
+  ITransferStatus,
+} from '../interfaces';
+import {
+  formatFile,
+  getFileTypeFromStats,
+  getFileType,
+  createFileName,
+  formatFtpFile,
+  formatSftpFile,
+} from '../utils';
 import { TaskManager } from './task-manager';
 import { SftpClient } from './sftp-client';
 import { TransferManager } from './transfer-manager';
@@ -39,16 +55,28 @@ export interface IClientBaseMethods {
   touch(path: string): Promise<void>;
   /**Creates an empty file or folder with unique name and returns the name.
    * If you don't provide the `files` argument, it will list the directory. */
-  createBlank(type: 'folder' | 'file', path: string, files?: IFile[]): Promise<string>;
+  createBlank(
+    type: 'folder' | 'file',
+    path: string,
+    files?: IFile[],
+  ): Promise<string>;
 }
 
 interface IClientMethods extends IClientBaseMethods {
   /**Aborts the current file transfer by reconnecting with the server.*/
   abort(): Promise<void>;
   /**Downloads a remote file and and pipes it to a writable stream.*/
-  download(path: string, dest: Writable, options?: ITransferOptions): Promise<ITransferStatus>;
+  download(
+    path: string,
+    dest: Writable,
+    options?: ITransferOptions,
+  ): Promise<ITransferStatus>;
   /**Uploads a local file from readable stream.*/
-  upload(path: string, source: Readable, options?: ITransferOptions): Promise<ITransferStatus>;
+  upload(
+    path: string,
+    source: Readable,
+    options?: ITransferOptions,
+  ): Promise<ITransferStatus>;
 }
 
 export type IClientEvents = 'connected' | 'disconnected' | 'abort' | 'progress';
@@ -61,11 +89,17 @@ export declare interface Client {
   /**Emitted when `Client.abort` is called.*/
   on(event: 'abort', listener: (context: Client) => void): this;
   /**Emitted when a chunk of a file was read and sent.*/
-  on(event: 'progress', listener: (progress: ITransferProgress, info: ITransferInfo) => void): this;
+  on(
+    event: 'progress',
+    listener: (progress: ITransferProgress, info: ITransferInfo) => void,
+  ): this;
 
   once(event: 'connected', listener: (context: Client) => void): this;
   once(event: 'disconnected', listener: (context: Client) => void): this;
-  once(event: 'progress', listener: (progress: ITransferProgress, info: ITransferInfo) => void): this;
+  once(
+    event: 'progress',
+    listener: (progress: ITransferProgress, info: ITransferInfo) => void,
+  ): this;
   once(event: 'abort', listener: (context: Client) => void): this;
 
   addListener(event: IClientEvents, listener: Function): this;
@@ -106,10 +140,12 @@ export class Client extends EventEmitter implements IClientMethods {
 
       await this._ftpClient.access({
         secure: ftps,
-        secureOptions: ftps ? null : {
-          rejectUnauthorized: false,
-        },
-        ...config
+        secureOptions: ftps
+          ? null
+          : {
+              rejectUnauthorized: false,
+            },
+        ...config,
       });
     }
 
@@ -139,13 +175,21 @@ export class Client extends EventEmitter implements IClientMethods {
     await this.connect(this.config);
   }
 
-  public download(path: string, dest: Writable, options?: ITransferOptions): Promise<ITransferStatus> {
+  public download(
+    path: string,
+    dest: Writable,
+    options?: ITransferOptions,
+  ): Promise<ITransferStatus> {
     return this._tasks.handle(() => {
       return this._transfer.download(path, dest, options);
     });
   }
 
-  public upload(path: string, source: Readable, options?: ITransferOptions): Promise<ITransferStatus> {
+  public upload(
+    path: string,
+    source: Readable,
+    options?: ITransferOptions,
+  ): Promise<ITransferStatus> {
     return this._tasks.handle(() => {
       return this._transfer.upload(path, source, options);
     });
@@ -157,11 +201,11 @@ export class Client extends EventEmitter implements IClientMethods {
         const list = await this._sftpClient.readDir(path || './');
 
         return list.map(file => {
-          return formatFile(parseList(file.longname)[0])
+          return formatSftpFile(parseList(file.longname)[0], file);
         });
       } else {
         const list = await this._ftpClient.list(path);
-        return list.map(file => formatFile(file));
+        return list.map(file => formatFtpFile(file));
       }
     });
   }
@@ -187,20 +231,22 @@ export class Client extends EventEmitter implements IClientMethods {
   }
 
   public stat(path: string): Promise<IStats> {
-    return this._tasks.handle(async (): Promise<IStats> => {
-      if (this.isSftp) {
-        const stats = await this._sftpClient.stat(path);
-        const type = getFileTypeFromStats(stats);
+    return this._tasks.handle(
+      async (): Promise<IStats> => {
+        if (this.isSftp) {
+          const stats = await this._sftpClient.stat(path);
+          const type = getFileTypeFromStats(stats);
 
-        return { type, size: stats.size };
-      } else {
-        const list = await this._ftpClient.list(path);
-        const file = list[0];
-        const type = getFileType(file.type);
+          return { type, size: stats.size };
+        } else {
+          const list = await this._ftpClient.list(path);
+          const file = list[0];
+          const type = getFileType(file.type);
 
-        return { type, size: file.size };
-      }
-    });
+          return { type, size: file.size };
+        }
+      },
+    );
   }
 
   public unlink(path: string): Promise<void> {
@@ -239,9 +285,9 @@ export class Client extends EventEmitter implements IClientMethods {
         return this._sftpClient.mkdir(path);
       }
 
-      return this._ftpClient.send("MKD " + path);
+      return this._ftpClient.send('MKD ' + path);
     });
-  };
+  }
 
   public pwd(): Promise<string> {
     return this._tasks.handle(() => {
@@ -285,13 +331,17 @@ export class Client extends EventEmitter implements IClientMethods {
       });
     }
 
-    const source = new Readable({ read() { } });
+    const source = new Readable({ read() {} });
     source.push(null);
 
     await this.upload(path, source, { quiet: true });
   }
 
-  public async createBlank(type: 'folder' | 'file', path = './', files?: IFile[]): Promise<string> {
+  public async createBlank(
+    type: 'folder' | 'file',
+    path = './',
+    files?: IFile[],
+  ): Promise<string> {
     if (!files) {
       files = await this.readDir(path);
     }
@@ -300,9 +350,9 @@ export class Client extends EventEmitter implements IClientMethods {
     const filePath = `${path}/${fileName}`;
 
     if (type === 'folder') {
-      await this.mkdir(filePath)
+      await this.mkdir(filePath);
     } else {
-      await this.touch(filePath)
+      await this.touch(filePath);
     }
 
     return fileName;
