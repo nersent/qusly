@@ -12,3 +12,4 @@ server.js
 test
 .nyc_output
 coverage
+*.lcov
