@@ -1,11 +1,12 @@
 import { Readable, Writable } from 'stream';
 import { extname } from 'path';
 import { FileInfo, FileType } from 'basic-ftp';
-import { Stats } from 'ssh2-streams';
+import { Stats, FileEntry } from 'ssh2-streams';
 import { promises as fs } from 'fs';
 
 import { IFile, IFileType } from '../interfaces';
 import { getValidDate } from './string';
+import { convertUnixTimestamp } from './date';
 
 export const getFileType = (type: FileType): IFileType => {
   switch (type) {
@@ -21,7 +22,7 @@ export const getFileType = (type: FileType): IFileType => {
   }
 
   return 'unknown';
-}
+};
 
 export const getFileTypeFromStats = (stats: Stats): IFileType => {
   if (stats.isDirectory()) {
@@ -33,13 +34,12 @@ export const getFileTypeFromStats = (stats: Stats): IFileType => {
   }
 
   return 'unknown';
-}
+};
 
 export const formatFile = (file: FileInfo): IFile => {
-  const { date, permissions, name, size, user, group, type } = file;
+  const { permissions, name, size, user, group, type } = file;
 
   return {
-    date: getValidDate(date),
     permissions: {
       user: permissions.user,
       group: permissions.group,
@@ -51,7 +51,27 @@ export const formatFile = (file: FileInfo): IFile => {
     user,
     group,
   };
-}
+};
+
+export const formatFtpFile = (file: FileInfo): IFile => {
+  const { date } = file;
+  const parsed = formatFile(file);
+
+  return {
+    ...parsed,
+    date: getValidDate(date),
+  };
+};
+
+export const formatSftpFile = (file: FileInfo, entry: FileEntry): IFile => {
+  const parsed = formatFile(file);
+  const { mtime } = entry.attrs;
+
+  return {
+    ...parsed,
+    date: convertUnixTimestamp(mtime),
+  };
+};
 
 export const createFileName = (files: IFile[], prefix: string) => {
   let exists = false;
@@ -80,7 +100,7 @@ export const createFileName = (files: IFile[], prefix: string) => {
 
 export const getFilePath = (stream: Readable | Writable) => {
   return (stream as any).path;
-}
+};
 
 export const getFileSize = async (source: Readable) => {
   const path = getFilePath(source);
@@ -88,4 +108,4 @@ export const getFileSize = async (source: Readable) => {
 
   const { size } = await fs.stat(path);
   return size;
-}
+};
