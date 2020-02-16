@@ -29,8 +29,9 @@
     "build": "npm run clean && tsc",
     "prepublishOnly": "npm run build",
     "clean": "rimraf ./build",
-    "test": "mocha -r ts-node/register tests/**/*.ts",
-    "coverage": "nyc npm run test"
+    "test": "npm run coverage",
+    "test-only": "mocha -r ts-node/register tests/**/*.ts",
+    "coverage": "nyc npm run test-only"
   },
   "devDependencies": {
     "@types/chai": "^4.2.7",
