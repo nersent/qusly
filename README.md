@@ -10,6 +10,7 @@
 [![NPM](https://img.shields.io/npm/dm/qusly-core?style=flat-square)](https://www.npmjs.com/package/qusly-core)
 [![Discord](https://discordapp.com/api/guilds/307605794680209409/widget.png?style=shield)](https://discord.gg/P7Vn4VX)
 [![Github](https://img.shields.io/github/followers/xnerhu.svg?style=social&label=Follow)](https://github.com/xnerhu)
+[![Codecov](https://img.shields.io/codecov/c/github/qusly/qusly-core?token=057b4ad21c2f4dcb875d0210eef5a599)](https://codecov.io/gh/qusly/qusly-core)
 
 </div>
 

@@ -29,9 +29,9 @@
     "build": "npm run clean && tsc",
     "prepublishOnly": "npm run build",
     "clean": "rimraf ./build",
-    "test": "npm run coverage",
-    "test-only": "mocha -r ts-node/register tests/**/*.ts",
-    "coverage": "nyc npm run test-only"
+    "test": "mocha -r ts-node/register tests/**/*.ts",
+    "coverage": "nyc npm run test",
+    "report-coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
   },
   "devDependencies": {
     "@types/chai": "^4.2.7",
@@ -42,6 +42,7 @@
     "@typescript-eslint/eslint-plugin": "^2.19.2",
     "@typescript-eslint/parser": "^2.19.2",
     "chai": "^4.2.0",
+    "codecov": "^3.6.5",
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.10.0",
     "eslint-plugin-prettier": "^3.1.2",
