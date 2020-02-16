@@ -2,136 +2,136 @@
 
 ## Table of contents
 
-- [ParallelClient](#/docs/parallel-parallelClient.md)
-  - [Event: 'abort'](#parallelClientEventAbort)
-  - [Event: 'abort-all'](#parallelClientEventAbortAll)
-  - [Event: 'connected'](#parallelClientEventConnected)
-  - [Event: 'disconnected'](#parallelClientEventDisconnected)
-  - [Event: 'finished'](#parallelClientEventFinished)
-  - [Event: 'new'](#parallelClientEventNew)
-  - [Event: 'progress'](#parallelClientEventProgress)
-  - [parallelClient.abort(transferId)](#parallelClientAbort)
-  - [parallelClient.abortAll()](#parallelClientAbortAll)
-  - [parallelClient.config](#parallelClientInternalConfig)
-  - [parallelClient.connect(config)](#parallelClientConnect)
-  - [parallelClient.constructor(maxClients, reserveClient)](#parallelClientConstructor)
-  - [parallelClient.createBlank(type, [, path][, files])](#parallelClientCreateBlank)
-  - [parallelClient.delete(path)](#parallelClientDelete)
-  - [parallelClient.disconnect()](#parallelClientDisconnect)
-  - [parallelClient.download(remotePath, localPath)](#parallelClientDownload)
-  - [parallelClient.exists(path)](#parallelClientExists)
-  - [parallelClient.mkdir(path)](#parallelClientMkdir)
-  - [parallelClient.move(srcPath, destPath)](#parallelClientMove)
-  - [parallelClient.pwd()](#parallelClientPwd)
-  - [parallelClient.readDir([, path])](#parallelClientReadDir)
-  - [parallelClient.rimraf(path)](#parallelClientRimraf)
-  - [parallelClient.send(command)](#parallelClientSend)
-  - [parallelClient.size(path)](#parallelClientSize)
-  - [parallelClient.stat(path)](#parallelClientStat)
-  - [parallelClient.touch(path)](#parallelClientTouch)
-  - [parallelClient.unlink(path)](#parallelClientUnlink)
-  - [parallelClient.upload(localPath, remotePath)](#parallelClientUpload)
+- [ConcurrentClient](#/docs/concurrent-concurrentClient.md)
+  - [Event: 'abort'](#concurrentClientEventAbort)
+  - [Event: 'abort-all'](#concurrentClientEventAbortAll)
+  - [Event: 'connected'](#concurrentClientEventConnected)
+  - [Event: 'disconnected'](#concurrentClientEventDisconnected)
+  - [Event: 'finished'](#concurrentClientEventFinished)
+  - [Event: 'new'](#concurrentClientEventNew)
+  - [Event: 'progress'](#concurrentClientEventProgress)
+  - [concurrentClient.abort(transferId)](#concurrentClientAbort)
+  - [concurrentClient.abortAll()](#concurrentClientAbortAll)
+  - [concurrentClient.config](#concurrentClientInternalConfig)
+  - [concurrentClient.connect(config)](#concurrentClientConnect)
+  - [concurrentClient.constructor(maxClients, reserveClient)](#concurrentClientConstructor)
+  - [concurrentClient.createBlank(type, [, path][, files])](#concurrentClientCreateBlank)
+  - [concurrentClient.delete(path)](#concurrentClientDelete)
+  - [concurrentClient.disconnect()](#concurrentClientDisconnect)
+  - [concurrentClient.download(remotePath, localPath)](#concurrentClientDownload)
+  - [concurrentClient.exists(path)](#concurrentClientExists)
+  - [concurrentClient.mkdir(path)](#concurrentClientMkdir)
+  - [concurrentClient.move(srcPath, destPath)](#concurrentClientMove)
+  - [concurrentClient.pwd()](#concurrentClientPwd)
+  - [concurrentClient.readDir([, path])](#concurrentClientReadDir)
+  - [concurrentClient.rimraf(path)](#concurrentClientRimraf)
+  - [concurrentClient.send(command)](#concurrentClientSend)
+  - [concurrentClient.size(path)](#concurrentClientSize)
+  - [concurrentClient.stat(path)](#concurrentClientStat)
+  - [concurrentClient.touch(path)](#concurrentClientTouch)
+  - [concurrentClient.unlink(path)](#concurrentClientUnlink)
+  - [concurrentClient.upload(localPath, remotePath)](#concurrentClientUpload)
 
-<a name="parallelClient"></a>
+<a name="concurrentClient"></a>
 
-### Class `ParallelClient`
+### Class `ConcurrentClient`
 
-An API, which provides access to FTP/FTPS/SFTP servers. The difference from a normal [Client](#/docs/client.md) is that it can use multiple [Client](#/docs/client.md#client) instances for faster file transfer. See [parallelparallelClient.constructor](#parallelClientConstructor) for more.
+An API, which provides access to FTP/FTPS/SFTP servers. The difference from a normal [Client](#/docs/client.md) is that it can use multiple [Client](#/docs/client.md#client) instances for faster file transfer. See [concurrentconcurrentClient.constructor](#concurrentClientConstructor) for more.
 
-<a name="parallelClientConstructor"></a>
+<a name="concurrentClientConstructor"></a>
 
-### parallelClient.constructor(maxClients, reserveClient)
+### concurrentClient.constructor(maxClients, reserveClient)
 
 - `maxClients` Number (optional) - **default: 1**
 - `reserveClient` Boolean (optional) - **default: false**
 
-ParallelClient assings one file per client. If you set `maxClients` to 4, it will transfer 4 times faster.
+ConcurrentClient assings one file per client. If you set `maxClients` to 4, it will transfer 4 times faster.
 
 If the `reserveClient` is set to true, then one client is locked for only the basic api like listening files. The rest is used for transfer.
 Otherwise each method is handled in the same queue as file transfer.
 
 When `maxClients` equals 1, then `reserveClient` is disabled.
 
-<a name="parallelClientEventAbort"></a>
+<a name="concurrentClientEventAbort"></a>
 
 #### Event: 'abort'
 
-Emitted when the [parallelClient.abort()](#parallelClientAbort) has been called and before any reconnection is requested.
+Emitted when the [concurrentClient.abort()](#concurrentClientAbort) has been called and before any reconnection is requested.
 
-<a name="parallelClientEventAbortAll"></a>
+<a name="concurrentClientEventAbortAll"></a>
 
 #### Event: 'abort-all'
 
-Emitted when the [parallelClient.abortAll()](#parallelClientAll) has been called and before any reconnection is requested.
+Emitted when the [concurrentClient.abortAll()](#concurrentClientAll) has been called and before any reconnection is requested.
 
-<a name="parallelClientEventConnected"></a>
+<a name="concurrentClientEventConnected"></a>
 
 #### Event: 'connected'
 
 Emitted when each of the clients has connected to a server.
 
-<a name="parallelClientEventDisconnected"></a>
+<a name="concurrentClientEventDisconnected"></a>
 
 #### Event: 'disconnected'
 
 Emitted when each of the clients has disconnected from a server.
 
-<a name="parallelClientEventFinished"></a>
+<a name="concurrentClientEventFinished"></a>
 
 #### Event: 'finished'
 
-- `info` [IParallelTransferInfo](/docs/types.md#iParallelTransferInfo)
+- `info` [IConcurrentTransferInfo](/docs/types.md#iConcurrentTransferInfo)
 
 Emitted when a transfer has finished or has been aborted.
 
-<a name="parallelClientEventNew"></a>
+<a name="concurrentClientEventNew"></a>
 
 #### Event: 'new'
 
-- `info` [IParallelTransferInfo](/docs/types.md#iParallelTransferInfo)
+- `info` [IConcurrentTransferInfo](/docs/types.md#iConcurrentTransferInfo)
 
-Emitted when `parallelClient.download` or `parallelClient.upload` have been called.
+Emitted when `concurrentClient.download` or `concurrentClient.upload` have been called.
 
-<a name="parallelClientEventProgress"></a>
+<a name="concurrentClientEventProgress"></a>
 
 #### Event: 'progress'
 
 - `progress` [ITransferProgress](/docs/types.md#iTransferProgress)
-- `info` [IParallelTransferInfo](/docs/types.mdiIParallelTransferInfo)
+- `info` [IConcurrentTransferInfo](/docs/types.mdiIConcurrentTransferInfo)
 
 Emitted when a chunk of a file has been sent to a server. You can access information like transfer speed or eta in `progress`. Basic file information, for example size and remote path in `info`.
 
-<a name="parallelClientAbort"></a>
+<a name="concurrentClientAbort"></a>
 
-#### parallelClient.abort(transferId)
+#### concurrentClient.abort(transferId)
 
 - `transferId` String
 - Returns: Promise&lt;void&gt;
 
 Emits the `abort` event.
-Then stops a specified with `transferId` file transfer. Reconnects to a server with the same config provided with [parallelClient.connect()](#parallelClientConnect).
+Then stops a specified with `transferId` file transfer. Reconnects to a server with the same config provided with [concurrentClient.connect()](#concurrentClientConnect).
 
-<a name="parallelClientAbortAll"></a>
+<a name="concurrentClientAbortAll"></a>
 
-#### parallelClient.abortAll()
+#### concurrentClient.abortAll()
 
 - Returns: Promise&lt;void&gt;
 
 Emits the `abort-all` event.
-Then stops every file transfer. Reconnects to a server with the same config provided with [parallelClient.connect()](#parallelClientConnect).
+Then stops every file transfer. Reconnects to a server with the same config provided with [concurrentClient.connect()](#concurrentClientConnect).
 
-<a name="parallelClientConnect"></a>
+<a name="concurrentClientConnect"></a>
 
-#### parallelClient.connect(config)
+#### concurrentClient.connect(config)
 
 - `config` [IConfig](/docs/types.md#iConfig)
 - Returns: Promise&lt;void&gt;
 
 Connects each of the clients to a server and then the `connected` event is fired.
 
-<a name="parallelClientCreateBlank"></a>
+<a name="concurrentClientCreateBlank"></a>
 
-#### parallelClient.createBlank(type, [, path][, files])
+#### concurrentClient.createBlank(type, [, path][, files])
 
 - `type` 'folder' | 'file'
 - `path` String (optional)
@@ -140,26 +140,26 @@ Connects each of the clients to a server and then the `connected` event is fired
 
 Creates an empty file or folder at `path` with an unique name. If you don't provide the `files` arg, it will fetch automatically. Returns name of the file.
 
-<a name="parallelClientDelete"></a>
+<a name="concurrentClientDelete"></a>
 
-#### parallelClient.delete(path)
+#### concurrentClient.delete(path)
 
 - `path` String
 - Returns: Promise&lt;void&gt;
 
 Removes any files and folders at `path`.
 
-<a name="parallelClientDisconnect"></a>
+<a name="concurrentClientDisconnect"></a>
 
-#### parallelClient.disconnect()
+#### concurrentClient.disconnect()
 
 - Returns: Promise&lt;void&gt;
 
 Stops each of the clients from transfering a file. Disconnects every one of them and then the `disconnected` event is fired.
 
-<a name="parallelClientDownload"></a>
+<a name="concurrentClientDownload"></a>
 
-#### parallelClient.download(remotePath, localPath)
+#### concurrentClient.download(remotePath, localPath)
 
 - `remotePath` String
 - `localPath` String
@@ -167,27 +167,27 @@ Stops each of the clients from transfering a file. Disconnects every one of them
 
 Downloads a remote file. When a new chunk of a file has been sent, the `progress` event is fired.
 
-<a name="parallelClientExists"></a>
+<a name="concurrentClientExists"></a>
 
-#### parallelClient.exists(path)
+#### concurrentClient.exists(path)
 
 - `path` String
 - Returns: Promise&lt;boolean&gt;
 
 Checks if file at `path` exists.
 
-<a name="parallelClientMkdir"></a>
+<a name="concurrentClientMkdir"></a>
 
-#### parallelClient.mkdir(path)
+#### concurrentClient.mkdir(path)
 
 - `path` String
 - Returns: Promise&lt;void&gt;
 
 Creates a new folder at `path`.
 
-<a name="parallelClientMove"></a>
+<a name="concurrentClientMove"></a>
 
-#### parallelClient.move(srcPath, destPath)
+#### concurrentClient.move(srcPath, destPath)
 
 - `srcPath` String
 - `destPath` String
@@ -195,80 +195,80 @@ Creates a new folder at `path`.
 
 Moves a file from `srcPath` to `destPath`. Can be used to rename a file.
 
-<a name="parallelClientPwd"></a>
+<a name="concurrentClientPwd"></a>
 
-#### parallelClient.pwd()
+#### concurrentClient.pwd()
 
 - Returns: Promise&lt;string&gt;
 
 Returns path of the current working directory.
 
-<a name="parallelClientReadDir"></a>
+<a name="concurrentClientReadDir"></a>
 
-#### parallelClient.readDir([, path])
+#### concurrentClient.readDir([, path])
 
 - `path` String (optional)
 - Returns: Promise&lt;[IFile[]](/docs/types.md#iFile)&gt;
 
 Lists files and folders at `path`.
 
-<a name="parallelClientRimraf"></a>
+<a name="concurrentClientRimraf"></a>
 
-#### parallelClient.rimraf(path)
+#### concurrentClient.rimraf(path)
 
 - `path` string
 - Returns: Promise&lt;void&gt;
 
 Deletes any file and folder at `path`.
 
-<a name="parallelClientSend"></a>
+<a name="concurrentClientSend"></a>
 
-#### parallelClient.send(command)
+#### concurrentClient.send(command)
 
 - `command` String
 - Returns: Promise&lt;string&gt;
 
 Sends a raw command to a server and returns the response.
 
-<a name="parallelClientSize"></a>
+<a name="concurrentClientSize"></a>
 
-#### parallelClient.size(path)
+#### concurrentClient.size(path)
 
 - `path` String
 - Returns: Promise&lt;number&gt;
 
 Returns size of the file at `path` in bytes.
 
-<a name="parallelClientStat"></a>
+<a name="concurrentClientStat"></a>
 
-#### parallelClient.stat(path)
+#### concurrentClient.stat(path)
 
 - `path` String
 - Returns: Promise&lt;[IStats](/docs/types.md#iStats)&gt;
 
 Returns details about the file at `path`.
 
-<a name="parallelClientTouch"></a>
+<a name="concurrentClientTouch"></a>
 
-#### parallelClient.touch(path)
+#### concurrentClient.touch(path)
 
 - `path` String
 - Returns: Promise&lt;void&gt;
 
 Creates an empty file at `path`.
 
-<a name="parallelClientUnlink"></a>
+<a name="concurrentClientUnlink"></a>
 
-#### parallelClient.unlink(path)
+#### concurrentClient.unlink(path)
 
 - `path` String
 - Returns: Promise&lt;void&gt;
 
 Deletes a single file (not a folder) at `path`.
 
-<a name="parallelClientUpload"></a>
+<a name="concurrentClientUpload"></a>
 
-#### parallelClient.upload(localPath, remotePath)
+#### concurrentClient.upload(localPath, remotePath)
 
 - `localPath` String
 - `remotePath` String

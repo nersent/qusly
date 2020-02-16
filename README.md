@@ -20,7 +20,7 @@ Qusly-Core is an **FTP/FTPS/SFTP** client, built around [ssh2](https://github.co
 - Supports **FTP, FTPS and SFTP**
 - Modern, promise based API
 - Informative progress event, which includes **eta** and **speed rate**
-- Additional client for **parallel** file transfer
+- Client for **concurrent** file transfer
 
 ## Installation
 
@@ -79,7 +79,7 @@ Output:
 
 - [Client](/docs/client.md)
 - [Examples](/examples)
-- [ParallelClient](/docs/parallel-client.md)
+- [ConcurrentClient](/docs/concurrent-client.md)
 - [Types](/docs/types.md)
 
 <a href="https://www.patreon.com/bePatron?u=21429620">

@@ -3,7 +3,7 @@ import { createWriteStream, createReadStream } from 'fs';
 
 import {
   IConfig,
-  IParallelTransferInfo,
+  IConcurrentTransferInfo,
   ITransferProgress,
   ITransferStatus,
   IFile,
@@ -14,7 +14,7 @@ import { Client, IClientBaseMethods, IClientEvents } from './client';
 import { TaskManager } from './task-manager';
 import { makeId, ensureExists } from '../utils';
 
-interface IParallelClientMethods extends IClientBaseMethods {
+interface IConcurrentClientMethods extends IClientBaseMethods {
   /**Connects every client to the server.*/
   connect(config: IConfig): Promise<void>;
   /**Disconnects every client from the server.*/
@@ -29,59 +29,62 @@ interface IParallelClientMethods extends IClientBaseMethods {
   upload(localPath: string, remotePath: string): Promise<ITransferStatus>;
 }
 
-export type IParallelClientEvents =
+export type IConcurrentClientEvents =
   | 'abort-all'
   | 'new'
   | 'finished'
   | IClientEvents;
 
-export declare interface ParallelClient {
+export declare interface ConcurrentClient {
   /**Emitted when every client has connected with a server.*/
   on(event: 'connected', listener: Function): this;
   /**Emitted when every client has disconnected from a server.*/
   on(event: 'disconnected', listener: Function): this;
-  /**Emitted when `ParallelClient.abort` is called.*/
+  /**Emitted when `ConcurrentClient.abort` is called.*/
   on(event: 'abort', listener: (id: string) => void): this;
-  /**Emitted when `ParallelClient.abortAll` is called.*/
+  /**Emitted when `ConcurrentClient.abortAll` is called.*/
   on(event: 'abort-all', listener: Function): this;
   /**Emitted when a new file transfer is requested.*/
-  on(event: 'new', listener: (info: IParallelTransferInfo) => void): this;
+  on(event: 'new', listener: (info: IConcurrentTransferInfo) => void): this;
   /**Emitted when a chunk of a file was read and sent.*/
   on(
     event: 'progress',
     listener: (
       progress: ITransferProgress,
-      info: IParallelTransferInfo,
+      info: IConcurrentTransferInfo,
     ) => void,
   ): this;
   /**Emitted when a file transfer has finished or has been aborted.*/
-  on(event: 'finished', listener: (info: IParallelTransferInfo) => void): this;
+  on(
+    event: 'finished',
+    listener: (info: IConcurrentTransferInfo) => void,
+  ): this;
 
   once(event: 'connected', listener: Function): this;
   once(event: 'disconnected', listener: Function): this;
   once(event: 'abort', listener: (id: string) => void): this;
   once(event: 'abort-all', listener: Function): this;
-  once(event: 'new', listener: (info: IParallelTransferInfo) => void): this;
+  once(event: 'new', listener: (info: IConcurrentTransferInfo) => void): this;
   once(
     event: 'progress',
     listener: (
       progress: ITransferProgress,
-      info: IParallelTransferInfo,
+      info: IConcurrentTransferInfo,
     ) => void,
   ): this;
   once(
     event: 'finished',
-    listener: (info: IParallelTransferInfo) => void,
+    listener: (info: IConcurrentTransferInfo) => void,
   ): this;
 
-  addListener(event: IParallelClientEvents, listener: Function): this;
-  removeListener(event: IParallelClientEvents, listener: Function): this;
-  emit(event: IParallelClientEvents, ...args: any[]): boolean;
+  addListener(event: IConcurrentClientEvents, listener: Function): this;
+  removeListener(event: IConcurrentClientEvents, listener: Function): this;
+  emit(event: IConcurrentClientEvents, ...args: any[]): boolean;
 }
 
-/**API to transfer files using queue, which you can speed up by setting the number of clients in the constructor. You can also use the same methods like in the `Client` class in parallel to transfer, if you set `reserveClient` to true. */
-export class ParallelClient extends EventEmitter
-  implements IParallelClientMethods {
+/**API to transfer files using queue, which you can speed up by setting the number of clients in the constructor. You can also use the same methods like in the `Client` class in concurrent to transfer, if you set `reserveClient` to true. */
+export class ConcurrentClient extends EventEmitter
+  implements IConcurrentClientMethods {
   protected _clients: Client[] = [];
 
   protected _tasks: TaskManager;
@@ -132,12 +135,12 @@ export class ParallelClient extends EventEmitter
     await Promise.all(promises);
   }
 
-  protected async _handleParallelTransfer(
+  protected async _handleConcurrentTransfer(
     type: ITransferType,
     localPath: string,
     remotePath: string,
   ) {
-    const info: IParallelTransferInfo = {
+    const info: IConcurrentTransferInfo = {
       id: makeId(32),
       type,
       status: 'pending',
@@ -163,7 +166,7 @@ export class ParallelClient extends EventEmitter
               this.emit('progress', progress, {
                 ...info,
                 status: 'transfering',
-              } as IParallelTransferInfo);
+              } as IConcurrentTransferInfo);
             }
           };
 
@@ -193,7 +196,7 @@ export class ParallelClient extends EventEmitter
           client.removeListener('progress', onProgress);
           this._activeTransfers.delete(info.id);
 
-          this.emit('finished', { ...info, status } as IParallelTransferInfo);
+          this.emit('finished', { ...info, status } as IConcurrentTransferInfo);
 
           if (status !== 'aborted') {
             client.removeListener('abort', onAbort);
@@ -245,10 +248,10 @@ export class ParallelClient extends EventEmitter
   }
 
   public download = (remotePath: string, localPath: string) =>
-    this._handleParallelTransfer('download', localPath, remotePath);
+    this._handleConcurrentTransfer('download', localPath, remotePath);
 
   public upload = (localPath: string, remotePath: string) =>
-    this._handleParallelTransfer('upload', localPath, remotePath);
+    this._handleConcurrentTransfer('upload', localPath, remotePath);
 
   public readDir = (path?: string): Promise<IFile[]> =>
     this._callClientMethod('readDir', path);

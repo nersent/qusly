@@ -7,8 +7,8 @@
   - [IFilePermissions](#iFilePermissions)
   - [IFileType](#iFileType)
   - [IFile](#iFile)
-  - [IParallelTransferInfo](#iParallelTransferInfo)
-  - [IParallelTransferStatus](#iParallelTransferStatus)
+  - [IConcurrentTransferInfo](#iConcurrentTransferInfo)
+  - [IConcurrentTransferStatus](#iConcurrentTransferStatus)
   - [IProtocol](#iProtocol)
   - [IStats](#iStats)
   - [ITransferInfo](#iTransferInfo)
@@ -53,19 +53,19 @@
 - `ext` String (optional)
 - `permissions` [IFilePermissions](#iFilePermissions) (optional)
 
-<a name="iParallelTransferInfo"></a>
+<a name="iConcurrentTransferInfo"></a>
 
-### Interface `IParallelTransferInfo`
+### Interface `IConcurrentTransferInfo`
 
 - `id` String - Unique id of a transfer
 - `localPath` String
 - `remotePath` String
-- `status` [IParallelTransferStatus](#iParallelTransferStatus)
+- `status` [IConcurrentTransferStatus](#iConcurrentTransferStatus)
 - `type` [ITransferType](#iTransferType)
 
-<a name="iParallelTransferStatus"></a>
+<a name="iConcurrentTransferStatus"></a>
 
-### Type `IParallelTransferStatus`
+### Type `IConcurrentTransferStatus`
 
 - 'pending' | 'transfering' | [ITransferStatus](#iTransferStatus)
 

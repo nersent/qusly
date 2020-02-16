@@ -4,7 +4,10 @@ export type ITransferStatus = 'finished' | 'aborted' | 'closed';
 
 export type ITransferType = 'download' | 'upload';
 
-export type IParallelTransferStatus = 'pending' | 'transfering' | ITransferStatus;
+export type IConcurrentTransferStatus =
+  | 'pending'
+  | 'transfering'
+  | ITransferStatus;
 
 export interface ITransferOptions {
   /**If set to `true`, will prevent emitting `progress` event.*/
@@ -39,9 +42,12 @@ export interface ITransferProgress {
   size: number;
 }
 
-export type IParallelTransferInfo = Omit<ITransferInfo, 'context' | 'startAt'> & {
+export type IConcurrentTransferInfo = Omit<
+  ITransferInfo,
+  'context' | 'startAt'
+> & {
   /**Unique id of the transfer.*/
   id: string;
   /**Status of the transfer.*/
-  status: IParallelTransferStatus;
-}
+  status: IConcurrentTransferStatus;
+};
