@@ -1,6 +1,9 @@
 import { ITaskResponse } from '../interfaces';
 
-export const safeExec = async (f: Function, ...args: any): Promise<ITaskResponse> => {
+export const safeExec = async (
+  f: Function,
+  ...args: any
+): Promise<ITaskResponse> => {
   let data: any;
   let error: Error;
 
@@ -11,10 +14,4 @@ export const safeExec = async (f: Function, ...args: any): Promise<ITaskResponse
   }
 
   return { data, error };
-}
-
-export const delay = (time: number) => {
-  return new Promise(resolve => {
-    setTimeout(resolve, time);
-  });
-}
+};
