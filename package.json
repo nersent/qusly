@@ -34,27 +34,27 @@
     "report-coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
   },
   "devDependencies": {
-    "@types/chai": "^4.2.7",
-    "@types/mocha": "^5.2.7",
-    "@types/node": "13.1.6",
+    "@types/chai": "^4.2.9",
+    "@types/mocha": "^7.0.1",
+    "@types/node": "13.7.4",
     "@types/sinon": "^7.5.1",
-    "@types/ssh2": "0.5.39",
-    "@typescript-eslint/eslint-plugin": "^2.19.2",
-    "@typescript-eslint/parser": "^2.19.2",
+    "@types/ssh2": "0.5.40",
+    "@typescript-eslint/eslint-plugin": "^2.20.0",
+    "@typescript-eslint/parser": "^2.20.0",
     "chai": "^4.2.0",
     "codecov": "^3.6.5",
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.10.0",
     "eslint-plugin-prettier": "^3.1.2",
-    "mocha": "^7.0.0",
+    "mocha": "^7.0.1",
     "nyc": "^15.0.0",
-    "rimraf": "3.0.0",
-    "sinon": "^8.0.4",
-    "ts-node": "^8.6.1",
-    "typescript": "3.7.4"
+    "rimraf": "3.0.2",
+    "sinon": "^9.0.0",
+    "ts-node": "^8.6.2",
+    "typescript": "3.7.5"
   },
   "dependencies": {
-    "basic-ftp": "4.5.2",
+    "basic-ftp": "4.5.3",
     "ssh2": "0.8.7"
   }
 }
