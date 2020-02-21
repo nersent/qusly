@@ -6,4 +6,5 @@ export interface IConfig {
   user: string;
   password: string;
   port?: number;
+  tryKeyboard?: boolean;
 }
