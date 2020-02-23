@@ -27,7 +27,11 @@ export class SftpClient extends EventEmitter {
   public connect(config: IConfig) {
     return new Promise((resolve, reject) => {
       this._ssh = new SshClient();
-
+      
+      if(config.tryKeyboard){
+        this._ssh.once('keyboard-interactive', (name, instructions, instructionsLang, prompts, finish) => { finish([config.password]); })
+      }
+      
       this._ssh.once('error', (e) => {
         this._ssh.removeAllListeners();
         reject(e);
