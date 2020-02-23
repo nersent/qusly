@@ -4,7 +4,7 @@ import { FileEntry, Stats } from 'ssh2-streams';
 import { Writable, Readable } from 'stream';
 import { Socket } from 'net';
 
-import { IConfig } from '../interfaces';
+import { IConfig, ISftpOptions } from '../interfaces';
 import { Client } from '../models';
 
 export declare interface SftpClient {
@@ -24,11 +24,11 @@ export class SftpClient extends EventEmitter {
     return (this._ssh as any)._sock;
   }
 
-  public connect(config: IConfig) {
+  public connect(config: IConfig, options?: ISftpOptions) {
     return new Promise((resolve, reject) => {
       this._ssh = new SshClient();
 
-      if (config.tryKeyboard) {
+      if (options?.tryKeyboard) {
         this._ssh.once(
           'keyboard-interactive',
           (name, instructions, instructionsLang, prompts, finish) => {

@@ -11,6 +11,7 @@ import {
   ITransferInfo,
   ITransferProgress,
   ITransferStatus,
+  IOptions,
 } from '../interfaces';
 import {
   formatFile,
@@ -121,7 +122,7 @@ export class Client extends EventEmitter implements IClientMethods {
 
   protected _transfer = new TransferManager(this);
 
-  public async connect(config: IConfig): Promise<void> {
+  public async connect(config: IConfig, options?: IOptions): Promise<void> {
     this.config = config;
     this.connected = false;
 
@@ -132,7 +133,7 @@ export class Client extends EventEmitter implements IClientMethods {
     if (this.isSftp) {
       this._sftpClient = new SftpClient(this);
 
-      await this._sftpClient.connect(config);
+      await this._sftpClient.connect(config, options?.sftp);
     } else {
       this._ftpClient = new FtpClient();
 
