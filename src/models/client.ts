@@ -114,6 +114,8 @@ export class Client extends EventEmitter implements IClientMethods {
 
   public config: IConfig;
 
+  public options: IOptions;
+
   public _ftpClient: FtpClient;
 
   public _sftpClient: SftpClient;
@@ -124,6 +126,7 @@ export class Client extends EventEmitter implements IClientMethods {
 
   public async connect(config: IConfig, options?: IOptions): Promise<void> {
     this.config = config;
+    this.options = options;
     this.connected = false;
 
     if (!this.config.port) {
@@ -173,7 +176,7 @@ export class Client extends EventEmitter implements IClientMethods {
     this.emit('abort', this);
 
     await this.disconnect();
-    await this.connect(this.config);
+    await this.connect(this.config, this.options);
   }
 
   public download(
