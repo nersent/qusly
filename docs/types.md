@@ -4,6 +4,10 @@
 
 - [Types and interfaces](#)
   - [IConfig](#iConfig)
+  - [IOptions](#iOptions)
+  - [ISftpOptions](#iSftpOptions)
+  - [IFtpOptions](#iFtpOptions)
+  - [IFtpsOptions](#iFtpsOptions)
   - [IFilePermissions](#iFilePermissions)
   - [IFileType](#iFileType)
   - [IFile](#iFile)
@@ -26,6 +30,30 @@
 - `user` String
 - `password` String
 - `port` Number (optional)
+
+<a name="iOptions"></a>
+
+### Interface `IOptions`
+
+- `sftp` [ISftpOptions](#iSftpOptions)
+- `ftp` [IFtpOptions](#iFtpOptions)
+- `ftps` [IFtpsOptions](#iFtpsOptions)
+
+<a name="iSftpOptions"></a>
+
+### Interface `ISftpOptions`
+
+- `tryKeyboard` Boolean
+
+<a name="iFtpOptions"></a>
+
+### Interface `IFtpOptions`
+
+<a name="iFtpsOptions"></a>
+
+### Interface `IFtpsOptions`
+
+- `secureOptions` [ConnectionOptions](#https://nodejs.org/api/tls.html#tls_tls_connect_options_callback)
 
 <a name="iFilePermissions"></a>
 
