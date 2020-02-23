@@ -27,12 +27,17 @@ export class SftpClient extends EventEmitter {
   public connect(config: IConfig) {
     return new Promise((resolve, reject) => {
       this._ssh = new SshClient();
-      
-      if(config.tryKeyboard){
-        this._ssh.once('keyboard-interactive', (name, instructions, instructionsLang, prompts, finish) => { finish([config.password]); })
+
+      if (config.tryKeyboard) {
+        this._ssh.once(
+          'keyboard-interactive',
+          (name, instructions, instructionsLang, prompts, finish) => {
+            finish([config.password]);
+          },
+        );
       }
-      
-      this._ssh.once('error', (e) => {
+
+      this._ssh.once('error', e => {
         this._ssh.removeAllListeners();
         reject(e);
       });
@@ -68,7 +73,7 @@ export class SftpClient extends EventEmitter {
       this._wrapper.stat(path, (err, stats) => {
         if (err) return reject(err);
         resolve(stats.size);
-      })
+      });
     });
   }
 
@@ -83,33 +88,33 @@ export class SftpClient extends EventEmitter {
           reject(err);
         });
 
-        stream.on('data', (chunk) => {
+        stream.on('data', chunk => {
           data += chunk;
         });
 
         stream.once('close', () => {
           stream.close();
           resolve(data);
-        })
-      })
+        });
+      });
     });
   }
 
   public move(src: string, dest: string) {
     return new Promise((resolve, reject) => {
-      this._wrapper.rename(src, dest, (err) => {
+      this._wrapper.rename(src, dest, err => {
         if (err) return reject(err);
         resolve();
       });
-    })
+    });
   }
 
   public unlink(path: string) {
     return new Promise((resolve, reject) => {
-      this._wrapper.unlink(path, (err) => {
+      this._wrapper.unlink(path, err => {
         if (err) return reject(err);
         resolve();
-      })
+      });
     });
   }
 
@@ -129,29 +134,29 @@ export class SftpClient extends EventEmitter {
     }
 
     await this.removeEmptyDir(path);
-  };
+  }
 
   public removeEmptyDir(path: string) {
     return new Promise((resolve, reject) => {
-      this._wrapper.rmdir(path, (err) => {
+      this._wrapper.rmdir(path, err => {
         if (err) return reject(err);
         resolve();
-      })
+      });
     });
-  };
+  }
 
   public mkdir(path: string) {
     return new Promise((resolve, reject) => {
-      this._wrapper.mkdir(path, (err) => {
+      this._wrapper.mkdir(path, err => {
         if (err) return reject(err);
         resolve();
-      })
+      });
     });
   }
 
   public pwd() {
     return new Promise((resolve, reject) => {
-      this._wrapper.realpath("./", (err, path) => {
+      this._wrapper.realpath('./', (err, path) => {
         if (err) return reject(err);
         resolve(path);
       });
@@ -189,11 +194,11 @@ export class SftpClient extends EventEmitter {
       this._wrapper.open(path, 'w', (err, handle) => {
         if (err) return reject(err);
 
-        this._wrapper.close(handle, (err) => {
+        this._wrapper.close(handle, err => {
           if (err) return reject(err);
           resolve();
-        })
-      })
+        });
+      });
     });
   }
 
