@@ -14,7 +14,6 @@ import {
   IOptions,
 } from '../interfaces';
 import {
-  formatFile,
   getFileTypeFromStats,
   getFileType,
   createFileName,
@@ -24,6 +23,7 @@ import {
 import { TaskManager } from './task-manager';
 import { SftpClient } from './sftp-client';
 import { TransferManager } from './transfer-manager';
+import { DEFAULT_OPTIONS } from '../constants';
 
 export interface IClientBaseMethods {
   /**Connects to a server.*/
@@ -124,7 +124,10 @@ export class Client extends EventEmitter implements IClientMethods {
 
   protected _transfer = new TransferManager(this);
 
-  public async connect(config: IConfig, options?: IOptions): Promise<void> {
+  public async connect(
+    config: IConfig,
+    options = DEFAULT_OPTIONS,
+  ): Promise<void> {
     this.config = config;
     this.options = options;
     this.connected = false;
@@ -144,11 +147,7 @@ export class Client extends EventEmitter implements IClientMethods {
 
       await this._ftpClient.access({
         secure: ftps,
-        secureOptions: ftps
-          ? null
-          : {
-              rejectUnauthorized: false,
-            },
+        secureOptions: ftps ? null : options?.ftps?.secureOptions,
         ...config,
       });
     }

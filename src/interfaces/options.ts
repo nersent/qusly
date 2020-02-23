@@ -1,6 +1,9 @@
+import { ConnectionOptions } from 'tls';
+
 export interface IOptions {
   sftp?: ISftpOptions;
   ftp?: IFtpOptions;
+  ftps?: IFtpsOptions;
 }
 
 export interface ISftpOptions {
@@ -8,3 +11,7 @@ export interface ISftpOptions {
 }
 
 export interface IFtpOptions {}
+
+export interface IFtpsOptions {
+  secureOptions?: ConnectionOptions;
+}
