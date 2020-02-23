@@ -9,7 +9,8 @@
   - [Event: 'progress'](#clientEventProgress)
   - [client.abort()](#clientAbort)
   - [client.config](#clientInternalConfig)
-  - [client.connect(config)](#clientConnect)
+  - [client.options](#clientInternalOptions)
+  - [client.connect(config, [, options])](#clientConnect)
   - [client.connected](#clientConnected)
   - [client.createBlank(type, [, path][, files])](#clientCreateBlank)
   - [client.delete(path)](#clientDelete)
@@ -90,9 +91,10 @@ Then stops the current file transfer by reconnecting to a server, using the same
 
 <a name="clientConnect"></a>
 
-#### client.connect(config)
+#### client.connect(config, [, options])
 
 - `config` [IConfig](#/docs/types.md#iConfig)
+- `options` [IOptions](#/docs/types.md#iOptions)
 - Returns: Promise&lt;void&gt;
 
 Chooses which library to use, depending on the [protocol](#/docs/types.md#iProtocol) provided in the `config`. Connects to a server and then the `connected` event is fired.

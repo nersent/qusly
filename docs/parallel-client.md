@@ -12,8 +12,7 @@
   - [Event: 'progress'](#concurrentClientEventProgress)
   - [concurrentClient.abort(transferId)](#concurrentClientAbort)
   - [concurrentClient.abortAll()](#concurrentClientAbortAll)
-  - [concurrentClient.config](#concurrentClientInternalConfig)
-  - [concurrentClient.connect(config)](#concurrentClientConnect)
+  - [concurrentClient.connect(config, [, options])](#concurrentClientConnect)
   - [concurrentClient.constructor(maxClients, reserveClient)](#concurrentClientConstructor)
   - [concurrentClient.createBlank(type, [, path][, files])](#concurrentClientCreateBlank)
   - [concurrentClient.delete(path)](#concurrentClientDelete)
@@ -122,9 +121,10 @@ Then stops every file transfer. Reconnects to a server with the same config prov
 
 <a name="concurrentClientConnect"></a>
 
-#### concurrentClient.connect(config)
+#### concurrentClient.connect(config, [, options])
 
 - `config` [IConfig](/docs/types.md#iConfig)
+- `options` [IOptions](#/docs/types.md#iOptions)
 - Returns: Promise&lt;void&gt;
 
 Connects each of the clients to a server and then the `connected` event is fired.
