@@ -9,6 +9,7 @@ import {
   IFile,
   IStats,
   ITransferType,
+  IOptions,
 } from '../interfaces';
 import { Client, IClientBaseMethods, IClientEvents } from './client';
 import { TaskManager } from './task-manager';
@@ -211,13 +212,13 @@ export class ConcurrentClient extends EventEmitter
     return status || 'aborted';
   }
 
-  public async connect(config: IConfig) {
+  public async connect(config: IConfig, options?: IOptions) {
     let promises: Promise<void>[] = [];
 
     for (let i = 0; i < this.maxClients; i++) {
       this._clients[i] = new Client();
 
-      promises.push(this._clients[i].connect(config));
+      promises.push(this._clients[i].connect(config, options));
     }
 
     await Promise.all(promises);
