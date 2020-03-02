@@ -41,8 +41,8 @@ export const formatFile = (file: FileInfo): IFile => {
 
   return {
     permissions: {
-      user: permissions.user,
-      group: permissions.group,
+      user: permissions?.user,
+      group: permissions?.group,
     },
     type: getFileType(type),
     ext: extname(name),
