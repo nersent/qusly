@@ -251,7 +251,7 @@ export class ConcurrentClient extends EventEmitter
   public download = (remotePath: string, localPath: string) =>
     this._handleConcurrentTransfer('download', localPath, remotePath);
 
-  public upload = (localPath: string, remotePath: string) =>
+  public upload = (remotePath: string, localPath: string) =>
     this._handleConcurrentTransfer('upload', localPath, remotePath);
 
   public readDir = (path?: string): Promise<IFile[]> =>

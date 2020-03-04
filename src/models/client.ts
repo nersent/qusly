@@ -179,22 +179,22 @@ export class Client extends EventEmitter implements IClientMethods {
   }
 
   public download(
-    path: string,
+    remotePath: string,
     dest: Writable,
     options?: ITransferOptions,
   ): Promise<ITransferStatus> {
     return this._tasks.handle(() => {
-      return this._transfer.download(path, dest, options);
+      return this._transfer.download(remotePath, dest, options);
     });
   }
 
   public upload(
-    path: string,
+    remotePath: string,
     source: Readable,
     options?: ITransferOptions,
   ): Promise<ITransferStatus> {
     return this._tasks.handle(() => {
-      return this._transfer.upload(path, source, options);
+      return this._transfer.upload(remotePath, source, options);
     });
   }
 
