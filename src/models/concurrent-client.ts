@@ -185,12 +185,12 @@ export class ConcurrentClient extends EventEmitter
           if (type === 'download') {
             status = await client.download(
               remotePath,
-              createWriteStream(localPath, 'utf8'),
+              createWriteStream(localPath),
             );
           } else if (type === 'upload') {
             status = await client.upload(
               remotePath,
-              createReadStream(localPath, 'utf8'),
+              createReadStream(localPath),
             );
           }
 
