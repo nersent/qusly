@@ -185,12 +185,12 @@ export class ConcurrentClient extends EventEmitter
           if (type === 'download') {
             status = await client.download(
               remotePath,
-              createWriteStream(localPath, 'utf8'),
+              createWriteStream(localPath),
             );
           } else if (type === 'upload') {
             status = await client.upload(
               remotePath,
-              createReadStream(localPath, 'utf8'),
+              createReadStream(localPath),
             );
           }
 
@@ -251,7 +251,7 @@ export class ConcurrentClient extends EventEmitter
   public download = (remotePath: string, localPath: string) =>
     this._handleConcurrentTransfer('download', localPath, remotePath);
 
-  public upload = (localPath: string, remotePath: string) =>
+  public upload = (remotePath: string, localPath: string) =>
     this._handleConcurrentTransfer('upload', localPath, remotePath);
 
   public readDir = (path?: string): Promise<IFile[]> =>
