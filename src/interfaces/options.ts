@@ -10,7 +10,9 @@ export interface ISftpOptions {
   tryKeyboard?: boolean;
 }
 
-export interface IFtpOptions {}
+export interface IFtpOptions {
+  timeout?: number;
+}
 
 export interface IFtpsOptions {
   secureOptions?: ConnectionOptions;

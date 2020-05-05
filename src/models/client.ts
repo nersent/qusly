@@ -27,7 +27,7 @@ import { DEFAULT_OPTIONS } from '../constants';
 
 export interface IClientBaseMethods {
   /**Connects to a server.*/
-  connect(config: IConfig): Promise<void>;
+  connect(config: IConfig, options?: IOptions): Promise<void>;
   /**Disconnects from the server. Closes all opened sockets and streams.*/
   disconnect(): Promise<void>;
   /**Lists files and folders in specified directory.*/
@@ -126,10 +126,10 @@ export class Client extends EventEmitter implements IClientMethods {
 
   public async connect(
     config: IConfig,
-    options = DEFAULT_OPTIONS,
+    options?: IOptions,
   ): Promise<void> {
     this.config = config;
-    this.options = options;
+    this.options = {...DEFAULT_OPTIONS, ...options };
     this.connected = false;
 
     if (!this.config.port) {
@@ -141,7 +141,7 @@ export class Client extends EventEmitter implements IClientMethods {
 
       await this._sftpClient.connect(config, options?.sftp);
     } else {
-      this._ftpClient = new FtpClient();
+      this._ftpClient = new FtpClient(options?.ftp?.timeout);
 
       const ftps = config.protocol === 'ftps';
 
