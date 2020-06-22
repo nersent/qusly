@@ -34,27 +34,27 @@
     "report-coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
   },
   "devDependencies": {
-    "@types/chai": "^4.2.10",
+    "@types/chai": "^4.2.11",
     "@types/mocha": "^7.0.2",
-    "@types/node": "13.7.7",
-    "@types/sinon": "^7.5.2",
-    "@types/ssh2": "0.5.40",
-    "@typescript-eslint/eslint-plugin": "^2.22.0",
-    "@typescript-eslint/parser": "^2.22.0",
+    "@types/node": "14.0.13",
+    "@types/sinon": "^9.0.4",
+    "@types/ssh2": "0.5.43",
+    "@typescript-eslint/eslint-plugin": "^3.4.0",
+    "@typescript-eslint/parser": "^3.4.0",
     "chai": "^4.2.0",
-    "codecov": "^3.6.5",
-    "eslint": "^6.8.0",
-    "eslint-config-prettier": "^6.10.0",
-    "eslint-plugin-prettier": "^3.1.2",
-    "mocha": "^7.1.0",
-    "nyc": "^15.0.0",
+    "codecov": "^3.7.0",
+    "eslint": "^7.3.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "mocha": "^8.0.1",
+    "nyc": "^15.1.0",
     "rimraf": "3.0.2",
-    "sinon": "^9.0.0",
-    "ts-node": "^8.6.2",
-    "typescript": "3.8.3"
+    "sinon": "^9.0.2",
+    "ts-node": "^8.10.2",
+    "typescript": "3.9.5"
   },
   "dependencies": {
-    "basic-ftp": "4.5.3",
-    "ssh2": "0.8.8"
+    "basic-ftp": "4.6.1",
+    "ssh2": "0.8.9"
   }
 }
