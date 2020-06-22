@@ -7,16 +7,16 @@
     "noImplicitThis": true,
     "alwaysStrict": true,
     "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "declaration": true,
 
     "module": "commonjs",
     "target": "es6",
     "moduleResolution": "node",
-    "esModuleInterop": true,
-    "declaration": true,
     "sourceMap": true,
 
     "baseUrl": "./"
   },
-  "exclude": ["node_modules", "build"],
-  "include": ["./src"]
+  "include": ["./src"],
+  "exclude": ["node_modules", "build"]
 }
