@@ -71,10 +71,10 @@ export class FtpStrategy extends StrategyBase {
     );
   };
 
-  upload = async (source: Readable, remotePath: string) => {
+  upload = async (source: Readable, remotePath: string, quiet?: boolean) => {
     const totalBytes = await getFileSizeFromStream(source);
 
-    return this.handleTransfer({ bytes: 0, totalBytes }, () => {
+    return this.handleTransfer({ bytes: 0, totalBytes, quiet }, () => {
       return this.client.uploadFrom(source, remotePath);
     });
   };
@@ -87,6 +87,50 @@ export class FtpStrategy extends StrategyBase {
 
   size = (path) => {
     return this.handle<number>(() => this.client.size(path));
+  };
+
+  move = (source, dest) => {
+    return this.handle<void>(() => this.client.rename(source, dest));
+  };
+
+  removeFile = (path) => {
+    return this.handle<void>(() => {
+      return this.client.remove(path);
+    });
+  };
+
+  removeEmptyDir = (path) => {
+    return this.handle<void>(() => {
+      return this.client.removeEmptyDir(path);
+    });
+  };
+
+  removeDir = (path) => {
+    return this.handle<void>(() => {
+      return this.client.removeDir(path);
+    });
+  };
+
+  mkdir = async (path) => {
+    await this.send(`MKD ${path}`);
+  };
+
+  touch = async (path) => {
+    const source = Readable.from('\n');
+
+    await this.upload(source, path);
+  };
+
+  pwd = () => {
+    return this.handle<string>(() => {
+      return this.client.pwd();
+    });
+  };
+
+  send = (command) => {
+    return this.handle<string>(() => {
+      return this.client.send(command).then((r) => r.message);
+    });
   };
 
   protected formatFile = (file: FileInfo): IFile => {

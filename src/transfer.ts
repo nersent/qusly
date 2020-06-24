@@ -32,12 +32,14 @@ export class Transfer {
   public handleProgress = (bytes: number) => {
     this.info.bytes = bytes;
 
-    this.onProgress({
-      bytes: this.info.bytes,
-      totalBytes: this.info.totalBytes,
-      eta: this.eta,
-      percent: this.percent,
-      speed: this.speed,
-    });
+    if (!this.info.quiet) {
+      this.onProgress({
+        bytes: this.info.bytes,
+        totalBytes: this.info.totalBytes,
+        eta: this.eta,
+        percent: this.percent,
+        speed: this.speed,
+      });
+    }
   };
 }

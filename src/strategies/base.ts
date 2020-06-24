@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { Writable } from 'stream';
+import { Writable, Readable } from 'stream';
 
 import { IFile, ITransferInfo, ITransferProgress } from '~/interfaces';
 import { Transfer } from '~/transfer';
@@ -31,9 +31,30 @@ export abstract class StrategyBase extends EventEmitter {
     remotePath: string,
   ) => Promise<void>;
 
+  public abstract upload: (
+    source: Readable,
+    remotePath: string,
+  ) => Promise<void>;
+
   public abstract readDir: (path?: string) => Promise<IFile[]>;
 
   public abstract size: (path?: string) => Promise<number>;
+
+  public abstract move: (source: string, dest: string) => Promise<void>;
+
+  public abstract removeFile: (path: string) => Promise<void>;
+
+  public abstract removeEmptyDir: (path: string) => Promise<void>;
+
+  public abstract removeDir: (path: string) => Promise<void>;
+
+  public abstract mkdir: (path: string) => Promise<void>;
+
+  public abstract touch: (path: string) => Promise<void>;
+
+  public abstract pwd: () => Promise<string>;
+
+  public abstract send: (command: string) => Promise<string>;
 
   protected prepareTransfer(info: ITransferInfo) {
     this.transfer = new Transfer(info, (e) => {
