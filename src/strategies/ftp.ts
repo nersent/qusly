@@ -1,9 +1,11 @@
 import { Client, FileInfo } from 'basic-ftp';
+import { Writable, Readable } from 'stream';
 
 import { StrategyBase } from './base';
-import { IFtpConfig, IFtpOptions } from '~/interfaces';
+import { IFtpConfig, IFtpOptions, ITransferInfo } from '~/interfaces';
 import { IFile } from '~/interfaces/file';
 import { FtpUtils } from '~/utils/ftp';
+import { getFileSizeFromStream } from '~/utils/file';
 
 export class FtpStrategy extends StrategyBase {
   protected client: Client;
@@ -39,12 +41,18 @@ export class FtpStrategy extends StrategyBase {
     this.emit('connect');
   };
 
-  disconnect = async () => {
+  disconnect = async (): Promise<any> => {
     this.emit('disconnect');
 
     if (this.connected) {
-      this.client.close();
-      this.client = null;
+      return new Promise((resolve) => {
+        this.client.close();
+
+        this.client.ftp.socket.on('close', () => {
+          this.client = null;
+          resolve();
+        });
+      });
     }
   };
 
@@ -55,10 +63,30 @@ export class FtpStrategy extends StrategyBase {
     await this.connect(this.config, this.options);
   };
 
-  readDir = () => {
-    return this.handle<IFile[]>(() =>
-      this.client.list().then((r) => r.map(this.formatFile)),
+  download = async (dest: Writable, remotePath: string, startAt = 0) => {
+    const totalBytes = await this.size(remotePath);
+
+    return this.handleTransfer({ bytes: startAt, totalBytes }, () =>
+      this.client.downloadTo(dest, remotePath, startAt),
     );
+  };
+
+  upload = async (source: Readable, remotePath: string) => {
+    const totalBytes = await getFileSizeFromStream(source);
+
+    return this.handleTransfer({ bytes: 0, totalBytes }, () => {
+      return this.client.uploadFrom(source, remotePath);
+    });
+  };
+
+  readDir = (path) => {
+    return this.handle<IFile[]>(() =>
+      this.client.list(path).then((r) => r.map(this.formatFile)),
+    );
+  };
+
+  size = (path) => {
+    return this.handle<number>(() => this.client.size(path));
   };
 
   protected formatFile = (file: FileInfo): IFile => {
@@ -72,11 +100,27 @@ export class FtpStrategy extends StrategyBase {
     try {
       return await fn();
     } catch (err) {
-      if (err.message !== 'Client is closed') {
+      const message = err.message as string;
+
+      if (
+        message !== 'Client is closed' &&
+        !message.startsWith('User closed client during task')
+      ) {
         throw err;
       }
     }
 
     return null;
+  };
+
+  protected handleTransfer = async (info: ITransferInfo, fn: Function) => {
+    const handler = this.prepareTransfer(info);
+
+    this.client.trackProgress((info) => handler(info.bytes));
+
+    await this.handle(fn);
+
+    this.client?.trackProgress(undefined);
+    this.finishTransfer();
   };
 }
