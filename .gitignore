@@ -13,3 +13,4 @@ test
 .nyc_output
 coverage
 *.lcov
+src-old

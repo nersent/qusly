@@ -15,6 +15,7 @@
     "moduleResolution": "node",
     "sourceMap": true,
 
+    "rootDir": "./src",
     "baseUrl": "./"
   },
   "include": ["./src"],
