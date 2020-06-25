@@ -1,7 +1,7 @@
 import { Client, FileInfo } from 'basic-ftp';
 import { Writable, Readable } from 'stream';
 
-import { StrategyBase } from './base';
+import { StrategyBase } from './strategy-base';
 import { IFtpConfig, IFtpOptions, ITransferInfo } from '~/interfaces';
 import { IFile } from '~/interfaces/file';
 import { FtpUtils } from '~/utils/ftp';
