@@ -66,7 +66,7 @@ export class FtpStrategy extends StrategyBase {
   download = async (dest: Writable, remotePath: string, startAt = 0) => {
     const totalBytes = await this.size(remotePath);
 
-    return this.handleTransfer({ bytes: startAt, totalBytes }, () =>
+    return this.handleTransfer({ bytes: startAt, totalBytes, remotePath }, () =>
       this.client.downloadTo(dest, remotePath, startAt),
     );
   };
@@ -74,9 +74,12 @@ export class FtpStrategy extends StrategyBase {
   upload = async (source: Readable, remotePath: string, quiet?: boolean) => {
     const totalBytes = await getFileSizeFromStream(source);
 
-    return this.handleTransfer({ bytes: 0, totalBytes, quiet }, () => {
-      return this.client.uploadFrom(source, remotePath);
-    });
+    return this.handleTransfer(
+      { bytes: 0, totalBytes, quiet, remotePath },
+      () => {
+        return this.client.uploadFrom(source, remotePath);
+      },
+    );
   };
 
   readDir = (path) => {

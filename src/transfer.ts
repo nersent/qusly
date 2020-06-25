@@ -36,6 +36,7 @@ export class Transfer {
       this.onProgress({
         bytes: this.info.bytes,
         totalBytes: this.info.totalBytes,
+        remotePath: this.info.remotePath,
         eta: this.eta,
         percent: this.percent,
         speed: this.speed,

@@ -5,7 +5,6 @@ import {
   ITaskChange,
   ITaskWorker,
   ITasksGroupFilter,
-  // ITasksInstanceGetter,
 } from './interfaces/task';
 import { execFunction } from './utils/function';
 
@@ -23,12 +22,12 @@ export class TasksManager<K = number> extends EventEmitter {
 
   protected taskCounter = 0;
 
-  public groupFilter: ITasksGroupFilter;
+  public workerFilter: ITasksGroupFilter;
 
   public getWorkerInstance: (index: number, group: string) => K;
 
   protected getWorker(group: string) {
-    const filter = this.groupFilter || DEFAULT_GROUP_FILTER;
+    const filter = this.workerFilter || DEFAULT_GROUP_FILTER;
 
     return this.workers.find((r) => !r.busy && filter(r, group));
   }
@@ -63,7 +62,7 @@ export class TasksManager<K = number> extends EventEmitter {
     });
   }
 
-  protected async process(task: ITask) {
+  protected process = async (task: ITask) => {
     const worker = this.getWorker(task.group);
 
     if (worker) {
@@ -87,13 +86,14 @@ export class TasksManager<K = number> extends EventEmitter {
     } else {
       this.queue.push(task);
     }
-  }
+  };
 
   protected async processNext() {
     if (this.queue.length) {
-      const task = this.queue.shift();
+      const count = this.workers.filter((r) => !r.busy).length;
+      const tasks = this.queue.splice(0, count);
 
-      this.process(task);
+      tasks.forEach(this.process);
     }
   }
 

@@ -25,5 +25,3 @@ export interface ITaskWorker {
 }
 
 export type ITasksGroupFilter = (worker: ITaskWorker, group: string) => boolean;
-
-// export type ITasksInstanceGetter = <T>(index: number, group: string) => T;

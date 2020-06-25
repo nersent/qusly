@@ -2,6 +2,7 @@ export interface ITransferInfo {
   bytes?: number;
   totalBytes?: number;
   quiet?: boolean;
+  remotePath: string;
 }
 
 export interface ITransferProgress {
@@ -13,4 +14,5 @@ export interface ITransferProgress {
   speed: number;
   /**Progress in `%`.*/
   percent: number;
+  remotePath: string;
 }
