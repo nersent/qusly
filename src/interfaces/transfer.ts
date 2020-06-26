@@ -1,18 +1,20 @@
-export interface ITransferInfo {
-  bytes?: number;
+export interface ITransferBasicInfo {
   totalBytes?: number;
-  quiet?: boolean;
-  remotePath: string;
+  remotePath?: string;
+  localPath?: string;
 }
 
-export interface ITransferProgress {
+export interface ITransferInfo extends ITransferBasicInfo {
+  bytes?: number;
+  quiet?: boolean;
+}
+
+export interface ITransferProgress extends ITransferBasicInfo {
   bytes: number;
-  totalBytes: number;
   /**Estimated time arrival in `seconds`.*/
   eta: number;
   /**Speed in `MB/s`.*/
   speed: number;
   /**Progress in `%`.*/
   percent: number;
-  remotePath: string;
 }

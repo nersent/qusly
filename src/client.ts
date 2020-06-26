@@ -7,11 +7,23 @@ import {
   IStrategiesMap,
   IFile,
   IClientWorkerGroup,
+  ITransferProgress,
 } from './interfaces';
 import { StrategyBase } from './strategies/strategy-base';
 import { TasksManager } from './tasks';
 import { FtpStrategy } from './strategies/ftp';
 import { repeat } from './utils/array';
+
+export declare interface Client {
+  on(event: 'connect', listener: () => void): this;
+  on(event: 'disconnect', listener: () => void): this;
+  on(event: 'abort', listener: () => void): this;
+  on(event: 'progress', listener: (e: ITransferProgress) => void): this;
+
+  once(event: 'connect', listener: () => void): this;
+  once(event: 'disconnect', listener: () => void): this;
+  once(event: 'abort', listener: () => void): this;
+}
 
 export class Client extends EventEmitter {
   protected workers: StrategyBase[] = [];
@@ -24,6 +36,8 @@ export class Client extends EventEmitter {
     ftp: FtpStrategy,
     ftps: FtpStrategy,
   };
+
+  protected aborting = false;
 
   constructor(protected config: IConfig, options?: IOptions) {
     super();
@@ -46,11 +60,7 @@ export class Client extends EventEmitter {
     for (let i = 0; i < pool; i++) {
       const instance = this.createStrategy();
 
-      instance.on('progress', (r) => {
-        if (r.percent === 100) {
-          console.log(`${r.remotePath}: ${r.percent}%`);
-        }
-      });
+      instance.on('progress', this._onProgress);
 
       this.workers.push(instance);
     }
@@ -91,6 +101,18 @@ export class Client extends EventEmitter {
     await Promise.all(this.workers.map((r) => r.disconnect()));
   }
 
+  public async abort() {
+    if (!this.aborting) {
+      this.aborting = true;
+      this.tasks.pause();
+
+      await Promise.all(this.workers.map((r) => r.abort()));
+
+      this.tasks.resume();
+      this.aborting = false;
+    }
+  }
+
   public async download(dest: Writable, remotePath: string) {
     return await this.tasks.handle<void>(
       (client) => client.download(dest, remotePath),
@@ -101,4 +123,8 @@ export class Client extends EventEmitter {
   public async readDir(path?: string) {
     return await this.tasks.handle<IFile[]>((client) => client.readDir(path));
   }
+
+  private _onProgress = (e: ITransferProgress) => {
+    this.emit('progress', e);
+  };
 }

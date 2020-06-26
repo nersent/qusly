@@ -22,6 +22,8 @@ export class TasksManager<K = number> extends EventEmitter {
 
   protected taskCounter = 0;
 
+  protected paused = false;
+
   public workerFilter: ITasksGroupFilter;
 
   public getWorkerInstance: (index: number, group: string) => K;
@@ -65,7 +67,7 @@ export class TasksManager<K = number> extends EventEmitter {
   protected process = async (task: ITask) => {
     const worker = this.getWorker(task.group);
 
-    if (worker) {
+    if (worker && !this.paused) {
       worker.busy = true;
 
       const instance = this.getWorkerInstance
@@ -89,7 +91,7 @@ export class TasksManager<K = number> extends EventEmitter {
   };
 
   protected async processNext() {
-    if (this.queue.length) {
+    if (!this.paused && this.queue.length) {
       const count = this.workers.filter((r) => !r.busy).length;
       const tasks = this.queue.splice(0, count);
 
@@ -101,5 +103,14 @@ export class TasksManager<K = number> extends EventEmitter {
     if (!this.workers.length) {
       throw new Error('No workers available.');
     }
+  }
+
+  public pause() {
+    this.paused = true;
+  }
+
+  public resume() {
+    this.paused = false;
+    this.processNext();
   }
 }
