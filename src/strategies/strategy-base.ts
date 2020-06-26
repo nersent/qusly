@@ -29,11 +29,15 @@ export abstract class StrategyBase extends EventEmitter {
   public abstract download: (
     dest: Writable,
     remotePath: string,
+    startAt?: number,
+    transferId?: number,
   ) => Promise<void>;
 
   public abstract upload: (
     source: Readable,
     remotePath: string,
+    quiet?: boolean,
+    transferId?: number,
   ) => Promise<void>;
 
   public abstract readDir: (path?: string) => Promise<IFile[]>;

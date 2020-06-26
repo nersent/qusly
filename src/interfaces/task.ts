@@ -22,6 +22,13 @@ export interface ITaskWorker {
   group?: string;
   busy?: boolean;
   index?: number;
+  paused?: boolean;
 }
 
 export type ITasksGroupFilter = (worker: ITaskWorker, group: string) => boolean;
+
+export interface ITaskHandlerEvent<T> {
+  instance: T;
+  taskId: number;
+  workerIndex: number;
+}

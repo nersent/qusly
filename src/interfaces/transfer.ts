@@ -1,4 +1,5 @@
 export interface ITransferBasicInfo {
+  id?: number;
   totalBytes?: number;
   remotePath?: string;
   localPath?: string;

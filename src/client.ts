@@ -39,6 +39,8 @@ export class Client extends EventEmitter {
 
   protected aborting = false;
 
+  public transfers = new Map<number, number>(); // taskId, worker index
+
   constructor(protected config: IConfig, options?: IOptions) {
     super();
 
@@ -113,15 +115,34 @@ export class Client extends EventEmitter {
     }
   }
 
+  public async abortTransfer(id: number) {
+    const index = this.transfers.get(id);
+    const instance = this.workers[index];
+
+    this.tasks.pauseWorker(index);
+
+    await instance.abort();
+
+    this.tasks.resumeWorker(index);
+  }
+
   public async download(dest: Writable, remotePath: string) {
     return await this.tasks.handle<void>(
-      (client) => client.download(dest, remotePath),
+      async ({ instance, workerIndex, taskId }) => {
+        this.transfers.set(taskId, workerIndex);
+
+        await instance.download(dest, remotePath, 0, taskId);
+
+        this.transfers.delete(taskId);
+      },
       'transfer',
     );
   }
 
   public async readDir(path?: string) {
-    return await this.tasks.handle<IFile[]>((client) => client.readDir(path));
+    return await this.tasks.handle<IFile[]>(({ instance }) =>
+      instance.readDir(path),
+    );
   }
 
   private _onProgress = (e: ITransferProgress) => {

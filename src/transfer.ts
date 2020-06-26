@@ -30,12 +30,13 @@ export class Transfer {
   }
 
   public handleProgress = (bytes: number) => {
-    const { quiet, totalBytes, remotePath, localPath } = this.info;
+    const { id, quiet, totalBytes, remotePath, localPath } = this.info;
 
     this.info.bytes = bytes;
 
     if (!quiet) {
       this.onProgress({
+        id,
         bytes,
         totalBytes,
         localPath,

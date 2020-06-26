@@ -63,22 +63,32 @@ export class FtpStrategy extends StrategyBase {
     await this.connect(this.config, this.options);
   };
 
-  download = async (dest: Writable, remotePath: string, startAt = 0) => {
+  download = async (
+    dest: Writable,
+    remotePath: string,
+    startAt = 0,
+    transferId?: number,
+  ) => {
     const localPath = getPathFromStream(dest);
     const totalBytes = await this.size(remotePath);
 
     return this.handleTransfer(
-      { bytes: startAt, totalBytes, remotePath, localPath },
+      { bytes: startAt, totalBytes, remotePath, localPath, id: transferId },
       () => this.client.downloadTo(dest, remotePath, startAt),
     );
   };
 
-  upload = async (source: Readable, remotePath: string, quiet?: boolean) => {
+  upload = async (
+    source: Readable,
+    remotePath: string,
+    quiet?: boolean,
+    transferId?: number,
+  ) => {
     const localPath = getPathFromStream(source);
     const totalBytes = await getFileSize(localPath);
 
     return this.handleTransfer(
-      { bytes: 0, totalBytes, remotePath, localPath, quiet },
+      { bytes: 0, totalBytes, remotePath, localPath, quiet, id: transferId },
       () => {
         return this.client.uploadFrom(source, remotePath);
       },

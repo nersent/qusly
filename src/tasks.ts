@@ -5,6 +5,7 @@ import {
   ITaskChange,
   ITaskWorker,
   ITasksGroupFilter,
+  ITaskHandlerEvent,
 } from './interfaces/task';
 import { execFunction } from './utils/function';
 
@@ -42,7 +43,10 @@ export class TasksManager<K = number> extends EventEmitter {
     }));
   }
 
-  public async handle<T>(fn: (instance: K) => any, group?: string): Promise<T> {
+  public async handle<T>(
+    fn: (e: ITaskHandlerEvent<K>) => any,
+    group?: string,
+  ): Promise<T> {
     this.workersCheck();
 
     return new Promise((resolve, reject) => {
@@ -67,14 +71,18 @@ export class TasksManager<K = number> extends EventEmitter {
   protected process = async (task: ITask) => {
     const worker = this.getWorker(task.group);
 
-    if (worker && !this.paused) {
+    if (worker && !this.paused && !worker.paused) {
       worker.busy = true;
 
       const instance = this.getWorkerInstance
         ? this.getWorkerInstance(worker.index, task.group)
         : worker.index;
 
-      const res = await execFunction(task.fn, instance);
+      const res = await execFunction(task.fn, {
+        instance,
+        taskId: task.id,
+        workerIndex: worker.index,
+      } as ITaskHandlerEvent<K>);
 
       worker.busy = false;
 
@@ -92,7 +100,7 @@ export class TasksManager<K = number> extends EventEmitter {
 
   protected async processNext() {
     if (!this.paused && this.queue.length) {
-      const count = this.workers.filter((r) => !r.busy).length;
+      const count = this.workers.filter((r) => !r.busy && !r.paused).length;
       const tasks = this.queue.splice(0, count);
 
       tasks.forEach(this.process);
@@ -111,6 +119,15 @@ export class TasksManager<K = number> extends EventEmitter {
 
   public resume() {
     this.paused = false;
+    this.processNext();
+  }
+
+  public pauseWorker(index: number) {
+    this.workers[index].paused = true;
+  }
+
+  public resumeWorker(index: number) {
+    this.workers[index].paused = false;
     this.processNext();
   }
 }
