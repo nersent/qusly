@@ -23,8 +23,6 @@ export class TasksManager<K = number> extends EventEmitter {
 
   protected taskCounter = 0;
 
-  protected paused = false;
-
   public workerFilter: ITasksGroupFilter;
 
   public getWorkerInstance: (index: number, group: string) => K;
@@ -32,7 +30,7 @@ export class TasksManager<K = number> extends EventEmitter {
   protected getWorker(group: string) {
     const filter = this.workerFilter || DEFAULT_GROUP_FILTER;
 
-    return this.workers.find((r) => !r.busy && filter(r, group));
+    return this.workers.find((r) => !r.busy && !r.paused && filter(r, group));
   }
 
   public setWorkers(...workers: string[]) {
@@ -71,7 +69,7 @@ export class TasksManager<K = number> extends EventEmitter {
   protected process = async (task: ITask) => {
     const worker = this.getWorker(task.group);
 
-    if (worker && !worker.paused) {
+    if (worker) {
       worker.busy = true;
 
       const instance = this.getWorkerInstance
