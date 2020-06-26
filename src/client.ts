@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { Writable } from 'stream';
+import { Writable, Readable } from 'stream';
 
 import {
   IConfig,
@@ -7,22 +7,29 @@ import {
   IStrategiesMap,
   IFile,
   IClientWorkerGroup,
-  IProgressEvent,
+  IProgressEventListener,
+  ITransfer,
+  ITaskHandler,
 } from './interfaces';
 import { StrategyBase } from './strategies/strategy-base';
 import { TasksManager } from './tasks';
 import { FtpStrategy } from './strategies/ftp';
 import { repeat } from './utils/array';
+import { getPathFromStream } from './utils/file';
 
 export declare interface Client {
   on(event: 'connect', listener: () => void): this;
   on(event: 'disconnect', listener: () => void): this;
   on(event: 'abort', listener: () => void): this;
-  on(event: 'progress', listener: (e: IProgressEvent) => void): this;
+  on(event: 'transfer-new', listener: (e: ITransfer) => void): this;
+  on(event: 'progress', listener: IProgressEventListener): this;
+  on(event: 'transfer-finish', listener: (e: ITransfer) => void): this;
 
   once(event: 'connect', listener: () => void): this;
   once(event: 'disconnect', listener: () => void): this;
   once(event: 'abort', listener: () => void): this;
+  once(event: 'transfer-new', listener: (e: ITransfer) => void): this;
+  once(event: 'transfer-finish', listener: (e: ITransfer) => void): this;
 }
 
 export class Client extends EventEmitter {
@@ -119,21 +126,12 @@ export class Client extends EventEmitter {
     this.tasks.resumeWorkers(...indexes);
   }
 
-  public async download(dest: Writable, remotePath: string) {
-    const taskId = this.tasks.createTaskId();
-
-    this.transfers.set(taskId, null);
-
-    return await this.tasks.handle<void>(
-      async ({ instance, workerIndex, taskId }) => {
-        this.transfers.set(taskId, workerIndex);
-
-        await instance.download(dest, remotePath, { id: taskId });
-
-        this.transfers.delete(taskId);
-      },
-      'transfer',
-      taskId,
+  public download(dest: Writable, remotePath: string) {
+    return this.handleTransfer(
+      ({ instance, taskId }) =>
+        instance.download(dest, remotePath, { id: taskId }),
+      dest,
+      remotePath,
     );
   }
 
@@ -143,7 +141,36 @@ export class Client extends EventEmitter {
     );
   }
 
-  private _onProgress = (e: IProgressEvent) => {
-    this.emit('progress', e);
+  private _onProgress: IProgressEventListener = (data, progress) => {
+    this.emit('progress', data, progress);
   };
+
+  protected async handleTransfer(
+    fn: ITaskHandler<StrategyBase>,
+    stream: Writable | Readable,
+    remotePath: string,
+  ) {
+    const localPath = getPathFromStream(stream);
+    const taskId = this.tasks.createTaskId();
+    const transfer: ITransfer = { id: taskId, localPath, remotePath };
+
+    this.emit('transfer-new', transfer);
+
+    try {
+      await this.tasks.handle<void>(
+        async (e) => {
+          this.transfers.set(taskId, e.workerIndex);
+
+          await fn(e);
+        },
+        'transfer',
+        taskId,
+      );
+    } catch (err) {
+      throw new err();
+    } finally {
+      this.transfers.delete(taskId);
+      this.emit('transfer-finish', transfer);
+    }
+  }
 }

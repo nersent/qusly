@@ -3,9 +3,9 @@ import { Writable, Readable } from 'stream';
 
 import {
   IFile,
-  ITransferInfo,
-  IProgressEvent,
   ITransferOptions,
+  ITransferRequestInfo,
+  IProgressEventListener,
 } from '~/interfaces';
 import { Transfer } from '~/transfer';
 
@@ -13,7 +13,7 @@ export declare interface StrategyBase {
   on(event: 'connect', listener: () => void): this;
   on(event: 'disconnect', listener: () => void): this;
   on(event: 'abort', listener: () => void): this;
-  on(event: 'progress', listener: (e: IProgressEvent) => void): this;
+  on(event: 'progress', listener: IProgressEventListener): this;
 
   once(event: 'connect', listener: () => void): this;
   once(event: 'disconnect', listener: () => void): this;
@@ -63,9 +63,12 @@ export abstract class StrategyBase extends EventEmitter {
 
   public abstract send: (command: string) => Promise<string>;
 
-  protected prepareTransfer(info: ITransferInfo, options?: ITransferOptions) {
-    this.transfer = new Transfer(info, options, (e) => {
-      this.emit('progress', e);
+  protected prepareTransfer(
+    info: ITransferRequestInfo,
+    options?: ITransferOptions,
+  ) {
+    this.transfer = new Transfer(info, options, (data, progress) => {
+      this.emit('progress', data, progress);
     });
 
     return this.transfer.handleProgress;

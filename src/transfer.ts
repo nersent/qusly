@@ -1,4 +1,8 @@
-import { ITransferInfo, IProgressEvent, ITransferOptions } from './interfaces';
+import {
+  ITransferOptions,
+  ITransferRequestInfo,
+  IProgressEventListener,
+} from './interfaces';
 
 export class Transfer {
   public startTime: number;
@@ -6,9 +10,9 @@ export class Transfer {
   protected bytes: number;
 
   constructor(
-    public info: ITransferInfo,
+    public info: ITransferRequestInfo,
     public options: ITransferOptions,
-    public onProgress: (e: IProgressEvent) => void,
+    public onProgress: IProgressEventListener,
   ) {
     this.startTime = new Date().getTime();
 
@@ -37,15 +41,20 @@ export class Transfer {
   public handleProgress = (bytes: number) => {
     this.bytes = bytes;
 
-    if (!this.options?.quiet) {
-      this.onProgress({
-        ...this.info,
-        id: this.options?.id,
-        bytes: this.bytes,
-        eta: this.eta,
-        percent: this.percent,
-        speed: this.speed,
-      });
+    const { quiet, id } = this.options;
+    const { localPath, remotePath, totalBytes } = this.info;
+
+    if (!quiet) {
+      this.onProgress(
+        { id, localPath, remotePath },
+        {
+          bytes,
+          totalBytes,
+          speed: this.speed,
+          eta: this.eta,
+          percent: this.percent,
+        },
+      );
     }
   };
 }

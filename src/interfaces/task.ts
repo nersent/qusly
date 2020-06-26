@@ -32,3 +32,5 @@ export interface ITaskHandlerEvent<T> {
   taskId: number;
   workerIndex: number;
 }
+
+export type ITaskHandler<T> = (e: ITaskHandlerEvent<T>) => any;

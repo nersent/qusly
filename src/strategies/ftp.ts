@@ -6,8 +6,8 @@ import {
   IFile,
   IFtpConfig,
   IFtpOptions,
-  ITransferInfo,
   ITransferOptions,
+  ITransferRequestInfo,
 } from '~/interfaces';
 import { FtpUtils } from '~/utils/ftp';
 import { getPathFromStream, getFileSize } from '~/utils/file';
@@ -178,7 +178,7 @@ export class FtpStrategy extends StrategyBase {
 
   protected handleTransfer = async (
     fn: Function,
-    info: ITransferInfo,
+    info: ITransferRequestInfo,
     options: ITransferOptions,
   ) => {
     const handler = this.prepareTransfer(info, options);

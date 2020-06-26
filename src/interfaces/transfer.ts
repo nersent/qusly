@@ -1,5 +1,10 @@
-export interface IProgressEvent {
+export interface ITransfer {
   id?: number;
+  remotePath?: string;
+  localPath?: string;
+}
+
+export interface ITransferProgress {
   bytes?: number;
   totalBytes?: number;
   /**Estimated time arrival in `seconds`.*/
@@ -8,9 +13,12 @@ export interface IProgressEvent {
   speed?: number;
   /**Progress in `%`.*/
   percent?: number;
-  remotePath?: string;
-  localPath?: string;
 }
+
+export type IProgressEventListener = (
+  transfer: ITransfer,
+  progress: ITransferProgress,
+) => void;
 
 export interface ITransferOptions {
   id?: number;
@@ -18,7 +26,7 @@ export interface ITransferOptions {
   quiet?: boolean;
 }
 
-export interface ITransferInfo {
+export interface ITransferRequestInfo {
   totalBytes?: number;
   localPath?: string;
   remotePath?: string;

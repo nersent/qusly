@@ -6,6 +6,7 @@ import {
   ITaskWorker,
   ITasksGroupFilter,
   ITaskHandlerEvent,
+  ITaskHandler,
 } from './interfaces';
 import { execFunction } from './utils/function';
 
@@ -47,7 +48,7 @@ export class TasksManager<K = number> extends EventEmitter {
   }
 
   public async handle<T>(
-    fn: (e: ITaskHandlerEvent<K>) => any,
+    fn: ITaskHandler<K>,
     group?: string,
     taskId?: number,
   ): Promise<T> {
