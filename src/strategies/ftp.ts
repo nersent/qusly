@@ -3,12 +3,12 @@ import { Writable, Readable } from 'stream';
 
 import { StrategyBase } from './strategy-base';
 import {
+  IFile,
   IFtpConfig,
   IFtpOptions,
   ITransferInfo,
   ITransferOptions,
 } from '~/interfaces';
-import { IFile } from '~/interfaces/file';
 import { FtpUtils } from '~/utils/ftp';
 import { getPathFromStream, getFileSize } from '~/utils/file';
 

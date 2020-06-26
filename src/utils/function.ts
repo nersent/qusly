@@ -1,4 +1,4 @@
-import { ITaskResponse } from '~/interfaces/task';
+import { ITaskResponse } from '~/interfaces';
 
 export const execFunction = async (
   f: Function,

@@ -6,7 +6,7 @@ import {
   ITaskWorker,
   ITasksGroupFilter,
   ITaskHandlerEvent,
-} from './interfaces/task';
+} from './interfaces';
 import { execFunction } from './utils/function';
 
 export declare interface TasksManager {
@@ -130,6 +130,10 @@ export class TasksManager<K = number> extends EventEmitter {
 
   public deleteTasks(...ids: number[]) {
     this.queue = this.queue.filter((r) => !ids.includes(r.id));
+  }
+
+  public deleteAllTasks() {
+    this.queue = [];
   }
 
   public createTaskId() {

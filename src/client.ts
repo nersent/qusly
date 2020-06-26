@@ -81,7 +81,7 @@ export class Client extends EventEmitter {
     this.tasks.setWorkers(...groups);
   }
 
-  protected getWorkerInstance = (index: number, group: IClientWorkerGroup) => {
+  protected getWorkerInstance = (index: number) => {
     return this.workers[index];
   };
 
@@ -102,11 +102,9 @@ export class Client extends EventEmitter {
   }
 
   public async abort() {
-    this.tasks.pauseWorkers();
+    this.tasks.deleteAllTasks();
 
     await Promise.all(this.workers.map((r) => r.abort()));
-
-    this.tasks.resumeWorkers();
   }
 
   public async abortTransfers(...ids: number[]) {
