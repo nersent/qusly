@@ -37,10 +37,7 @@ export class Client extends EventEmitter {
     ftps: FtpStrategy,
   };
 
-  protected aborting = false;
-
-  // taskId, worker index
-  public transfers = new Map<number, number>();
+  protected transfers = new Map<number, number>(); // task id => worker index
 
   constructor(protected config: IConfig, options?: IOptions) {
     super();
@@ -105,29 +102,30 @@ export class Client extends EventEmitter {
   }
 
   public async abort() {
-    if (!this.aborting) {
-      this.aborting = true;
-      this.tasks.pause();
+    this.tasks.pauseWorkers();
 
-      await Promise.all(this.workers.map((r) => r.abort()));
+    await Promise.all(this.workers.map((r) => r.abort()));
 
-      this.tasks.resume();
-      this.aborting = false;
-    }
+    this.tasks.resumeWorkers();
   }
 
   public async abortTransfers(...ids: number[]) {
     const indexes = ids.map((id) => this.transfers.get(id));
     const instances = indexes.map((index) => this.workers[index]);
 
-    this.tasks.pause(...indexes);
+    this.tasks.deleteTasks(...ids);
+    this.tasks.pauseWorkers(...indexes);
 
     await Promise.all(instances.map((r) => r.abort()));
 
-    this.tasks.resume(...indexes);
+    this.tasks.resumeWorkers(...indexes);
   }
 
   public async download(dest: Writable, remotePath: string) {
+    const taskId = this.tasks.createTaskId();
+
+    this.transfers.set(taskId, null);
+
     return await this.tasks.handle<void>(
       async ({ instance, workerIndex, taskId }) => {
         this.transfers.set(taskId, workerIndex);
@@ -137,6 +135,7 @@ export class Client extends EventEmitter {
         this.transfers.delete(taskId);
       },
       'transfer',
+      taskId,
     );
   }
 

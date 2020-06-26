@@ -33,6 +33,11 @@ export class TasksManager<K = number> extends EventEmitter {
     return this.workers.find((r) => !r.busy && !r.paused && filter(r, group));
   }
 
+  protected getWorkers(indexes: number[]) {
+    if (!indexes?.length) return this.workers;
+    return indexes.map((r) => this.workers[r]);
+  }
+
   public setWorkers(...workers: string[]) {
     this.workers = workers.map((group, index) => ({
       busy: false,
@@ -44,16 +49,19 @@ export class TasksManager<K = number> extends EventEmitter {
   public async handle<T>(
     fn: (e: ITaskHandlerEvent<K>) => any,
     group?: string,
+    taskId?: number,
   ): Promise<T> {
     this.workersCheck();
 
     return new Promise((resolve, reject) => {
-      const taskId = this.taskCounter++;
-
-      const task: ITask = { id: taskId, fn, group };
+      const task: ITask = {
+        id: taskId ?? this.createTaskId(),
+        fn,
+        group,
+      };
 
       const listener = (e: ITaskChange) => {
-        if (e.taskId === taskId) {
+        if (e.taskId === task.id) {
           this.removeListener('change', listener);
 
           if (e.error) return reject(e.error);
@@ -111,17 +119,20 @@ export class TasksManager<K = number> extends EventEmitter {
     }
   }
 
-  public pause(...indexes: number[]) {
+  public pauseWorkers(...indexes: number[]) {
     this.getWorkers(indexes).forEach((r) => (r.paused = true));
   }
 
-  public resume(...indexes: number[]) {
+  public resumeWorkers(...indexes: number[]) {
     this.getWorkers(indexes).forEach((r) => (r.paused = false));
     this.processNext();
   }
 
-  protected getWorkers(indexes: number[]) {
-    if (!indexes?.length) return this.workers;
-    return indexes.map((r) => this.workers[r]);
+  public deleteTasks(...ids: number[]) {
+    this.queue = this.queue.filter((r) => !ids.includes(r.id));
+  }
+
+  public createTaskId() {
+    return this.taskCounter++;
   }
 }
