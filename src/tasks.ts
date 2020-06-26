@@ -71,7 +71,7 @@ export class TasksManager<K = number> extends EventEmitter {
   protected process = async (task: ITask) => {
     const worker = this.getWorker(task.group);
 
-    if (worker && !this.paused && !worker.paused) {
+    if (worker && !worker.paused) {
       worker.busy = true;
 
       const instance = this.getWorkerInstance
@@ -99,7 +99,7 @@ export class TasksManager<K = number> extends EventEmitter {
   };
 
   protected async processNext() {
-    if (!this.paused && this.queue.length) {
+    if (this.queue.length) {
       const count = this.workers.filter((r) => !r.busy && !r.paused).length;
       const tasks = this.queue.splice(0, count);
 
@@ -113,25 +113,17 @@ export class TasksManager<K = number> extends EventEmitter {
     }
   }
 
-  public pause() {
-    this.paused = true;
+  public pause(...indexes: number[]) {
+    this.getWorkers(indexes).forEach((r) => (r.paused = true));
   }
 
-  public resume() {
-    this.paused = false;
+  public resume(...indexes: number[]) {
+    this.getWorkers(indexes).forEach((r) => (r.paused = false));
     this.processNext();
   }
 
-  public pauseWorker(index: number) {
-    if (index == null) throw new Error('Invalid index.');
-
-    this.workers[index].paused = true;
-  }
-
-  public resumeWorker(index: number) {
-    if (index == null) throw new Error('Invalid index.');
-
-    this.workers[index].paused = false;
-    this.processNext();
+  protected getWorkers(indexes: number[]) {
+    if (!indexes?.length) return this.workers;
+    return indexes.map((r) => this.workers[r]);
   }
 }

@@ -39,7 +39,8 @@ export class Client extends EventEmitter {
 
   protected aborting = false;
 
-  public transfers = new Map<number, number>(); // taskId, worker index
+  // taskId, worker index
+  public transfers = new Map<number, number>();
 
   constructor(protected config: IConfig, options?: IOptions) {
     super();
@@ -115,24 +116,15 @@ export class Client extends EventEmitter {
     }
   }
 
-  public async abortTransfer(id: number) {
-    if (!Number.isSafeInteger(id)) {
-      throw new Error('Invalid transfer id.');
-    }
+  public async abortTransfers(...ids: number[]) {
+    const indexes = ids.map((id) => this.transfers.get(id));
+    const instances = indexes.map((index) => this.workers[index]);
 
-    const index = this.transfers.get(id);
+    this.tasks.pause(...indexes);
 
-    if (index == null) {
-      throw new Error('Transfer not found.');
-    }
+    await Promise.all(instances.map((r) => r.abort()));
 
-    const instance = this.workers[index];
-
-    this.tasks.pauseWorker(index);
-
-    await instance.abort();
-
-    this.tasks.resumeWorker(index);
+    this.tasks.resume(...indexes);
   }
 
   public async download(dest: Writable, remotePath: string) {
