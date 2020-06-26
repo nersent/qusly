@@ -7,7 +7,7 @@ import {
   IStrategiesMap,
   IFile,
   IClientWorkerGroup,
-  ITransferProgress,
+  IProgressEvent,
 } from './interfaces';
 import { StrategyBase } from './strategies/strategy-base';
 import { TasksManager } from './tasks';
@@ -18,7 +18,7 @@ export declare interface Client {
   on(event: 'connect', listener: () => void): this;
   on(event: 'disconnect', listener: () => void): this;
   on(event: 'abort', listener: () => void): this;
-  on(event: 'progress', listener: (e: ITransferProgress) => void): this;
+  on(event: 'progress', listener: (e: IProgressEvent) => void): this;
 
   once(event: 'connect', listener: () => void): this;
   once(event: 'disconnect', listener: () => void): this;
@@ -116,7 +116,16 @@ export class Client extends EventEmitter {
   }
 
   public async abortTransfer(id: number) {
+    if (!Number.isSafeInteger(id)) {
+      throw new Error('Invalid transfer id.');
+    }
+
     const index = this.transfers.get(id);
+
+    if (index == null) {
+      throw new Error('Transfer not found.');
+    }
+
     const instance = this.workers[index];
 
     this.tasks.pauseWorker(index);
@@ -131,7 +140,7 @@ export class Client extends EventEmitter {
       async ({ instance, workerIndex, taskId }) => {
         this.transfers.set(taskId, workerIndex);
 
-        await instance.download(dest, remotePath, 0, taskId);
+        await instance.download(dest, remotePath, { id: taskId });
 
         this.transfers.delete(taskId);
       },
@@ -145,7 +154,7 @@ export class Client extends EventEmitter {
     );
   }
 
-  private _onProgress = (e: ITransferProgress) => {
+  private _onProgress = (e: IProgressEvent) => {
     this.emit('progress', e);
   };
 }

@@ -1,14 +1,19 @@
 import { EventEmitter } from 'events';
 import { Writable, Readable } from 'stream';
 
-import { IFile, ITransferInfo, ITransferProgress } from '~/interfaces';
+import {
+  IFile,
+  ITransferInfo,
+  IProgressEvent,
+  ITransferOptions,
+} from '~/interfaces';
 import { Transfer } from '~/transfer';
 
 export declare interface StrategyBase {
   on(event: 'connect', listener: () => void): this;
   on(event: 'disconnect', listener: () => void): this;
   on(event: 'abort', listener: () => void): this;
-  on(event: 'progress', listener: (e: ITransferProgress) => void): this;
+  on(event: 'progress', listener: (e: IProgressEvent) => void): this;
 
   once(event: 'connect', listener: () => void): this;
   once(event: 'disconnect', listener: () => void): this;
@@ -29,15 +34,13 @@ export abstract class StrategyBase extends EventEmitter {
   public abstract download: (
     dest: Writable,
     remotePath: string,
-    startAt?: number,
-    transferId?: number,
+    options?: ITransferOptions,
   ) => Promise<void>;
 
   public abstract upload: (
     source: Readable,
     remotePath: string,
-    quiet?: boolean,
-    transferId?: number,
+    options?: ITransferOptions,
   ) => Promise<void>;
 
   public abstract readDir: (path?: string) => Promise<IFile[]>;
@@ -60,8 +63,8 @@ export abstract class StrategyBase extends EventEmitter {
 
   public abstract send: (command: string) => Promise<string>;
 
-  protected prepareTransfer(info: ITransferInfo) {
-    this.transfer = new Transfer(info, (e) => {
+  protected prepareTransfer(info: ITransferInfo, options?: ITransferOptions) {
+    this.transfer = new Transfer(info, options, (e) => {
       this.emit('progress', e);
     });
 

@@ -123,10 +123,14 @@ export class TasksManager<K = number> extends EventEmitter {
   }
 
   public pauseWorker(index: number) {
+    if (index == null) throw new Error('Invalid index.');
+
     this.workers[index].paused = true;
   }
 
   public resumeWorker(index: number) {
+    if (index == null) throw new Error('Invalid index.');
+
     this.workers[index].paused = false;
     this.processNext();
   }

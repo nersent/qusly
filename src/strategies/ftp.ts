@@ -2,7 +2,12 @@ import { Client, FileInfo } from 'basic-ftp';
 import { Writable, Readable } from 'stream';
 
 import { StrategyBase } from './strategy-base';
-import { IFtpConfig, IFtpOptions, ITransferInfo } from '~/interfaces';
+import {
+  IFtpConfig,
+  IFtpOptions,
+  ITransferInfo,
+  ITransferOptions,
+} from '~/interfaces';
 import { IFile } from '~/interfaces/file';
 import { FtpUtils } from '~/utils/ftp';
 import { getPathFromStream, getFileSize } from '~/utils/file';
@@ -66,32 +71,30 @@ export class FtpStrategy extends StrategyBase {
   download = async (
     dest: Writable,
     remotePath: string,
-    startAt = 0,
-    transferId?: number,
+    options?: ITransferOptions,
   ) => {
     const localPath = getPathFromStream(dest);
     const totalBytes = await this.size(remotePath);
 
     return this.handleTransfer(
-      { bytes: startAt, totalBytes, remotePath, localPath, id: transferId },
-      () => this.client.downloadTo(dest, remotePath, startAt),
+      () => this.client.downloadTo(dest, remotePath, options?.startAt),
+      { localPath, remotePath, totalBytes },
+      options,
     );
   };
 
   upload = async (
     source: Readable,
     remotePath: string,
-    quiet?: boolean,
-    transferId?: number,
+    options?: ITransferOptions,
   ) => {
     const localPath = getPathFromStream(source);
     const totalBytes = await getFileSize(localPath);
 
     return this.handleTransfer(
-      { bytes: 0, totalBytes, remotePath, localPath, quiet, id: transferId },
-      () => {
-        return this.client.uploadFrom(source, remotePath);
-      },
+      () => this.client.uploadFrom(source, remotePath),
+      { localPath, remotePath, totalBytes },
+      options,
     );
   };
 
@@ -134,7 +137,7 @@ export class FtpStrategy extends StrategyBase {
   touch = async (path) => {
     const source = Readable.from('\n');
 
-    await this.upload(source, path);
+    await this.upload(source, path, { quiet: true });
   };
 
   pwd = () => {
@@ -173,8 +176,12 @@ export class FtpStrategy extends StrategyBase {
     return null;
   };
 
-  protected handleTransfer = async (info: ITransferInfo, fn: Function) => {
-    const handler = this.prepareTransfer(info);
+  protected handleTransfer = async (
+    fn: Function,
+    info: ITransferInfo,
+    options: ITransferOptions,
+  ) => {
+    const handler = this.prepareTransfer(info, options);
 
     this.client.trackProgress((info) => handler(info.bytes));
 
