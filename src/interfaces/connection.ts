@@ -13,6 +13,7 @@ export interface IFtpConfig extends IConfigBase {
   user: string;
   password: string;
   port?: number;
+  options?: IFtpOptions;
 }
 
 export interface IFtpOptions {

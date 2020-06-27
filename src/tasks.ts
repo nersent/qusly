@@ -85,7 +85,7 @@ export class TasksManager<K = number> extends EventEmitter {
         ? this.getWorkerInstance(worker.index, task.group)
         : worker.index;
 
-      const res = await execFunction(task.fn, {
+      const { data, error } = await execFunction(task.fn, {
         instance,
         taskId: task.id,
         workerIndex: worker.index,
@@ -93,12 +93,7 @@ export class TasksManager<K = number> extends EventEmitter {
 
       worker.busy = false;
 
-      this.emit('change', {
-        ...res,
-        taskId: task.id,
-        type: 'finished',
-      } as ITaskChange);
-
+      this.finishTask(task.id, data, error);
       this.processNext();
     } else {
       this.queue.push(task);
@@ -130,14 +125,34 @@ export class TasksManager<K = number> extends EventEmitter {
   }
 
   public deleteTasks(...ids: number[]) {
-    this.queue = this.queue.filter((r) => !ids.includes(r.id));
+    const queue: ITask[] = [];
+
+    this.queue.forEach((task) => {
+      if (ids.includes(task.id)) {
+        this.finishTask(task.id);
+      } else {
+        queue.push(task);
+      }
+    });
+
+    this.queue = queue;
   }
 
   public deleteAllTasks() {
+    this.queue.forEach((r) => this.finishTask(r.id));
     this.queue = [];
   }
 
   public createTaskId() {
     return this.taskCounter++;
+  }
+
+  protected finishTask(id: number, data?: any, error?: Error) {
+    this.emit('change', {
+      taskId: id,
+      data,
+      error,
+      type: 'finished',
+    } as ITaskChange);
   }
 }

@@ -1,7 +1,7 @@
 import {
   ITransferOptions,
   ITransferRequestInfo,
-  IProgressEventListener,
+  ITransferProgressEventListener,
 } from './interfaces';
 
 export class Transfer {
@@ -12,7 +12,7 @@ export class Transfer {
   constructor(
     public info: ITransferRequestInfo,
     public options: ITransferOptions,
-    public onProgress: IProgressEventListener,
+    public onProgress: ITransferProgressEventListener,
   ) {
     this.startTime = new Date().getTime();
 

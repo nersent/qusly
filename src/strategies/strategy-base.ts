@@ -5,15 +5,17 @@ import {
   IFile,
   ITransferOptions,
   ITransferRequestInfo,
-  IProgressEventListener,
+  ITransferProgressEventListener,
+  IConfig,
 } from '~/interfaces';
 import { Transfer } from '~/transfer';
+import { Client } from '~/client';
 
 export declare interface StrategyBase {
   on(event: 'connect', listener: () => void): this;
   on(event: 'disconnect', listener: () => void): this;
   on(event: 'abort', listener: () => void): this;
-  on(event: 'progress', listener: IProgressEventListener): this;
+  on(event: 'progress', listener: ITransferProgressEventListener): this;
 
   once(event: 'connect', listener: () => void): this;
   once(event: 'disconnect', listener: () => void): this;
@@ -25,7 +27,7 @@ export abstract class StrategyBase extends EventEmitter {
 
   private transfer: Transfer;
 
-  public abstract connect: (config: any, options?: any) => Promise<void>;
+  public abstract connect: (config: any) => Promise<void>;
 
   public abstract disconnect: () => Promise<void>;
 
@@ -62,6 +64,10 @@ export abstract class StrategyBase extends EventEmitter {
   public abstract pwd: () => Promise<string>;
 
   public abstract send: (command: string) => Promise<string>;
+
+  constructor(protected readonly config: IConfig) {
+    super();
+  }
 
   protected prepareTransfer(
     info: ITransferRequestInfo,

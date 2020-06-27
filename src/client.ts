@@ -7,7 +7,7 @@ import {
   IStrategiesMap,
   IFile,
   IClientWorkerGroup,
-  IProgressEventListener,
+  ITransferProgressEventListener,
   ITransfer,
   ITaskHandler,
 } from './interfaces';
@@ -22,14 +22,22 @@ export declare interface Client {
   on(event: 'disconnect', listener: () => void): this;
   on(event: 'abort', listener: () => void): this;
   on(event: 'transfer-new', listener: (e: ITransfer) => void): this;
-  on(event: 'progress', listener: IProgressEventListener): this;
+  on(event: 'transfer-abort', listener: (transferId: number) => void): this;
   on(event: 'transfer-finish', listener: (e: ITransfer) => void): this;
+  on(
+    event: 'transfer-progress',
+    listener: ITransferProgressEventListener,
+  ): this;
 
   once(event: 'connect', listener: () => void): this;
   once(event: 'disconnect', listener: () => void): this;
-  once(event: 'abort', listener: () => void): this;
   once(event: 'transfer-new', listener: (e: ITransfer) => void): this;
+  once(event: 'transfer-abort', listener: (transferId: number) => void): this;
   once(event: 'transfer-finish', listener: (e: ITransfer) => void): this;
+  once(
+    event: 'transfer-progress',
+    listener: ITransferProgressEventListener,
+  ): this;
 }
 
 export class Client extends EventEmitter {
@@ -44,7 +52,7 @@ export class Client extends EventEmitter {
     ftps: FtpStrategy,
   };
 
-  protected transfers = new Map<number, number>(); // task id => worker index
+  protected transfers = new Map<number, number>(); // task id => worker index;
 
   constructor(protected config: IConfig, options?: IOptions) {
     super();
@@ -56,20 +64,20 @@ export class Client extends EventEmitter {
     this.tasks.workerFilter = this.workerFilter;
   }
 
-  protected createStrategy(): StrategyBase {
+  protected createWorker(): StrategyBase {
     const { protocol } = this.config;
-    return new this.strategies[protocol]();
+    return new this.strategies[protocol](this.config);
   }
 
   protected setWorkers() {
     const { pool } = this.options;
 
     for (let i = 0; i < pool; i++) {
-      const instance = this.createStrategy();
+      const worker = this.createWorker();
 
-      instance.on('progress', this._onProgress);
+      worker.on('progress', this._onProgress);
 
-      this.workers.push(instance);
+      this.workers.push(worker);
     }
 
     this.setWorkerGroups();
@@ -109,21 +117,37 @@ export class Client extends EventEmitter {
   }
 
   public async abort() {
+    [...this.transfers.keys()].forEach((r) => {
+      this.emit('transfer-abort', r);
+    });
+
     this.tasks.deleteAllTasks();
 
     await Promise.all(this.workers.map((r) => r.abort()));
   }
 
-  public async abortTransfers(...ids: number[]) {
-    const indexes = ids.map((id) => this.transfers.get(id));
-    const instances = indexes.map((index) => this.workers[index]);
+  public async abortTransfer(...transferIds: number[]) {
+    const workerIndexes: number[] = [];
+    const instances: StrategyBase[] = [];
 
-    this.tasks.deleteTasks(...ids);
-    this.tasks.pauseWorkers(...indexes);
+    transferIds.forEach((id) => {
+      const workerIndex = this.transfers.get(id);
+
+      if (workerIndex != null) {
+        instances.push(this.workers[workerIndex]);
+      }
+
+      workerIndexes.push(workerIndex);
+
+      this.emit('transfer-abort', id);
+    });
+
+    this.tasks.deleteTasks(...transferIds);
+    this.tasks.pauseWorkers(...workerIndexes);
 
     await Promise.all(instances.map((r) => r.abort()));
 
-    this.tasks.resumeWorkers(...indexes);
+    this.tasks.resumeWorkers(...workerIndexes);
   }
 
   public download(dest: Writable, remotePath: string) {
@@ -141,8 +165,8 @@ export class Client extends EventEmitter {
     );
   }
 
-  private _onProgress: IProgressEventListener = (data, progress) => {
-    this.emit('progress', data, progress);
+  protected _onProgress = (data, progress) => {
+    this.emit('transfer-progress', data, progress);
   };
 
   protected async handleTransfer(
@@ -154,6 +178,7 @@ export class Client extends EventEmitter {
     const taskId = this.tasks.createTaskId();
     const transfer: ITransfer = { id: taskId, localPath, remotePath };
 
+    this.transfers.set(taskId, null);
     this.emit('transfer-new', transfer);
 
     try {
@@ -163,7 +188,7 @@ export class Client extends EventEmitter {
 
           await fn(e);
         },
-        'transfer',
+        'transfer-transfer',
         taskId,
       );
     } catch (err) {

@@ -15,10 +15,6 @@ import { getPathFromStream, getFileSize } from '~/utils/file';
 export class FtpStrategy extends StrategyBase {
   protected client: Client;
 
-  protected config: IFtpConfig;
-
-  protected options: IFtpOptions;
-
   public get connected() {
     return this.client && !this.client.closed;
   }
@@ -27,19 +23,16 @@ export class FtpStrategy extends StrategyBase {
     return this.config.protocol === 'ftps';
   }
 
-  connect = async (config: IFtpConfig, options?: IFtpOptions) => {
+  connect = async (config: IFtpConfig) => {
     if (this.connected) return;
 
     if (!this.client) {
       this.client = new Client();
     }
 
-    this.config = config;
-    this.options = options;
-
     await this.client.access({
       secure: this.isFTPS,
-      secureOptions: options?.secureOptions,
+      secureOptions: config?.options?.secureOptions,
       ...config,
     });
 
@@ -65,7 +58,7 @@ export class FtpStrategy extends StrategyBase {
     this.emit('abort');
 
     await this.disconnect();
-    await this.connect(this.config, this.options);
+    await this.connect(this.config);
   };
 
   download = async (

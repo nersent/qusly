@@ -15,7 +15,7 @@ export interface ITransferProgress {
   percent?: number;
 }
 
-export type IProgressEventListener = (
+export type ITransferProgressEventListener = (
   transfer: ITransfer,
   progress: ITransferProgress,
 ) => void;
