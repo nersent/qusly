@@ -1,7 +1,7 @@
 import { Client, FileInfo } from 'basic-ftp';
 import { Writable, Readable } from 'stream';
 
-import { StrategyBase } from './strategy-base';
+import { Strategy } from './strategy';
 import {
   IFile,
   IFtpConfig,
@@ -12,7 +12,7 @@ import {
 import { FtpUtils } from '~/utils/ftp';
 import { getPathFromStream, getFileSize } from '~/utils/file';
 
-export class FtpStrategy extends StrategyBase {
+export class FtpStrategy extends Strategy {
   protected client: Client;
 
   public get connected() {

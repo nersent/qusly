@@ -9,9 +9,8 @@ import {
   IConfig,
 } from '~/interfaces';
 import { Transfer } from '~/transfer';
-import { Client } from '~/client';
 
-export declare interface StrategyBase {
+export declare interface Strategy {
   on(event: 'connect', listener: () => void): this;
   on(event: 'disconnect', listener: () => void): this;
   on(event: 'abort', listener: () => void): this;
@@ -22,7 +21,7 @@ export declare interface StrategyBase {
   once(event: 'abort', listener: () => void): this;
 }
 
-export abstract class StrategyBase extends EventEmitter {
+export abstract class Strategy extends EventEmitter {
   public abstract readonly connected: boolean;
 
   private transfer: Transfer;

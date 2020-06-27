@@ -11,7 +11,7 @@ import {
   ITransfer,
   ITaskHandler,
 } from './interfaces';
-import { StrategyBase } from './strategies/strategy-base';
+import { Strategy } from './strategies/strategy';
 import { TasksManager } from './tasks';
 import { FtpStrategy } from './strategies/ftp';
 import { repeat } from './utils/array';
@@ -41,9 +41,9 @@ export declare interface Client {
 }
 
 export class Client extends EventEmitter {
-  protected workers: StrategyBase[] = [];
+  protected workers: Strategy[] = [];
 
-  protected tasks = new TasksManager<StrategyBase>();
+  protected tasks = new TasksManager<Strategy>();
 
   protected options: IOptions;
 
@@ -64,7 +64,7 @@ export class Client extends EventEmitter {
     this.tasks.workerFilter = this.workerFilter;
   }
 
-  protected createWorker(): StrategyBase {
+  protected createWorker(): Strategy {
     const { protocol } = this.config;
     return new this.strategies[protocol](this.config);
   }
@@ -128,7 +128,7 @@ export class Client extends EventEmitter {
 
   public async abortTransfer(...transferIds: number[]) {
     const workerIndexes: number[] = [];
-    const instances: StrategyBase[] = [];
+    const instances: Strategy[] = [];
 
     transferIds.forEach((id) => {
       const workerIndex = this.transfers.get(id);
@@ -223,7 +223,7 @@ export class Client extends EventEmitter {
   };
 
   protected async handleTransfer(
-    fn: ITaskHandler<StrategyBase>,
+    fn: ITaskHandler<Strategy>,
     stream: Writable | Readable,
     remotePath: string,
   ) {
