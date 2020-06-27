@@ -45,21 +45,21 @@ export abstract class StrategyBase extends EventEmitter {
     options?: ITransferOptions,
   ) => Promise<void>;
 
-  public abstract readDir: (path?: string) => Promise<IFile[]>;
+  public abstract list: (path?: string) => Promise<IFile[]>;
 
-  public abstract size: (path?: string) => Promise<number>;
+  public abstract size: (path: string) => Promise<number>;
 
   public abstract move: (source: string, dest: string) => Promise<void>;
 
   public abstract removeFile: (path: string) => Promise<void>;
 
-  public abstract removeEmptyDir: (path: string) => Promise<void>;
+  public abstract removeEmptyFolder: (path: string) => Promise<void>;
 
-  public abstract removeDir: (path: string) => Promise<void>;
+  public abstract removeFolder: (path: string) => Promise<void>;
 
-  public abstract mkdir: (path: string) => Promise<void>;
+  public abstract createFolder: (path: string) => Promise<void>;
 
-  public abstract touch: (path: string) => Promise<void>;
+  public abstract createEmptyFile: (path: string) => Promise<void>;
 
   public abstract pwd: () => Promise<string>;
 

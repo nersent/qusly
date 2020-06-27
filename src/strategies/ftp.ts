@@ -91,7 +91,7 @@ export class FtpStrategy extends StrategyBase {
     );
   };
 
-  readDir = (path) => {
+  list = (path) => {
     return this.handle<IFile[]>(() =>
       this.client.list(path).then((r) => r.map(this.formatFile)),
     );
@@ -111,23 +111,23 @@ export class FtpStrategy extends StrategyBase {
     });
   };
 
-  removeEmptyDir = (path) => {
+  removeEmptyFolder = (path) => {
     return this.handle<void>(() => {
       return this.client.removeEmptyDir(path);
     });
   };
 
-  removeDir = (path) => {
+  removeFolder = (path) => {
     return this.handle<void>(() => {
       return this.client.removeDir(path);
     });
   };
 
-  mkdir = async (path) => {
+  createFolder = async (path) => {
     await this.send(`MKD ${path}`);
   };
 
-  touch = async (path) => {
+  createEmptyFile = async (path) => {
     const source = Readable.from('\n');
 
     await this.upload(source, path, { quiet: true });

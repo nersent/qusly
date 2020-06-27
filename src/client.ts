@@ -150,19 +150,72 @@ export class Client extends EventEmitter {
     this.tasks.resumeWorkers(...workerIndexes);
   }
 
-  public download(dest: Writable, remotePath: string) {
+  public download(dest: Writable, remotePath: string, startAt?: number) {
     return this.handleTransfer(
       ({ instance, taskId }) =>
-        instance.download(dest, remotePath, { id: taskId }),
+        instance.download(dest, remotePath, { id: taskId, startAt }),
       dest,
       remotePath,
     );
   }
 
-  public async readDir(path?: string) {
-    return await this.tasks.handle<IFile[]>(({ instance }) =>
-      instance.readDir(path),
+  public upload(source: Readable, remotePath: string) {
+    return this.handleTransfer(
+      ({ instance, taskId }) =>
+        instance.upload(source, remotePath, { id: taskId }),
+      source,
+      remotePath,
     );
+  }
+
+  public list(path?: string) {
+    return this.tasks.handle<IFile[]>(({ instance }) => instance.list(path));
+  }
+
+  public size(path: string) {
+    return this.tasks.handle<number>(({ instance }) => instance.size(path));
+  }
+
+  public move(source: string, dest: string) {
+    return this.tasks.handle<void>(({ instance }) =>
+      instance.move(source, dest),
+    );
+  }
+
+  public removeFile(path: string) {
+    return this.tasks.handle<void>(({ instance }) => instance.removeFile(path));
+  }
+
+  public removeEmptyFolder(path: string) {
+    return this.tasks.handle<void>(({ instance }) =>
+      instance.removeEmptyFolder(path),
+    );
+  }
+
+  public removeFolder(path: string) {
+    return this.tasks.handle<void>(({ instance }) =>
+      instance.removeFolder(path),
+    );
+  }
+
+  public createFolder(path: string) {
+    return this.tasks.handle<void>(({ instance }) =>
+      instance.createFolder(path),
+    );
+  }
+
+  public createEmptyFile(path: string) {
+    return this.tasks.handle<void>(({ instance }) =>
+      instance.createEmptyFile(path),
+    );
+  }
+
+  public pwd() {
+    return this.tasks.handle<string>(({ instance }) => instance.pwd());
+  }
+
+  public send(command: string) {
+    return this.tasks.handle<string>(({ instance }) => instance.send(command));
   }
 
   protected _onProgress = (data, progress) => {
