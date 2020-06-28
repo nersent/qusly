@@ -62,4 +62,8 @@ export class FtpUtils {
       parseInt(minutes),
     );
   }
+
+  public static getDateFromUnixTime(time: number) {
+    return new Date(time * 1000);
+  }
 }

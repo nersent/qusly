@@ -5,7 +5,6 @@ import { Strategy } from './strategy';
 import {
   IFile,
   IFtpConfig,
-  IFtpOptions,
   ITransferOptions,
   ITransferRequestInfo,
 } from '~/interfaces';
@@ -46,7 +45,7 @@ export class FtpStrategy extends Strategy {
       return new Promise((resolve) => {
         this.client.close();
 
-        this.client.ftp.socket.on('close', () => {
+        this.client.ftp.socket.once('close', () => {
           this.client = null;
           resolve();
         });
@@ -58,7 +57,7 @@ export class FtpStrategy extends Strategy {
     this.emit('abort');
 
     await this.disconnect();
-    await this.connect(this.config);
+    await this.connect(this.config as IFtpConfig);
   };
 
   download = async (

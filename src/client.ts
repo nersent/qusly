@@ -16,6 +16,7 @@ import { TasksManager } from './tasks';
 import { FtpStrategy } from './strategies/ftp';
 import { repeat } from './utils/array';
 import { getPathFromStream } from './utils/file';
+import { SftpStrategy } from './strategies/sftp';
 
 export declare interface Client {
   on(event: 'connect', listener: () => void): this;
@@ -50,6 +51,7 @@ export class Client extends EventEmitter {
   protected strategies: IStrategiesMap = {
     ftp: FtpStrategy,
     ftps: FtpStrategy,
+    sftp: SftpStrategy,
   };
 
   protected transfers = new Map<number, number>(); // task id => worker index;
@@ -245,7 +247,7 @@ export class Client extends EventEmitter {
         taskId,
       );
     } catch (err) {
-      throw new err();
+      throw err;
     } finally {
       this.transfers.delete(taskId);
       this.emit('transfer-finish', transfer);
