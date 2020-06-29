@@ -13,12 +13,10 @@ import { Transfer } from '~/transfer';
 export declare interface Strategy {
   on(event: 'connect', listener: () => void): this;
   on(event: 'disconnect', listener: () => void): this;
-  on(event: 'abort', listener: () => void): this;
   on(event: 'progress', listener: ITransferProgressEventListener): this;
 
   once(event: 'connect', listener: () => void): this;
   once(event: 'disconnect', listener: () => void): this;
-  once(event: 'abort', listener: () => void): this;
 }
 
 export abstract class Strategy extends EventEmitter {
@@ -26,11 +24,14 @@ export abstract class Strategy extends EventEmitter {
 
   private transfer: Transfer;
 
-  public abstract connect: (config: any) => Promise<void>;
+  public abstract connect: () => Promise<void>;
 
   public abstract disconnect: () => Promise<void>;
 
-  public abstract abort: () => Promise<void>;
+  public async abort() {
+    await this.disconnect();
+    await this.connect();
+  }
 
   public abstract download: (
     dest: Writable,
@@ -64,7 +65,10 @@ export abstract class Strategy extends EventEmitter {
 
   public abstract send: (command: string) => Promise<string>;
 
-  constructor(protected readonly config: IConfig) {
+  constructor(
+    protected readonly config: any,
+    protected readonly options?: any,
+  ) {
     super();
   }
 
@@ -81,5 +85,33 @@ export abstract class Strategy extends EventEmitter {
 
   protected finishTransfer() {
     this.transfer = null;
+  }
+
+  protected handleNetwork<T = void>(cb: any, clean?: any) {
+    return new Promise<T>((resolve, reject) => {
+      const onClean = () => {
+        this.removeListener('disconnect', onDisconnect);
+
+        if (clean) {
+          clean(onResolve, onReject);
+        }
+      };
+
+      const onDisconnect = () => onResolve(null);
+
+      const onResolve = (data: any) => {
+        onClean();
+        resolve(data);
+      };
+
+      const onReject = (err: Error) => {
+        onClean();
+        reject(err);
+      };
+
+      this.once('disconnect', onDisconnect);
+
+      cb(onResolve, onReject);
+    });
   }
 }

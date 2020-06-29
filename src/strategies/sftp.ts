@@ -8,12 +8,18 @@ import { FileInfo, parseList } from 'basic-ftp';
 import { Strategy } from './strategy';
 import {
   IFile,
-  ISftpConfig,
   ITransferOptions,
   ITransferRequestInfo,
+  IFtpConfig,
+  ISFtpOptions,
 } from '~/interfaces';
 import { FtpUtils } from '~/utils/ftp';
 import { getPathFromStream, getFileSize } from '~/utils/file';
+
+export declare interface SftpStrategy {
+  config: IFtpConfig;
+  options: ISFtpOptions;
+}
 
 export class SftpStrategy extends Strategy {
   protected client: Client;
@@ -30,7 +36,7 @@ export class SftpStrategy extends Strategy {
     return promisify(this.client.sftp).bind(this.client)();
   }
 
-  connect = (config: ISftpConfig) => {
+  connect = () => {
     return new Promise<void>((resolve, reject) => {
       if (this.connected) {
         return resolve();
@@ -70,18 +76,37 @@ export class SftpStrategy extends Strategy {
 
       this.client.once('error', onError);
       this.client.once('ready', onReady);
-      this.client.on('end', this.onDisconnect);
+      this.client.once('end', this.onDisconnect);
 
-      if (config?.options?.tryKeyboard) {
+      if (this.options?.tryKeyboard) {
         this.client.once('keyboard-interactive', this.onKeyboardInteractive);
       }
 
       this.client.connect({
-        username: config.user,
-        ...config,
-        readyTimeout: 5000,
+        ...this.config,
+        username: this.config.user,
+        readyTimeout: this.options?.timeout,
       });
     });
+  };
+
+  protected onKeyboardInteractive = (
+    name,
+    instructions,
+    instructionsLang,
+    prompts,
+    finish,
+  ) => {
+    finish([this.config.password]);
+  };
+
+  protected onDisconnect = () => {
+    this.connected = false;
+
+    this.client = null;
+    this.wrapper = null;
+
+    this.emit('disconnect');
   };
 
   disconnect = () => {
@@ -98,13 +123,6 @@ export class SftpStrategy extends Strategy {
     return null;
   };
 
-  abort = async () => {
-    this.emit('abort');
-
-    await this.disconnect();
-    await this.connect(this.config as ISftpConfig);
-  };
-
   download = async (
     dest: Writable,
     remotePath: string,
@@ -113,9 +131,7 @@ export class SftpStrategy extends Strategy {
     const localPath = getPathFromStream(dest);
     const totalBytes = await this.size(remotePath);
 
-    if (!this.connected) return;
-
-    const source = this.wrapper.createReadStream(remotePath, {
+    const source = this.wrapper?.createReadStream(remotePath, {
       start: options?.startAt,
       autoClose: true,
     });
@@ -136,9 +152,7 @@ export class SftpStrategy extends Strategy {
     const localPath = getPathFromStream(source);
     const totalBytes = await getFileSize(localPath);
 
-    if (!this.connected) return;
-
-    const dest = this.wrapper.createWriteStream(remotePath);
+    const dest = this.wrapper?.createWriteStream(remotePath);
 
     return this.handleTransfer(
       source,
@@ -148,18 +162,25 @@ export class SftpStrategy extends Strategy {
     );
   };
 
-  list = async (path = './') => {
-    return this.list(path)?.map((r) =>
-      this.formatFile(parseList(r.longname)[0], r),
+  list = (path = './') => {
+    return this._list(path).then((files) =>
+      files?.map((r) => this.formatFile(parseList(r.longname)[0], r)),
     );
   };
 
+  protected formatFile = (file: FileInfo, entry: FileEntry): IFile => {
+    return {
+      ...FtpUtils.formatFile(file),
+      lastModified: FtpUtils.getDateFromUnixTime(entry.attrs.mtime),
+    };
+  };
+
   protected _list(path: string) {
-    return this.handle<FileEntry[]>(this.wrapper.readdir, path);
+    return this.handle<FileEntry[]>(this.wrapper?.readdir, path);
   }
 
   protected _stat(path: string) {
-    return this.handle<Stats>(this.wrapper.stat, path);
+    return this.handle<Stats>(this.wrapper?.stat, path);
   }
 
   size = (path) => {
@@ -167,15 +188,15 @@ export class SftpStrategy extends Strategy {
   };
 
   move = (source, dest) => {
-    return this.handle<void>(this.wrapper.rename, source, dest);
+    return this.handle(this.wrapper?.rename, source, dest);
   };
 
   removeFile = (path) => {
-    return this.handle<void>(this.wrapper.unlink, path);
+    return this.handle(this.wrapper?.unlink, path);
   };
 
   removeEmptyFolder = (path) => {
-    return this.handle<void>(this.wrapper.rmdir, path);
+    return this.handle(this.wrapper?.rmdir, path);
   };
 
   removeFolder = async (path) => {
@@ -197,7 +218,7 @@ export class SftpStrategy extends Strategy {
   };
 
   createFolder = (path) => {
-    return this.handle<void>(this.wrapper.mkdir, path);
+    return this.handle(this.wrapper?.mkdir, path);
   };
 
   createEmptyFile = async (path) => {
@@ -209,84 +230,48 @@ export class SftpStrategy extends Strategy {
   };
 
   protected _open(path: string, mode: string | number) {
-    return this.handle<Buffer>(this.wrapper.open, path, mode);
+    return this.handle<Buffer>(this.wrapper?.open, path, mode);
   }
 
   protected _close(buffer: Buffer) {
-    return this.handle<void>(this.wrapper.close, buffer);
+    return this.handle(this.wrapper?.close, buffer);
   }
 
   pwd = () => {
-    return this.handle<string>(this.wrapper.realpath, './');
+    return this.handle<string>(this.wrapper?.realpath, './');
   };
 
   send = async (command) => {
-    return new Promise<string>(async (resolve, reject) => {
-      let stream: ClientChannel;
-      let data = '';
+    let stream: ClientChannel;
+    let data = '';
 
-      const clear = () => {
+    await this.handleNetwork(
+      (resolve, reject) => {
+        this.client.exec(command, (err, stream) => {
+          if (err) return reject(err);
+
+          stream.on('data', (chunk: Buffer) => {
+            data += chunk;
+          });
+
+          stream.once('error', reject);
+          stream.once('close', resolve);
+        });
+      },
+      () => {
         if (stream) {
           stream.close();
         }
+      },
+    );
 
-        this.removeListener('disconnect', onFinish);
-      };
-
-      const onFinish = () => {
-        clear();
-        resolve(data);
-      };
-
-      const onError = (e) => {
-        clear();
-        reject(e);
-      };
-
-      this.once('disconnect', onFinish);
-
-      this.client.exec(command, (err, stream) => {
-        if (err) return onError(err);
-
-        stream.on('data', (chunk) => {
-          data += chunk;
-        });
-
-        stream.once('error', onError);
-        stream.once('close', onFinish);
-      });
-    });
+    return data;
   };
 
-  protected formatFile = (file: FileInfo, entry: FileEntry): IFile => {
-    return {
-      ...FtpUtils.formatFile(file),
-      lastModified: FtpUtils.getDateFromUnixTime(entry.attrs.mtime),
-    };
-  };
-
-  protected onDisconnect = () => {
-    this.connected = false;
-
-    this.client.removeListener('end', this.onDisconnect);
-    this.client = null;
-    this.wrapper = null;
-
-    this.emit('disconnect');
-  };
-
-  protected onKeyboardInteractive = (
-    name,
-    instructions,
-    instructionsLang,
-    prompts,
-    finish,
-  ) => {
-    finish([this.config.password]);
-  };
-
-  protected handle = <T>(fn: Function, ...args: any[]) => {
+  protected handle = <T = void>(fn: Function, ...args: any[]) => {
     return this.handleNetwork<T>((resolve, reject) => {
+      if (!fn) return resolve(null);
+
       const promise: Promise<T> = promisify(fn).bind(this.wrapper)(...args);
 
       promise.then(resolve);
@@ -304,7 +289,7 @@ export class SftpStrategy extends Strategy {
 
     const handler = this.prepareTransfer(info, options);
 
-    return this.handleNetwork<void>(
+    return this.handleNetwork(
       (resolve, reject) => {
         let buffered = 0;
 
@@ -315,6 +300,7 @@ export class SftpStrategy extends Strategy {
 
         source.once('error', reject);
         source.once('close', resolve);
+
         source.pipe(dest);
       },
       () => {
@@ -324,32 +310,4 @@ export class SftpStrategy extends Strategy {
       },
     );
   };
-
-  protected handleNetwork<T>(cb: any, clean?: any) {
-    return new Promise<T>((resolve, reject) => {
-      const onClean = () => {
-        this.removeListener('disconnect', onDisconnect);
-
-        if (clean) {
-          clean(onResolve, onReject);
-        }
-      };
-
-      const onDisconnect = () => onResolve(null);
-
-      const onResolve = (data: any) => {
-        onClean();
-        resolve(data);
-      };
-
-      const onReject = (err: Error) => {
-        onClean();
-        reject(err);
-      };
-
-      this.once('disconnect', onDisconnect);
-
-      cb(onResolve, onReject);
-    });
-  }
 }

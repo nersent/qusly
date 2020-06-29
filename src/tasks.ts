@@ -47,7 +47,7 @@ export class TasksManager<K = number> extends EventEmitter {
     }));
   }
 
-  public async handle<T>(
+  public async handle<T = void>(
     fn: ITaskHandler<K>,
     group?: string,
     taskId?: number,

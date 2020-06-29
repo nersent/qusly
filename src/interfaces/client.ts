@@ -1,4 +1,4 @@
-export interface IOptions {
+export interface IClientOptions {
   pool?: number;
   transferPool?: boolean;
 }

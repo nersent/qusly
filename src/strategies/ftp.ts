@@ -7,22 +7,32 @@ import {
   IFtpConfig,
   ITransferOptions,
   ITransferRequestInfo,
+  IFtpOptions,
 } from '~/interfaces';
 import { FtpUtils } from '~/utils/ftp';
 import { getPathFromStream, getFileSize } from '~/utils/file';
+
+export declare interface FtpStrategy {
+  config: IFtpConfig;
+  options: IFtpOptions;
+}
 
 export class FtpStrategy extends Strategy {
   protected client: Client;
 
   public get connected() {
-    return this.client && !this.client.closed;
+    return this.client?.closed === false;
   }
 
-  public get isFTPS() {
+  protected get isFTPS() {
     return this.config.protocol === 'ftps';
   }
 
-  connect = async (config: IFtpConfig) => {
+  protected get socket() {
+    return this.client.ftp.socket;
+  }
+
+  connect = async () => {
     if (this.connected) return;
 
     if (!this.client) {
@@ -31,18 +41,18 @@ export class FtpStrategy extends Strategy {
 
     await this.client.access({
       secure: this.isFTPS,
-      secureOptions: config?.options?.secureOptions,
-      ...config,
+      secureOptions: this.options?.secureOptions,
+      ...this.config,
     });
 
     this.emit('connect');
   };
 
-  disconnect = async (): Promise<any> => {
-    this.emit('disconnect');
-
+  disconnect = async () => {
     if (this.connected) {
-      return new Promise((resolve) => {
+      this.emit('disconnect');
+
+      return new Promise<void>((resolve) => {
         this.client.close();
 
         this.client.ftp.socket.once('close', () => {
@@ -51,13 +61,8 @@ export class FtpStrategy extends Strategy {
         });
       });
     }
-  };
 
-  abort = async () => {
-    this.emit('abort');
-
-    await this.disconnect();
-    await this.connect(this.config as IFtpConfig);
+    return null;
   };
 
   download = async (
@@ -101,23 +106,23 @@ export class FtpStrategy extends Strategy {
   };
 
   move = (source, dest) => {
-    return this.handle<void>(() => this.client.rename(source, dest));
+    return this.handle(() => this.client.rename(source, dest));
   };
 
   removeFile = (path) => {
-    return this.handle<void>(() => {
+    return this.handle(() => {
       return this.client.remove(path);
     });
   };
 
   removeEmptyFolder = (path) => {
-    return this.handle<void>(() => {
+    return this.handle(() => {
       return this.client.removeEmptyDir(path);
     });
   };
 
   removeFolder = (path) => {
-    return this.handle<void>(() => {
+    return this.handle(() => {
       return this.client.removeDir(path);
     });
   };
@@ -151,7 +156,7 @@ export class FtpStrategy extends Strategy {
     };
   };
 
-  protected handle = async <T>(fn: Function): Promise<T> => {
+  protected handle = async <T = void>(fn: Function): Promise<T> => {
     try {
       return await fn();
     } catch (err) {

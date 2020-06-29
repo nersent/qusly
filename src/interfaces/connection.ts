@@ -1,15 +1,14 @@
 import { ConnectionOptions } from 'tls';
 
-export type IProtocol = 'sftp' | 'ftp' | 'ftps';
-
-export type IConfig = IFtpConfig | ISftpConfig;
-
-export interface IConfigBase {
-  protocol: IProtocol;
-  options?: any;
+export interface IConfig {
+  protocol: string;
 }
 
-export interface IFtpConfigBase extends IConfigBase {
+export interface IOptions {
+  timeout?: number;
+}
+
+interface IFtpConfigBase extends IConfig {
   host: string;
   user: string;
   password: string;
@@ -17,18 +16,17 @@ export interface IFtpConfigBase extends IConfigBase {
 }
 
 export interface IFtpConfig extends IFtpConfigBase {
-  options?: IFtpOptions;
+  protocol: 'ftp' | 'ftps';
 }
 
-export interface ISftpConfig extends IFtpConfigBase {
-  options?: ISftpOptions;
+export interface ISFtpConfig extends IFtpConfigBase {
+  protocol: 'sftp';
 }
 
-export interface IFtpOptions {
-  timeout?: number;
+export interface IFtpOptions extends IOptions {
   secureOptions?: ConnectionOptions;
 }
 
-export interface ISftpOptions {
+export interface ISFtpOptions extends IOptions {
   tryKeyboard?: boolean;
 }

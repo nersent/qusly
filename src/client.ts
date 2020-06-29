@@ -3,13 +3,18 @@ import { Writable, Readable } from 'stream';
 
 import {
   IConfig,
-  IOptions,
+  IClientOptions,
   IStrategiesMap,
   IFile,
   IClientWorkerGroup,
   ITransferProgressEventListener,
   ITransfer,
   ITaskHandler,
+  IOptions,
+  IFtpConfig,
+  IFtpOptions,
+  ISFtpOptions,
+  ISFtpConfig,
 } from './interfaces';
 import { Strategy } from './strategies/strategy';
 import { TasksManager } from './tasks';
@@ -23,7 +28,7 @@ export declare interface Client {
   on(event: 'disconnect', listener: () => void): this;
   on(event: 'abort', listener: () => void): this;
   on(event: 'transfer-new', listener: (e: ITransfer) => void): this;
-  on(event: 'transfer-abort', listener: (transferId: number) => void): this;
+  on(event: 'transfer-abort', listener: (...ids: number[]) => void): this;
   on(event: 'transfer-finish', listener: (e: ITransfer) => void): this;
   on(
     event: 'transfer-progress',
@@ -33,7 +38,7 @@ export declare interface Client {
   once(event: 'connect', listener: () => void): this;
   once(event: 'disconnect', listener: () => void): this;
   once(event: 'transfer-new', listener: (e: ITransfer) => void): this;
-  once(event: 'transfer-abort', listener: (transferId: number) => void): this;
+  once(event: 'transfer-abort', listener: (...ids: number[]) => void): this;
   once(event: 'transfer-finish', listener: (e: ITransfer) => void): this;
   once(
     event: 'transfer-progress',
@@ -42,11 +47,15 @@ export declare interface Client {
 }
 
 export class Client extends EventEmitter {
+  protected _config?: IConfig;
+
+  protected _connectionOptions?: IOptions;
+
+  protected options: IClientOptions;
+
   protected workers: Strategy[] = [];
 
   protected tasks = new TasksManager<Strategy>();
-
-  protected options: IOptions;
 
   protected strategies: IStrategiesMap = {
     ftp: FtpStrategy,
@@ -56,11 +65,14 @@ export class Client extends EventEmitter {
 
   protected transfers = new Map<number, number>(); // task id => worker index;
 
-  constructor(protected config: IConfig, options?: IOptions) {
+  public get config() {
+    return this._config;
+  }
+
+  constructor(options?: IClientOptions) {
     super();
 
     this.options = { pool: 1, ...options };
-    this.setWorkers();
 
     this.tasks.getWorkerInstance = this.getWorkerInstance;
     this.tasks.workerFilter = this.workerFilter;
@@ -68,7 +80,7 @@ export class Client extends EventEmitter {
 
   protected createWorker(): Strategy {
     const { protocol } = this.config;
-    return new this.strategies[protocol](this.config);
+    return new this.strategies[protocol](this.config, this._connectionOptions);
   }
 
   protected setWorkers() {
@@ -77,7 +89,9 @@ export class Client extends EventEmitter {
     for (let i = 0; i < pool; i++) {
       const worker = this.createWorker();
 
-      worker.on('progress', this._onProgress);
+      worker.on('connect', this.onConnect);
+      worker.on('disconnect', this.onDisconnect);
+      worker.on('progress', this.onProgress);
 
       this.workers.push(worker);
     }
@@ -110,8 +124,16 @@ export class Client extends EventEmitter {
     );
   };
 
-  public async connect() {
-    await Promise.all(this.workers.map((r) => r.connect(this.config)));
+  public async connect(config: IFtpConfig, options?: IFtpOptions);
+  public async connect(config: ISFtpConfig, options?: ISFtpOptions);
+  public async connect(config: IConfig, options?: IOptions) {
+    await this.disconnect();
+
+    this._config = config;
+    this._connectionOptions = options;
+    this.setWorkers();
+
+    await Promise.all(this.workers.map((r) => r.connect()));
   }
 
   public async disconnect() {
@@ -119,9 +141,7 @@ export class Client extends EventEmitter {
   }
 
   public async abort() {
-    [...this.transfers.keys()].forEach((r) => {
-      this.emit('transfer-abort', r);
-    });
+    this.emit('transfer-abort', ...this.transfers.keys());
 
     this.tasks.deleteAllTasks();
 
@@ -179,37 +199,29 @@ export class Client extends EventEmitter {
   }
 
   public move(source: string, dest: string) {
-    return this.tasks.handle<void>(({ instance }) =>
-      instance.move(source, dest),
-    );
+    return this.tasks.handle(({ instance }) => instance.move(source, dest));
   }
 
   public removeFile(path: string) {
-    return this.tasks.handle<void>(({ instance }) => instance.removeFile(path));
+    return this.tasks.handle(({ instance }) => instance.removeFile(path));
   }
 
   public removeEmptyFolder(path: string) {
-    return this.tasks.handle<void>(({ instance }) =>
+    return this.tasks.handle(({ instance }) =>
       instance.removeEmptyFolder(path),
     );
   }
 
   public removeFolder(path: string) {
-    return this.tasks.handle<void>(({ instance }) =>
-      instance.removeFolder(path),
-    );
+    return this.tasks.handle(({ instance }) => instance.removeFolder(path));
   }
 
   public createFolder(path: string) {
-    return this.tasks.handle<void>(({ instance }) =>
-      instance.createFolder(path),
-    );
+    return this.tasks.handle(({ instance }) => instance.createFolder(path));
   }
 
   public createEmptyFile(path: string) {
-    return this.tasks.handle<void>(({ instance }) =>
-      instance.createEmptyFile(path),
-    );
+    return this.tasks.handle(({ instance }) => instance.createEmptyFile(path));
   }
 
   public pwd() {
@@ -220,7 +232,15 @@ export class Client extends EventEmitter {
     return this.tasks.handle<string>(({ instance }) => instance.send(command));
   }
 
-  protected _onProgress = (data, progress) => {
+  protected onConnect = () => {
+    this.emit('connect');
+  };
+
+  protected onDisconnect = () => {
+    this.emit('disconnect');
+  };
+
+  protected onProgress = (data, progress) => {
     this.emit('transfer-progress', data, progress);
   };
 
@@ -237,7 +257,7 @@ export class Client extends EventEmitter {
     this.emit('transfer-new', transfer);
 
     try {
-      await this.tasks.handle<void>(
+      await this.tasks.handle(
         async (e) => {
           this.transfers.set(taskId, e.workerIndex);
 
