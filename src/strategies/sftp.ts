@@ -14,7 +14,6 @@ import {
 } from '~/interfaces';
 import { FtpUtils } from '~/utils/ftp';
 import { getPathFromStream, getFileSize } from '~/utils/file';
-import { resolve } from 'path';
 
 export class SftpStrategy extends Strategy {
   protected client: Client;
@@ -59,8 +58,8 @@ export class SftpStrategy extends Strategy {
         try {
           this.wrapper = await this.getWrapper();
           this.connected = true;
-
           this.emit('connect');
+
           resolve();
         } catch (err) {
           reject(err);
@@ -100,7 +99,6 @@ export class SftpStrategy extends Strategy {
   };
 
   abort = async () => {
-    console.log('abort');
     this.emit('abort');
 
     await this.disconnect();
@@ -114,6 +112,8 @@ export class SftpStrategy extends Strategy {
   ) => {
     const localPath = getPathFromStream(dest);
     const totalBytes = await this.size(remotePath);
+
+    if (!this.connected) return;
 
     const source = this.wrapper.createReadStream(remotePath, {
       start: options?.startAt,
@@ -135,6 +135,8 @@ export class SftpStrategy extends Strategy {
   ) => {
     const localPath = getPathFromStream(source);
     const totalBytes = await getFileSize(localPath);
+
+    if (!this.connected) return;
 
     const dest = this.wrapper.createWriteStream(remotePath);
 
@@ -284,23 +286,11 @@ export class SftpStrategy extends Strategy {
   };
 
   protected handle = <T>(fn: Function, ...args: any[]) => {
-    return new Promise<T>((resolve, reject) => {
-      const clear = () => {
-        this.removeListener('disconnect', onDisconnect);
-      };
-
-      const onDisconnect = () => {
-        clear();
-        resolve(null);
-      };
-
-      this.once('disconnect', onDisconnect);
-
+    return this.handleNetwork<T>((resolve, reject) => {
       const promise: Promise<T> = promisify(fn).bind(this.wrapper)(...args);
 
       promise.then(resolve);
       promise.catch(reject);
-      promise.finally(clear);
     });
   };
 
@@ -310,37 +300,56 @@ export class SftpStrategy extends Strategy {
     info: ITransferRequestInfo,
     options: ITransferOptions,
   ) => {
+    if (!source || !dest) return null;
+
     const handler = this.prepareTransfer(info, options);
 
-    return new Promise<void>((resolve, reject) => {
-      let buffered = 0;
+    return this.handleNetwork<void>(
+      (resolve, reject) => {
+        let buffered = 0;
 
-      const clean = () => {
+        source.on('data', (chunk: Buffer) => {
+          buffered += chunk.byteLength;
+          handler(buffered);
+        });
+
+        source.once('error', reject);
+        source.once('close', resolve);
+        source.pipe(dest);
+      },
+      () => {
         source.unpipe(dest);
         source.removeAllListeners();
-
-        this.removeListener('disconnect', resolve);
         this.finishTransfer();
+      },
+    );
+  };
+
+  protected handleNetwork<T>(cb: any, clean?: any) {
+    return new Promise<T>((resolve, reject) => {
+      const onClean = () => {
+        this.removeListener('disconnect', onDisconnect);
+
+        if (clean) {
+          clean(onResolve, onReject);
+        }
       };
 
-      source.on('data', (chunk: Buffer) => {
-        buffered += chunk.byteLength;
+      const onDisconnect = () => onResolve(null);
 
-        handler(buffered);
-      });
+      const onResolve = (data: any) => {
+        onClean();
+        resolve(data);
+      };
 
-      source.once('error', (err) => {
-        clean();
+      const onReject = (err: Error) => {
+        onClean();
         reject(err);
-      });
+      };
 
-      source.once('close', () => {
-        clean();
-        resolve();
-      });
+      this.once('disconnect', onDisconnect);
 
-      this.once('disconnect', resolve);
-      source.pipe(dest);
+      cb(onResolve, onReject);
     });
-  };
+  }
 }
