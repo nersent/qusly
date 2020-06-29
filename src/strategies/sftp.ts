@@ -9,12 +9,11 @@ import { Strategy } from './strategy';
 import {
   IFile,
   ITransferOptions,
-  ITransferRequestInfo,
   IFtpConfig,
   ISFtpOptions,
+  ITransferInfo,
 } from '~/interfaces';
 import { FtpUtils } from '~/utils/ftp';
-import { getPathFromStream, getFileSize } from '~/utils/file';
 
 export declare interface SftpStrategy {
   config: IFtpConfig;
@@ -125,41 +124,25 @@ export class SftpStrategy extends Strategy {
 
   download = async (
     dest: Writable,
-    remotePath: string,
+    info: ITransferInfo,
     options?: ITransferOptions,
   ) => {
-    const localPath = getPathFromStream(dest);
-    const totalBytes = await this.size(remotePath);
-
-    const source = this.wrapper?.createReadStream(remotePath, {
-      start: options?.startAt,
+    const source = this.wrapper?.createReadStream(info.remotePath, {
+      start: info.startAt,
       autoClose: true,
     });
 
-    return this.handleTransfer(
-      source,
-      dest,
-      { localPath, remotePath, totalBytes },
-      options,
-    );
+    return this.handleTransfer(source, dest, info, options);
   };
 
   upload = async (
     source: Readable,
-    remotePath: string,
+    info: ITransferInfo,
     options?: ITransferOptions,
   ) => {
-    const localPath = getPathFromStream(source);
-    const totalBytes = await getFileSize(localPath);
+    const dest = this.wrapper?.createWriteStream(info.remotePath);
 
-    const dest = this.wrapper?.createWriteStream(remotePath);
-
-    return this.handleTransfer(
-      source,
-      dest,
-      { localPath, remotePath, totalBytes },
-      options,
-    );
+    return this.handleTransfer(source, dest, info, options);
   };
 
   list = (path = './') => {
@@ -282,7 +265,7 @@ export class SftpStrategy extends Strategy {
   protected handleTransfer = (
     source: Readable,
     dest: Writable,
-    info: ITransferRequestInfo,
+    info: ITransferInfo,
     options: ITransferOptions,
   ) => {
     if (!source || !dest) return null;

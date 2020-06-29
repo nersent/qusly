@@ -1,7 +1,20 @@
-export interface ITransfer {
+export interface ITransfer extends ITransferDirectory {
   id?: number;
+}
+
+export interface ITransferDirectory {
   remotePath?: string;
   localPath?: string;
+}
+
+export interface ITransferInfo extends ITransferDirectory {
+  id?: number;
+  startAt?: number;
+  totalBytes?: number;
+}
+
+export interface ITransferOptions {
+  quiet?: boolean;
 }
 
 export interface ITransferProgress {
@@ -15,19 +28,7 @@ export interface ITransferProgress {
   percent?: number;
 }
 
-export type ITransferProgressEventListener = (
+export type ITransferProgressListener = (
   transfer: ITransfer,
   progress: ITransferProgress,
 ) => void;
-
-export interface ITransferOptions {
-  id?: number;
-  startAt?: number;
-  quiet?: boolean;
-}
-
-export interface ITransferRequestInfo {
-  totalBytes?: number;
-  localPath?: string;
-  remotePath?: string;
-}

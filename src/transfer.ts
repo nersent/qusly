@@ -1,7 +1,7 @@
 import {
   ITransferOptions,
-  ITransferRequestInfo,
-  ITransferProgressEventListener,
+  ITransferProgressListener,
+  ITransferInfo,
 } from './interfaces';
 
 export class Transfer {
@@ -10,13 +10,12 @@ export class Transfer {
   protected bytes: number;
 
   constructor(
-    public info: ITransferRequestInfo,
+    public info: ITransferInfo,
     public options: ITransferOptions,
-    public onProgress: ITransferProgressEventListener,
+    public onProgress: ITransferProgressListener,
   ) {
     this.startTime = new Date().getTime();
-
-    this.bytes = options?.startAt ?? 0;
+    this.bytes = info?.startAt ?? 0;
   }
 
   public get elapsed() {
@@ -41,10 +40,9 @@ export class Transfer {
   public handleProgress = (bytes: number) => {
     this.bytes = bytes;
 
-    const { quiet, id } = this.options;
-    const { localPath, remotePath, totalBytes } = this.info;
+    const { id, localPath, remotePath, totalBytes } = this.info;
 
-    if (!quiet) {
+    if (!this.options?.quiet) {
       this.onProgress(
         { id, localPath, remotePath },
         {

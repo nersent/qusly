@@ -6,11 +6,10 @@ import {
   IFile,
   IFtpConfig,
   ITransferOptions,
-  ITransferRequestInfo,
   IFtpOptions,
+  ITransferInfo,
 } from '~/interfaces';
 import { FtpUtils } from '~/utils/ftp';
-import { getPathFromStream, getFileSize } from '~/utils/file';
 
 export declare interface FtpStrategy {
   config: IFtpConfig;
@@ -67,30 +66,24 @@ export class FtpStrategy extends Strategy {
 
   download = async (
     dest: Writable,
-    remotePath: string,
+    info: ITransferInfo,
     options?: ITransferOptions,
   ) => {
-    const localPath = getPathFromStream(dest);
-    const totalBytes = await this.size(remotePath);
-
     return this.handleTransfer(
-      () => this.client.downloadTo(dest, remotePath, options?.startAt),
-      { localPath, remotePath, totalBytes },
+      () => this.client.downloadTo(dest, info.remotePath, info.startAt),
+      info,
       options,
     );
   };
 
   upload = async (
     source: Readable,
-    remotePath: string,
+    info: ITransferInfo,
     options?: ITransferOptions,
   ) => {
-    const localPath = getPathFromStream(source);
-    const totalBytes = await getFileSize(localPath);
-
     return this.handleTransfer(
-      () => this.client.uploadFrom(source, remotePath),
-      { localPath, remotePath, totalBytes },
+      () => this.client.uploadFrom(source, info.remotePath),
+      info,
       options,
     );
   };
@@ -134,7 +127,7 @@ export class FtpStrategy extends Strategy {
   createEmptyFile = async (path) => {
     const source = Readable.from('\n');
 
-    await this.upload(source, path, { quiet: true });
+    await this.upload(source, { remotePath: path }, { quiet: true });
   };
 
   pwd = () => {
@@ -175,7 +168,7 @@ export class FtpStrategy extends Strategy {
 
   protected handleTransfer = async (
     fn: Function,
-    info: ITransferRequestInfo,
+    info: ITransferInfo,
     options: ITransferOptions,
   ) => {
     const handler = this.prepareTransfer(info, options);

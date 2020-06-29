@@ -7,7 +7,7 @@ import {
   IStrategiesMap,
   IFile,
   IClientWorkerGroup,
-  ITransferProgressEventListener,
+  ITransferProgressListener,
   ITransfer,
   ITaskHandler,
   IOptions,
@@ -15,6 +15,7 @@ import {
   IFtpOptions,
   ISFtpOptions,
   ISFtpConfig,
+  ITransferDirectory,
 } from './interfaces';
 import { Strategy } from './strategies/strategy';
 import { TasksManager } from './tasks';
@@ -22,6 +23,7 @@ import { FtpStrategy } from './strategies/ftp';
 import { repeat } from './utils/array';
 import { getPathFromStream } from './utils/file';
 import { SftpStrategy } from './strategies/sftp';
+import { createWriteStream, createReadStream } from 'fs';
 
 export declare interface Client {
   on(event: 'connect', listener: () => void): this;
@@ -30,20 +32,14 @@ export declare interface Client {
   on(event: 'transfer-new', listener: (e: ITransfer) => void): this;
   on(event: 'transfer-abort', listener: (...ids: number[]) => void): this;
   on(event: 'transfer-finish', listener: (e: ITransfer) => void): this;
-  on(
-    event: 'transfer-progress',
-    listener: ITransferProgressEventListener,
-  ): this;
+  on(event: 'transfer-progress', listener: ITransferProgressListener): this;
 
   once(event: 'connect', listener: () => void): this;
   once(event: 'disconnect', listener: () => void): this;
   once(event: 'transfer-new', listener: (e: ITransfer) => void): this;
   once(event: 'transfer-abort', listener: (...ids: number[]) => void): this;
   once(event: 'transfer-finish', listener: (e: ITransfer) => void): this;
-  once(
-    event: 'transfer-progress',
-    listener: ITransferProgressEventListener,
-  ): this;
+  once(event: 'transfer-progress', listener: ITransferProgressListener): this;
 }
 
 export class Client extends EventEmitter {
@@ -172,21 +168,66 @@ export class Client extends EventEmitter {
     this.tasks.resumeWorkers(...workerIndexes);
   }
 
-  public download(dest: Writable, remotePath: string, startAt?: number) {
+  public download(
+    dest: Writable | string,
+    remotePath: string,
+    startAt?: number,
+  ) {
+    let stream: Writable;
+    let localPath: string;
+
+    if (typeof dest === 'string') {
+      stream = createWriteStream(dest, {
+        flags: startAt ? 'a' : 'w',
+        start: startAt,
+      });
+
+      localPath = dest;
+    } else {
+      stream = dest;
+      localPath = getPathFromStream(dest);
+    }
+
     return this.handleTransfer(
-      ({ instance, taskId }) =>
-        instance.download(dest, remotePath, { id: taskId, startAt }),
-      dest,
-      remotePath,
+      async ({ instance, taskId }) => {
+        const totalBytes = await instance.size(remotePath);
+
+        await instance.download(stream, {
+          id: taskId,
+          startAt,
+          localPath,
+          remotePath,
+          totalBytes,
+        });
+      },
+      { remotePath, localPath },
     );
   }
 
-  public upload(source: Readable, remotePath: string) {
+  public upload(source: Readable | string, remotePath: string) {
+    let stream: Readable;
+    let localPath: string;
+
+    if (typeof source === 'string') {
+      stream = createReadStream(source);
+      localPath = source;
+    } else {
+      stream = source;
+      localPath = getPathFromStream(source);
+    }
+
     return this.handleTransfer(
-      ({ instance, taskId }) =>
-        instance.upload(source, remotePath, { id: taskId }),
-      source,
-      remotePath,
+      async ({ instance, taskId }) => {
+        const totalBytes = await instance.size(remotePath);
+
+        await instance.upload(stream, {
+          id: taskId,
+          localPath,
+          remotePath,
+          totalBytes,
+        });
+      },
+      { remotePath, localPath },
     );
   }
 
@@ -246,12 +287,10 @@ export class Client extends EventEmitter {
 
   protected async handleTransfer(
     fn: ITaskHandler<Strategy>,
-    stream: Writable | Readable,
-    remotePath: string,
+    directory: ITransferDirectory,
   ) {
-    const localPath = getPathFromStream(stream);
     const taskId = this.tasks.createTaskId();
-    const transfer: ITransfer = { id: taskId, localPath, remotePath };
+    const transfer: ITransfer = { id: taskId, ...directory };
 
     this.transfers.set(taskId, null);
     this.emit('transfer-new', transfer);

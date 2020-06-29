@@ -4,16 +4,15 @@ import { Writable, Readable } from 'stream';
 import {
   IFile,
   ITransferOptions,
-  ITransferRequestInfo,
-  ITransferProgressEventListener,
-  IConfig,
+  ITransferProgressListener,
+  ITransferInfo,
 } from '~/interfaces';
 import { Transfer } from '~/transfer';
 
 export declare interface Strategy {
   on(event: 'connect', listener: () => void): this;
   on(event: 'disconnect', listener: () => void): this;
-  on(event: 'progress', listener: ITransferProgressEventListener): this;
+  on(event: 'progress', listener: ITransferProgressListener): this;
 
   once(event: 'connect', listener: () => void): this;
   once(event: 'disconnect', listener: () => void): this;
@@ -35,13 +34,13 @@ export abstract class Strategy extends EventEmitter {
 
   public abstract download: (
     dest: Writable,
-    remotePath: string,
+    info: ITransferInfo,
     options?: ITransferOptions,
   ) => Promise<void>;
 
   public abstract upload: (
     source: Readable,
-    remotePath: string,
+    info: ITransferInfo,
     options?: ITransferOptions,
   ) => Promise<void>;
 
@@ -72,10 +71,7 @@ export abstract class Strategy extends EventEmitter {
     super();
   }
 
-  protected prepareTransfer(
-    info: ITransferRequestInfo,
-    options?: ITransferOptions,
-  ) {
+  protected prepareTransfer(info: ITransferInfo, options?: ITransferOptions) {
     this.transfer = new Transfer(info, options, (data, progress) => {
       this.emit('progress', data, progress);
     });
