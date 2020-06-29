@@ -98,26 +98,30 @@ export class FtpStrategy extends Strategy {
     return this.handle<number>(() => this.client.size(path));
   };
 
+  exists = async (path: string) => {
+    try {
+      await this.client.rename(path, path);
+    } catch (err) {
+      return false;
+    }
+
+    return true;
+  };
+
   move = (source, dest) => {
     return this.handle(() => this.client.rename(source, dest));
   };
 
   removeFile = (path) => {
-    return this.handle(() => {
-      return this.client.remove(path);
-    });
+    return this.handle(() => this.client.remove(path));
   };
 
   removeEmptyFolder = (path) => {
-    return this.handle(() => {
-      return this.client.removeEmptyDir(path);
-    });
+    return this.handle(() => this.client.removeEmptyDir(path));
   };
 
   removeFolder = (path) => {
-    return this.handle(() => {
-      return this.client.removeDir(path);
-    });
+    return this.handle(() => this.client.removeDir(path));
   };
 
   createFolder = async (path) => {
@@ -131,15 +135,13 @@ export class FtpStrategy extends Strategy {
   };
 
   pwd = () => {
-    return this.handle<string>(() => {
-      return this.client.pwd();
-    });
+    return this.handle<string>(() => this.client.pwd());
   };
 
   send = (command) => {
-    return this.handle<string>(() => {
-      return this.client.send(command).then((r) => r.message);
-    });
+    return this.handle<string>(() =>
+      this.client.send(command).then((r) => r.message),
+    );
   };
 
   protected formatFile = (file: FileInfo): IFile => {

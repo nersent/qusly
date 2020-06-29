@@ -48,6 +48,8 @@ export abstract class Strategy extends EventEmitter {
 
   public abstract size: (path: string) => Promise<number>;
 
+  public abstract exists: (path: string) => Promise<boolean>;
+
   public abstract move: (source: string, dest: string) => Promise<void>;
 
   public abstract removeFile: (path: string) => Promise<void>;

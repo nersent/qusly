@@ -239,6 +239,10 @@ export class Client extends EventEmitter {
     return this.tasks.handle<number>(({ instance }) => instance.size(path));
   }
 
+  public exists(path: string) {
+    return this.tasks.handle<boolean>(({ instance }) => instance.exists(path));
+  }
+
   public move(source: string, dest: string) {
     return this.tasks.handle(({ instance }) => instance.move(source, dest));
   }

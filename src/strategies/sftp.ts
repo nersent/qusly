@@ -170,6 +170,16 @@ export class SftpStrategy extends Strategy {
     return this._stat(path).then((r) => r?.size);
   };
 
+  exists = async (path: string) => {
+    try {
+      await this._stat(path);
+    } catch (err) {
+      return false;
+    }
+
+    return true;
+  };
+
   move = (source, dest) => {
     return this.handle(this.wrapper?.rename, source, dest);
   };
@@ -255,10 +265,10 @@ export class SftpStrategy extends Strategy {
     return this.handleNetwork<T>((resolve, reject) => {
       if (!fn) return resolve(null);
 
-      const promise: Promise<T> = promisify(fn).bind(this.wrapper)(...args);
-
-      promise.then(resolve);
-      promise.catch(reject);
+      fn.bind(this.wrapper)(...args, (err, ...data) => {
+        if (err) return reject(err);
+        resolve(...data);
+      });
     });
   };
 
