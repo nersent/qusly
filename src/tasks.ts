@@ -22,19 +22,25 @@ export class TasksManager<K = number> extends EventEmitter {
 
   protected queue: ITask[] = [];
 
-  protected taskCounter = 0;
+  protected taskCounter = -1;
+
+  protected unavailableWorkers = 0;
 
   public workerFilter: ITasksGroupFilter;
 
   public getWorkerInstance: (index: number, group: string) => K;
 
   protected getWorker(group: string) {
+    if (this.unavailableWorkers === this.workers.length) {
+      return null;
+    }
+
     const filter = this.workerFilter || DEFAULT_GROUP_FILTER;
 
     return this.workers.find((r) => !r.busy && !r.paused && filter(r, group));
   }
 
-  protected getWorkers(indexes: number[]) {
+  protected getWorkers(indexes?: number[]) {
     if (!indexes?.length) return this.workers;
     return indexes.map((r) => this.workers[r]);
   }
@@ -75,11 +81,12 @@ export class TasksManager<K = number> extends EventEmitter {
     });
   }
 
-  protected process = async (task: ITask) => {
-    const worker = this.getWorker(task.group);
+  protected process = async (task: ITask, worker?: ITaskWorker) => {
+    worker = worker || this.getWorker(task.group);
 
     if (worker) {
       worker.busy = true;
+      this.unavailableWorkers++;
 
       const instance = this.getWorkerInstance
         ? this.getWorkerInstance(worker.index, task.group)
@@ -92,6 +99,7 @@ export class TasksManager<K = number> extends EventEmitter {
       } as ITaskHandlerEvent<K>);
 
       worker.busy = false;
+      this.unavailableWorkers--;
 
       this.finishTask(task.id, data, error);
       this.processNext();
@@ -102,24 +110,37 @@ export class TasksManager<K = number> extends EventEmitter {
 
   protected async processNext() {
     if (this.queue.length) {
-      const count = this.workers.filter((r) => !r.busy && !r.paused).length;
-      const tasks = this.queue.splice(0, count);
+      const queue = [];
 
-      tasks.forEach(this.process);
+      for (const task of this.queue) {
+        const worker = this.getWorker(task.group);
+
+        if (worker) {
+          this.process(task, worker);
+        } else {
+          queue.push(task);
+        }
+      }
+
+      this.queue = queue;
     }
   }
 
   protected workersCheck() {
     if (!this.workers.length) {
-      throw new Error('No workers available.');
+      throw new Error('No workers set');
     }
   }
 
   public pauseWorkers(...indexes: number[]) {
+    this.unavailableWorkers += indexes.length;
+
     this.getWorkers(indexes).forEach((r) => (r.paused = true));
   }
 
   public resumeWorkers(...indexes: number[]) {
+    this.unavailableWorkers -= indexes.length;
+
     this.getWorkers(indexes).forEach((r) => (r.paused = false));
     this.processNext();
   }
@@ -144,7 +165,7 @@ export class TasksManager<K = number> extends EventEmitter {
   }
 
   public createTaskId() {
-    return this.taskCounter++;
+    return ++this.taskCounter;
   }
 
   protected finishTask(id: number, data?: any, error?: Error) {

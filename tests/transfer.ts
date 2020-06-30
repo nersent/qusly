@@ -1,8 +1,6 @@
 import 'mocha';
 import * as sinon from 'sinon';
-import { createReadStream, createWriteStream, writeFileSync } from 'fs';
 import { expect } from 'chai';
-import { FileInfo, FileType } from 'basic-ftp';
 
 import { Transfer } from '../src/transfer';
 import { ITransferInfo, ITransfer, ITransferProgress } from '../src/interfaces';
@@ -80,6 +78,14 @@ describe('Transfer', () => {
         startAt: 0,
       };
 
+      const progress: ITransferProgress = {
+        bytes: 1024 * 512,
+        totalBytes: info.totalBytes,
+        eta: 2,
+        percent: 50,
+        speed: 262144,
+      };
+
       const listener = sinon.fake();
 
       // @ts-ignore
@@ -89,15 +95,10 @@ describe('Transfer', () => {
 
       instance.handleProgress(1024 * 512);
 
-      expect(
-        listener.calledOnceWithExactly({ ...transfer }, {
-          bytes: 1024 * 512,
-          totalBytes: info.totalBytes,
-          eta: 2,
-          percent: 50,
-          speed: 262144,
-        } as ITransferProgress),
-      ).equals(true, 'Invalid progress event arguments.');
+      expect(listener.calledOnceWithExactly({ ...transfer }, progress)).equals(
+        true,
+        `Didin\'t emit event correctly`,
+      );
     });
 
     it("doesn't trigger progress listener, if quiet mode is enabled", () => {
@@ -110,7 +111,7 @@ describe('Transfer', () => {
 
       expect(listener.called).equals(
         false,
-        'Progress listener should not be triggered.',
+        'Progress listener should not be triggered',
       );
     });
   });

@@ -29,8 +29,8 @@
     "build": "npm run clean && webpack",
     "prepublishOnly": "npm run build",
     "clean": "rimraf ./build",
-    "test": "mocha -r ts-node/register tests/**/*.ts",
-    "coverage": "nyc npm run test",
+    "test": "mocha -r ts-node/register tests/tasks.ts --timeout 5000",
+    "coverage": "nyc npm run test tests/**/*.ts",
     "report-coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
   },
   "devDependencies": {
