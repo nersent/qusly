@@ -1,4 +1,17 @@
-export * from './interfaces';
-export * from './strategies/ftp';
-export * from './client';
-export * from './tasks';
+export {
+  IClientOptions,
+  IConfig,
+  IFtpConfig,
+  ISFtpConfig,
+  IFile,
+  IFilePermissions,
+  IFileType,
+  ITransfer,
+  ITransferDirectory,
+  ITransferProgress,
+  ITransferProgressListener,
+  ITransferInfo,
+  ITransferOptions,
+} from './interfaces';
+
+export { Client } from './client';

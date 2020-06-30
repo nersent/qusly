@@ -28,7 +28,7 @@ export class FtpStrategy extends Strategy {
   }
 
   protected get socket() {
-    return this.client.ftp.socket;
+    return this.client?.ftp?.socket;
   }
 
   connect = async () => {
