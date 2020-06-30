@@ -22,9 +22,8 @@ export interface ITransferProgress {
   totalBytes?: number;
   /**Estimated time arrival in `seconds`.*/
   eta?: number;
-  /**Speed in `MB/s`.*/
+  /**Speed in bytes per second.*/
   speed?: number;
-  /**Progress in `%`.*/
   percent?: number;
 }
 

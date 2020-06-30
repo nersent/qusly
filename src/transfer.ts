@@ -14,23 +14,34 @@ export class Transfer {
     public options: ITransferOptions,
     public onProgress: ITransferProgressListener,
   ) {
-    this.startTime = new Date().getTime();
+    this.startTime = Date.now();
     this.bytes = info?.startAt ?? 0;
   }
 
   public get elapsed() {
-    return (new Date().getTime() - this.startTime) / 1000;
+    return (Date.now() - this.startTime) / 1000;
   }
 
   public get speed() {
-    return this.bytes / this.elapsed;
+    const elapsed = this.elapsed;
+
+    if (elapsed === 0) {
+      return 0;
+    }
+
+    return Math.round(this.bytes / elapsed);
   }
 
   public get eta() {
-    const rate = this.info.totalBytes / this.speed;
-    const eta = Math.round(rate - this.elapsed);
+    const speed = this.speed;
 
-    return Number.isSafeInteger(eta) ? eta : 0;
+    if (speed === 0) {
+      return null;
+    }
+
+    const rate = this.info.totalBytes / this.speed;
+
+    return Math.round(rate - this.elapsed);
   }
 
   public get percent() {

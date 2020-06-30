@@ -1,8 +1,6 @@
-import { createReadStream, createWriteStream, writeFileSync } from 'fs';
-import * as sinon from 'sinon';
-import { expect } from 'chai';
 import 'mocha';
-import { resolve } from 'path';
+import { createReadStream, createWriteStream, writeFileSync } from 'fs';
+import { expect } from 'chai';
 import { FileInfo, FileType } from 'basic-ftp';
 
 import { repeat } from '../src/utils/array';

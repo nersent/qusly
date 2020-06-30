@@ -8,7 +8,7 @@ export const getTempFilePath = () => {
     mkdirSync(config.tempFolder);
   }
 
-  const path = resolve(config.tempFolder, new Date().getTime().toString());
+  const path = resolve(config.tempFolder, Date.now().toString());
 
   return path;
 };
