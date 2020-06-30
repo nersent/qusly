@@ -5,6 +5,10 @@ import { IFile, IFileType } from '~/interfaces';
 const MSDOS_DATE_REGEX = /[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\s[0-9][0-9]\:[0-9][0-9][PA]M/gi;
 
 export class FtpUtils {
+  /**
+   * Formats raw file info.
+   * Doesn't include `lastModified`.
+   */
   public static formatFile(file: FileInfo): IFile {
     const { permissions, name, size, user, group, type } = file;
 
@@ -37,6 +41,9 @@ export class FtpUtils {
     return 'unknown';
   }
 
+  /**
+   * Handles ms-dos date and JS date object formats.
+   */
   public static getValidDate(str: string) {
     const date = str.trim();
 

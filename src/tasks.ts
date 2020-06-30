@@ -17,6 +17,9 @@ export declare interface TasksManager {
 const DEFAULT_GROUP_FILTER: ITasksGroupFilter = (worker, group) =>
   worker.group === group;
 
+/**
+ * Allows to create multiple channels with given groups.
+ */
 export class TasksManager<K = number> extends EventEmitter {
   private workers: ITaskWorker[] = [];
 

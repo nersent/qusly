@@ -15,7 +15,7 @@ import {
   IFtpOptions,
   ISFtpOptions,
   ISFtpConfig,
-  ITransferDirectory,
+  ITransferDirection,
 } from './interfaces';
 import { Strategy } from './strategies/strategy';
 import { TasksManager } from './tasks';
@@ -24,6 +24,15 @@ import { repeat } from './utils/array';
 import { getPathFromStream } from './utils/file';
 import { SftpStrategy } from './strategies/sftp';
 import { createWriteStream, createReadStream } from 'fs';
+
+type IClientEvents =
+  | 'connect'
+  | 'disconnect'
+  | 'abort'
+  | 'transfer-new'
+  | 'transfer-abort'
+  | 'transfer-finish'
+  | 'transfer-progress';
 
 export declare interface Client {
   on(event: 'connect', listener: () => void): this;
@@ -40,8 +49,17 @@ export declare interface Client {
   once(event: 'transfer-abort', listener: (...ids: number[]) => void): this;
   once(event: 'transfer-finish', listener: (e: ITransfer) => void): this;
   once(event: 'transfer-progress', listener: ITransferProgressListener): this;
+
+  addListener(event: IClientEvents, listener: Function): this;
+  removeListener(event: IClientEvents, listener: Function): this;
 }
 
+/**
+ * High-level API, which handles strategies.
+ *
+ * It allows to call methods asynchronously by using a powerful task manager.
+ * It handles transfers, so they can be aborted at any time.
+ */
 export class Client extends EventEmitter {
   protected _config?: IConfig;
 
@@ -61,10 +79,16 @@ export class Client extends EventEmitter {
 
   protected transfers = new Map<number, number>(); // task id => worker index;
 
+  /**
+   * Previously set config.
+   */
   public get config() {
     return this._config;
   }
 
+  /**
+   * You can set a pool of clients, which will create multiple channels for faster communication.
+   */
   constructor(options?: IClientOptions) {
     super();
 
@@ -120,13 +144,23 @@ export class Client extends EventEmitter {
     );
   };
 
-  public async connect(config: IFtpConfig, options?: IFtpOptions);
-  public async connect(config: ISFtpConfig, options?: ISFtpOptions);
-  public async connect(config: IConfig, options?: IOptions) {
+  /**
+   * Connects to a server. If you're already connected, it disconnects.
+   *
+   * It saves `config` and `options`, so you can call it without providing these arguments later.
+   */
+  public async connect(config?: IFtpConfig, options?: IFtpOptions);
+  public async connect(config?: ISFtpConfig, options?: ISFtpOptions);
+  public async connect(config?: IConfig, options?: IOptions) {
+    if (!this._config) {
+      throw new Error('Config must be provided!');
+    }
+
     await this.disconnect();
 
-    this._config = config;
-    this._connectionOptions = options;
+    if (config) this._config = config;
+    if (options) this._connectionOptions = options;
+
     this.setWorkers();
 
     await Promise.all(this.workers.map((r) => r.connect()));
@@ -136,6 +170,9 @@ export class Client extends EventEmitter {
     await Promise.all(this.workers.map((r) => r.disconnect()));
   }
 
+  /**
+   * Aborts every proccesed and waiting task.
+   */
   public async abort() {
     this.emit('transfer-abort', ...this.transfers.keys());
 
@@ -144,6 +181,9 @@ export class Client extends EventEmitter {
     await Promise.all(this.workers.map((r) => r.abort()));
   }
 
+  /**
+   * Aborts specified file transfers.
+   */
   public async abortTransfer(...transferIds: number[]) {
     const workerIndexes: number[] = [];
     const instances: Strategy[] = [];
@@ -168,6 +208,12 @@ export class Client extends EventEmitter {
     this.tasks.resumeWorkers(...workerIndexes);
   }
 
+  /**
+   * Downloads a remote file.
+   *
+   * @param dest can be either `Writable` stream or path of a local file.
+   * @param startAt can be set to resume download.
+   */
   public download(
     dest: Writable | string,
     remotePath: string,
@@ -204,6 +250,11 @@ export class Client extends EventEmitter {
     );
   }
 
+  /**
+   * Uploads a local file.
+   *
+   * @param source can be either `Readable` stream or path of a remote file.
+   */
   public upload(source: Readable | string, remotePath: string) {
     let stream: Readable;
     let localPath: string;
@@ -231,18 +282,31 @@ export class Client extends EventEmitter {
     );
   }
 
+  /**
+   * Lists files in a folder.
+   */
   public list(path?: string) {
     return this.tasks.handle<IFile[]>(({ instance }) => instance.list(path));
   }
 
+  /**
+   * Gets size of a file.
+   */
   public size(path: string) {
     return this.tasks.handle<number>(({ instance }) => instance.size(path));
   }
 
+  /**
+   * Checks if a file or a folder exists.
+   */
   public exists(path: string) {
     return this.tasks.handle<boolean>(({ instance }) => instance.exists(path));
   }
 
+  /**
+   * Moves a file or a folder.
+   * Can be used to rename.
+   */
   public move(source: string, dest: string) {
     return this.tasks.handle(({ instance }) => instance.move(source, dest));
   }
@@ -257,6 +321,9 @@ export class Client extends EventEmitter {
     );
   }
 
+  /**
+   * Removes a folder and all of its content.
+   */
   public removeFolder(path: string) {
     return this.tasks.handle(({ instance }) => instance.removeFolder(path));
   }
@@ -265,14 +332,23 @@ export class Client extends EventEmitter {
     return this.tasks.handle(({ instance }) => instance.createFolder(path));
   }
 
+  /**
+   * Creates an empty file. Similar to `touch` in Unix.
+   */
   public createEmptyFile(path: string) {
     return this.tasks.handle(({ instance }) => instance.createEmptyFile(path));
   }
 
+  /**
+   * Gets current working directory.
+   */
   public pwd() {
     return this.tasks.handle<string>(({ instance }) => instance.pwd());
   }
 
+  /**
+   * Sends a raw command. Support not guaranteed.
+   */
   public send(command: string) {
     return this.tasks.handle<string>(({ instance }) => instance.send(command));
   }
@@ -291,10 +367,10 @@ export class Client extends EventEmitter {
 
   protected async handleTransfer(
     fn: ITaskHandler<Strategy>,
-    directory: ITransferDirectory,
+    direction: ITransferDirection,
   ) {
     const taskId = this.tasks.createTaskId();
-    const transfer: ITransfer = { id: taskId, ...directory };
+    const transfer: ITransfer = { id: taskId, ...direction };
 
     this.transfers.set(taskId, null);
     this.emit('transfer-new', transfer);

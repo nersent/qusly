@@ -18,6 +18,9 @@ export declare interface Strategy {
   once(event: 'disconnect', listener: () => void): this;
 }
 
+/**
+ * An abstract class, which allows to create a custom protocol.
+ */
 export abstract class Strategy extends EventEmitter {
   public abstract readonly connected: boolean;
 

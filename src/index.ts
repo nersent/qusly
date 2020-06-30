@@ -7,7 +7,7 @@ export {
   IFilePermissions,
   IFileType,
   ITransfer,
-  ITransferDirectory,
+  ITransferDirection,
   ITransferProgress,
   ITransferProgressListener,
   ITransferInfo,

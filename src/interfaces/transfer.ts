@@ -1,22 +1,34 @@
-export interface ITransfer extends ITransferDirectory {
+/**
+ * Basic transfer info.
+ */
+export interface ITransfer extends ITransferDirection {
   id?: number;
 }
 
-export interface ITransferDirectory {
+/**
+ * Transfer directions.
+ */
+export interface ITransferDirection {
   remotePath?: string;
   localPath?: string;
 }
 
-export interface ITransferInfo extends ITransferDirectory {
-  id?: number;
+/**
+ * Used for preparing a new transfer in `Strategy`.
+ */
+export interface ITransferInfo extends ITransfer {
   startAt?: number;
   totalBytes?: number;
 }
 
 export interface ITransferOptions {
+  /**Determinates, if progress listener will be emitted. */
   quiet?: boolean;
 }
 
+/**
+ * Network info about the transfer.
+ */
 export interface ITransferProgress {
   bytes?: number;
   totalBytes?: number;
