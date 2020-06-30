@@ -174,7 +174,7 @@ export class Client extends EventEmitter {
   public async connect(config?: IFtpConfig, options?: IFtpOptions);
   public async connect(config?: ISFtpConfig, options?: ISFtpOptions);
   public async connect(config?: IConfig, options?: IOptions) {
-    if (!this._config) {
+    if (!this._config && !config) {
       throw new Error('Config must be provided!');
     }
 
