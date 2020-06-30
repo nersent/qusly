@@ -344,9 +344,16 @@ describe('Tasks', () => {
 
         if (counter === 5) {
           expect(str).equals('abcde');
+          expect(instance['queue'].length).equals(0, 'Queue needs to be empty');
+          expect(!instance['workers'].find((r) => r.busy || r.paused)).equals(
+            false,
+            'Workers need to be available',
+          );
+
           done();
         }
       };
+
       instance.handle(enqueue('d', 10), 'a');
       instance.handle(enqueue('e'), 'a');
       instance.handle(enqueue('a'), 'b');
