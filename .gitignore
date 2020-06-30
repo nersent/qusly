@@ -16,3 +16,4 @@ coverage
 src-old
 tests-old
 .temp
+.docs
