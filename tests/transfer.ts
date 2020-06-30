@@ -25,7 +25,7 @@ describe('Transfer', () => {
       instance.startTime = Date.now() - 2000;
       instance['bytes'] = 1024 * 1024;
 
-      expect(instance.speed).equals(1024 * 512);
+      expect(instance.speed).closeTo(1024 * 512, 2048);
     });
 
     it('returns 0 if elapsed time is 0', () => {
@@ -44,7 +44,7 @@ describe('Transfer', () => {
       instance.startTime = Date.now() - 2000;
       instance['bytes'] = 1024 * 512;
 
-      expect(instance.eta).equals(2);
+      expect(Math.round(instance.eta)).equals(2);
     });
 
     it('returns null if speed is 0', () => {
@@ -83,7 +83,6 @@ describe('Transfer', () => {
         totalBytes: info.totalBytes,
         eta: 2,
         percent: 50,
-        speed: 262144,
       };
 
       const listener = sinon.fake();
@@ -92,13 +91,19 @@ describe('Transfer', () => {
       const instance = new Transfer(info, { quiet: false }, listener);
 
       instance.startTime = Date.now() - 2000;
-
       instance.handleProgress(1024 * 512);
 
-      expect(listener.calledOnceWithExactly({ ...transfer }, progress)).equals(
-        true,
-        `Didin\'t emit event correctly`,
-      );
+      expect(listener.calledOnce).equals(true, 'Listener should be called');
+
+      const args = listener.getCalls()[0].args as [
+        ITransferInfo,
+        ITransferProgress,
+      ];
+
+      expect(args[0]).eqls(transfer, 'Incorrect transfer info');
+
+      delete args[1].speed;
+      expect({ ...args[1] }).eqls(progress, 'Incorrect transfer progress');
     });
 
     it("doesn't trigger progress listener, if quiet mode is enabled", () => {
