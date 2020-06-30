@@ -15,3 +15,6 @@ export {
 } from './interfaces';
 
 export { Client } from './client';
+export { Strategy } from './strategies/strategy';
+export { FtpStrategy } from './strategies/ftp';
+export { SftpStrategy } from './strategies/sftp';
