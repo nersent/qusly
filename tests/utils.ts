@@ -113,17 +113,33 @@ describe('Utils', () => {
     });
 
     describe('getValidDate()', () => {
-      it('returns a date object', () => {
+      it('supports js date format', () => {
         const date = new Date().toUTCString();
         const res = FtpUtils.getValidDate(date);
 
         expect(res.toUTCString()).equals(date);
       });
 
-      it('returns a date object from ms-dos format', () => {
+      it('supports ms-dos format (AM)', () => {
+        const res = FtpUtils.getValidDate('12-01-05 06:02AM');
+
+        expect(res.getFullYear()).equals(2005);
+        expect(res.getMonth()).equals(11);
+        expect(res.getDate()).equals(1);
+
+        expect(res.getHours()).equals(6);
+        expect(res.getMinutes()).equals(2);
+      });
+
+      it('supports ms-dos format (PM)', () => {
         const res = FtpUtils.getValidDate('08-11-19 02:46PM');
 
-        expect(res.toUTCString()).equals('Sun, 11 Aug 2019 12:46:00 GMT');
+        expect(res.getFullYear()).equals(2019);
+        expect(res.getMonth()).equals(7);
+        expect(res.getDate()).equals(11);
+
+        expect(res.getHours()).equals(14);
+        expect(res.getMinutes()).equals(46);
       });
     });
 
