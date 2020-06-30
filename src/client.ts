@@ -108,18 +108,25 @@ export class Client extends EventEmitter {
     delete this.strategies[protocol];
   }
 
+  protected createWorker() {
+    const { protocol } = this.config;
+    const strategy = this.strategies[protocol];
+
+    if (!strategy) {
+      throw new Error(`Strategy for protocol ${protocol} not found.`);
+    }
+
+    return new strategy(this.config, this._connectionOptions);
+  }
+
   protected setWorkers() {
     this.workers.forEach(this.clearWorkerEvents);
     this.workers = [];
 
-    const { protocol } = this.config;
     const { pool } = this.options;
 
     for (let i = 0; i < pool; i++) {
-      const worker = new this.strategies[protocol](
-        this.config,
-        this._connectionOptions,
-      );
+      const worker = this.createWorker();
 
       this.handleWorkerEvents(worker);
 
