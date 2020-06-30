@@ -14,3 +14,5 @@ test
 coverage
 *.lcov
 src-old
+tests-old
+.temp
