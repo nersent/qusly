@@ -57,8 +57,7 @@ export declare interface Client {
 /**
  * High-level API, which handles strategies.
  *
- * It allows to call methods asynchronously by using a powerful task manager.
- * It handles transfers, so they can be aborted at any time.
+ * It allows to call methods asynchronously.
  */
 export class Client extends EventEmitter {
   protected _config?: IConfig;
