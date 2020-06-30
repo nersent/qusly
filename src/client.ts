@@ -71,13 +71,15 @@ export class Client extends EventEmitter {
 
   protected tasks = new TasksManager<Strategy>();
 
+  protected transfers = new Map<number, number>(); // task id => worker index;
+
+  protected strategy: typeof Strategy;
+
   protected strategies: IStrategiesMap = {
     ftp: FtpStrategy,
     ftps: FtpStrategy,
     sftp: SftpStrategy,
   };
-
-  protected transfers = new Map<number, number>(); // task id => worker index;
 
   /**
    * Previously set config.
@@ -98,26 +100,46 @@ export class Client extends EventEmitter {
     this.tasks.workerFilter = this.workerFilter;
   }
 
-  protected createWorker(): Strategy {
-    const { protocol } = this.config;
-    return new this.strategies[protocol](this.config, this._connectionOptions);
+  public registerProtocol(protocol: string, strategy: typeof Strategy) {
+    this.strategies[protocol] = strategy;
+  }
+
+  public unregisterProtocol(protocol: string) {
+    delete this.strategies[protocol];
   }
 
   protected setWorkers() {
+    this.workers.forEach(this.clearWorkerEvents);
+    this.workers = [];
+
+    const { protocol } = this.config;
     const { pool } = this.options;
 
     for (let i = 0; i < pool; i++) {
-      const worker = this.createWorker();
+      const worker = new this.strategies[protocol](
+        this.config,
+        this._connectionOptions,
+      );
 
-      worker.on('connect', this.onConnect);
-      worker.on('disconnect', this.onDisconnect);
-      worker.on('progress', this.onProgress);
+      this.handleWorkerEvents(worker);
 
       this.workers.push(worker);
     }
 
     this.setWorkerGroups();
   }
+
+  protected handleWorkerEvents = (instance: Strategy) => {
+    instance.on('connect', this.onConnect);
+    instance.on('disconnect', this.onDisconnect);
+    instance.on('progress', this.onProgress);
+  };
+
+  protected clearWorkerEvents = (instance: Strategy) => {
+    instance.removeListener('connect', this.onConnect);
+    instance.removeListener('disconnect', this.onDisconnect);
+    instance.removeListener('progress', this.onProgress);
+  };
 
   protected setWorkerGroups() {
     const { pool, transferPool } = this.options;
