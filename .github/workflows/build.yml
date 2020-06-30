@@ -29,3 +29,9 @@ jobs:
 
       - name: Build the app
         run: yarn build
+
+      - name: Run the tests
+        run: yarn coverage
+
+      - name: Report the code coverage
+        run: yarn report-coverage
