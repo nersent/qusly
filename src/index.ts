@@ -1,4 +1,5 @@
 export {
+  IProtocol,
   IClientOptions,
   IConfig,
   IFtpConfig,

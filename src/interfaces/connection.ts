@@ -1,10 +1,12 @@
 import { ConnectionOptions } from 'tls';
 
+export type IProtocol = 'fto' | 'ftps' | 'sftp';
+
 /**
  * Basic connection config.
  */
 export interface IConfig {
-  protocol: string;
+  protocol: IProtocol | string;
 }
 
 /**
