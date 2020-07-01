@@ -28,7 +28,6 @@ import { createWriteStream, createReadStream } from 'fs';
 type IClientEvents =
   | 'connect'
   | 'disconnect'
-  | 'abort'
   | 'transfer-new'
   | 'transfer-abort'
   | 'transfer-finish'
@@ -37,7 +36,6 @@ type IClientEvents =
 export declare interface Client {
   on(event: 'connect', listener: () => void): this;
   on(event: 'disconnect', listener: () => void): this;
-  on(event: 'abort', listener: () => void): this;
   on(event: 'transfer-new', listener: (e: ITransfer) => void): this;
   on(event: 'transfer-abort', listener: (...ids: number[]) => void): this;
   on(event: 'transfer-finish', listener: (e: ITransfer) => void): this;
