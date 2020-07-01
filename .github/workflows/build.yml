@@ -34,4 +34,7 @@ jobs:
         run: yarn coverage
 
       - name: Report the code coverage
-        run: yarn report-coverage
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true

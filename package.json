@@ -31,8 +31,7 @@
     "clean-build": "rimraf ./build",
     "clean-docs": "rimraf ./.docs",
     "test": "mocha -r ts-node/register tests/**/*.ts --timeout 5000",
-    "coverage": "nyc npm run test",
-    "report-coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
+    "coverage": "nyc --reporter=lcov npm run test",
     "docs": "concurrently \"npm run clean-docs\" \"typedoc\""
   },
   "devDependencies": {
