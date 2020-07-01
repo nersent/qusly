@@ -1,53 +1,45 @@
-import { Client } from '../models';
+/**
+ * Basic transfer info.
+ */
+export interface ITransfer extends ITransferDirection {
+  id?: number;
+}
 
-export type ITransferStatus = 'finished' | 'aborted' | 'closed';
+/**
+ * Transfer directions.
+ */
+export interface ITransferDirection {
+  remotePath?: string;
+  localPath?: string;
+}
 
-export type ITransferType = 'download' | 'upload';
-
-export type IConcurrentTransferStatus =
-  | 'pending'
-  | 'transfering'
-  | ITransferStatus;
+/**
+ * Used for preparing a new transfer in `Strategy`.
+ */
+export interface ITransferInfo extends ITransfer {
+  startAt?: number;
+  totalBytes?: number;
+}
 
 export interface ITransferOptions {
-  /**If set to `true`, will prevent emitting `progress` event.*/
+  /**Determinates, if progress listener will be emitted. */
   quiet?: boolean;
-  /**Offset in `bytes` to start uploading from.*/
-  startAt?: number;
 }
 
-export interface ITransferInfo {
-  /**Type of the transfer.*/
-  type: ITransferType;
-  /**Path to a local file.*/
-  localPath: string;
-  /**Path to a remote file.*/
-  remotePath: string;
-  /**Date when the transfer has started.*/
-  startAt: Date;
-  /**Instance of `Client`.*/
-  context: Client;
-}
-
+/**
+ * Network info about the transfer.
+ */
 export interface ITransferProgress {
-  /**Sent bytes.*/
-  buffered: number;
+  bytes?: number;
+  totalBytes?: number;
   /**Estimated time arrival in `seconds`.*/
-  eta: number;
-  /**Speed of the transfer in `MB/s`.*/
-  speed: number;
-  /**Progress of the transfer in `%`.*/
-  percent: number;
-  /**Size of the file in `bytes`.*/
-  size: number;
+  eta?: number;
+  /**Speed in bytes per second.*/
+  speed?: number;
+  percent?: number;
 }
 
-export type IConcurrentTransferInfo = Omit<
-  ITransferInfo,
-  'context' | 'startAt'
-> & {
-  /**Unique id of the transfer.*/
-  id: string;
-  /**Status of the transfer.*/
-  status: IConcurrentTransferStatus;
-};
+export type ITransferProgressListener = (
+  transfer: ITransfer,
+  progress: ITransferProgress,
+) => void;

@@ -14,74 +14,79 @@
 
 </div>
 
-Qusly-Core is an **FTP/FTPS/SFTP** client, built around [ssh2](https://github.com/mscdex/ssh2) and [basic-ftp](https://github.com/patrickjuchli/basic-ftp). It was built for **[Qusly](https://www.github.com/qusly/qusly)** - _an elegant desktop client_.
+Qusly-Core is a powerful multi-protocol library for file transfer. Created for [Qusly](https://github.com/qusly/qusly).
 
-### Features
+# Features
 
-- Supports **FTP, FTPS and SFTP**
-- Modern, promise based API
-- Informative progress event, which includes **eta** and **speed rate**
-- Client for **concurrent** file transfer
+- Supports **FTP, FTPS, SFTP**
+- [API that allows to call methods asynchronously](#tasksQueue)
+- Informative transfer progress info - e.g. eta, speed in B/s
+- [Connection pool](#connectionPool)
+- Ability to register custom protocols
 
-## Installation
+# Example
+
+```js
+import { Client } from 'qusly-core';
+
+async function main() {
+  const client = new Client({ pool: 2 });
+
+  await client.connect({
+    protocol: 'ftp',
+    host: 'www.example.com',
+    user: 'root',
+    password: 'password',
+  });
+
+  // It will handle all methods at once.
+  const [documents, videos] = await Promise.all([
+    client.list('/documents'),
+    client.list('/videos'),
+  ]);
+
+  console.log(document, videos);
+
+  await client.disconnect();
+}
+
+main();
+```
+
+# Installation
 
 ```bash
 $ npm install qusly-core
 ```
 
-## Example
+# [Documentation](https://wexond.net/public/qusly/core/docs/index.html)
 
-Listing files:
+# [Roadmap](https://github.com/qusly/qusly-core/projects)
 
-```js
-import { Client } from 'qusly-core';
+# Components
 
-async function init() {
-  const client = new Client();
+We use [ssh2](https://github.com/mscdex/ssh2) and [basic-ftp](https://github.com/patrickjuchli/basic-ftp) under the hood.
 
-  await client.connect({
-    host: 'www.example.com',
-    user: 'root',
-    password: 'password',
-    protocol: 'sftp',
-  });
+<a name="tasksQueue"></a>
 
-  const files = await client.readDir('/documents');
+# Tasks queue
 
-  console.log(files);
+Certain protocols such as `ftp` don\'t support handling many request at the same time. When app calls API many times from many places, handling manually these cases is very hard - you can't use `await` in the most cases.
 
-  await client.disconnect();
-}
+What if you want to use many connections to speed up transfering files?
 
-init();
-```
+That's where we come in. This library supports it all thanks to the powerful [task manager](https://github.com/qusly/qusly-core/blob/master/src/tasks.ts).
 
-Output:
+<a name="connectionPool"></a>
 
-```js
-[
-  {
-    name: 'logs.txt',
-    type: 'file',
-    ext: '.txt',
-    size: 43,
-    user: 'root',
-    group: 'root',
-    date: '2019-05-29T22:00:00.000Z',
-    permissions: {
-      user: 6,
-      group: 6,
-    },
-  },
-];
-```
+# Connection pool
 
-## Table of contents
+<!-- This library allows you to use all connections from pool for every method or one connection for generic methods e.g. listing files -->
 
-- [Client](/docs/client.md)
-- [Examples](/examples)
-- [ConcurrentClient](/docs/concurrent-client.md)
-- [Types](/docs/types.md)
+Allows you to:
+
+- Use all connections for every method
+- Use one connection to generic methods e.g. listing files and the rest for transfering files
 
 <a href="https://www.patreon.com/bePatron?u=21429620">
   <img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" width="160">

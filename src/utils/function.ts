@@ -1,6 +1,6 @@
-import { ITaskResponse } from '../interfaces';
+import { ITaskResponse } from '~/interfaces';
 
-export const safeExec = async (
+export const execFunction = async (
   f: Function,
   ...args: any
 ): Promise<ITaskResponse> => {

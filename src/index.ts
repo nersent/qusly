@@ -1,3 +1,22 @@
-export { Client, ConcurrentClient } from './models';
-export * from './interfaces';
-export { makeId, createFileName } from './utils';
+export {
+  IClientOptions,
+  IConfig,
+  IFtpConfig,
+  ISFtpConfig,
+  IFile,
+  IFilePermissions,
+  IFileType,
+  ITransfer,
+  ITransferDirection,
+  ITransferProgress,
+  ITransferProgressListener,
+  ITransferInfo,
+  ITransferOptions,
+} from './interfaces';
+
+export { Client } from './client';
+export { Strategy } from './strategies/strategy';
+export { FtpStrategy } from './strategies/ftp';
+export { SftpStrategy } from './strategies/sftp';
+
+export { execFunction } from './utils/function';

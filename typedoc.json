@@ -1,0 +1,16 @@
+{
+  "mode": "file",
+  "out": ".docs",
+  "target": "es6",
+  "moduleResolution": "node",
+  "readme": "none",
+  "plugin": "typedoc-plugin-extras",
+  "favicon": "./static/logo.png",
+
+  "inputFiles": ["./src/transfer"],
+
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeNotExported": true,
+  "excludeExternals": true
+}
