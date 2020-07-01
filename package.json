@@ -24,6 +24,9 @@
   "homepage": "https://github.com/xnerhu/qusly-core#readme",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "files": [
+    "build"
+  ],
   "scripts": {
     "dev": "cross-env NODE_ENV=development webpack-dev-server",
     "build": "concurrently \"npm run clean-build\" \"webpack\"",
