@@ -1,6 +1,6 @@
 import { ConnectionOptions } from 'tls';
 
-export type IProtocol = 'fto' | 'ftps' | 'sftp';
+export type IProtocol = 'ftp' | 'ftps' | 'sftp';
 
 /**
  * Basic connection config.
