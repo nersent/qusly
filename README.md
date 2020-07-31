@@ -69,7 +69,7 @@ We use [ssh2](https://github.com/mscdex/ssh2) and [basic-ftp](https://github.com
 
 <a name="tasksQueue"></a>
 
-# Tasks queue
+# Task queue
 
 Certain protocols such as `ftp` don\'t support handling many request at the same time. When app calls API many times from many places, handling manually these cases is very hard - you can't use `await` in the most cases.
 
