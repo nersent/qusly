@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import { Writable, Readable } from 'stream';
+import { createWriteStream, createReadStream } from 'fs';
 
 import {
   IConfig,
@@ -21,9 +22,8 @@ import { Strategy } from './strategies/strategy';
 import { TasksManager } from './tasks';
 import { FtpStrategy } from './strategies/ftp';
 import { repeat } from './utils/array';
-import { getPathFromStream } from './utils/file';
+import { getPathFromStream, getFileSize } from './utils/file';
 import { SftpStrategy } from './strategies/sftp';
-import { createWriteStream, createReadStream } from 'fs';
 
 type IClientEvents =
   | 'connect'
@@ -295,7 +295,7 @@ export class Client extends EventEmitter {
 
     return this.handleTransfer(
       async ({ instance, taskId }) => {
-        const totalBytes = await instance.size(remotePath);
+        const totalBytes = await getFileSize(localPath);
 
         await instance.upload(stream, {
           id: taskId,
