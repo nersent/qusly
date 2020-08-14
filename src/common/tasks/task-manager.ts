@@ -1,14 +1,13 @@
-import { ITask, ITaskCreateOptions } from '../interfaces';
+import { ITask, ITaskCreateOptions } from '~/common/interfaces';
 import { TaskWorker } from './task-worker';
+import { WorkerManager } from './worker-manager';
 
-export abstract class TaskManager {
+export class TaskManager {
   private queue: ITask[] = [];
 
   private static taskIdCounter = 0;
 
-  protected abstract checkWorkers(group: number);
-
-  protected abstract getAvailableWorker(group: number): TaskWorker;
+  constructor(protected workerManager: WorkerManager) {}
 
   protected createTaskId() {
     return TaskManager.taskIdCounter++;
@@ -29,15 +28,12 @@ export abstract class TaskManager {
     };
   }
 
-  public enqueue<T extends (...args: any[]) => any>(
-    fn: T,
-    options?: ITaskCreateOptions,
-  ): Promise<ReturnType<typeof fn>> {
+  public enqueue<T>(fn: Function, options?: ITaskCreateOptions): Promise<T> {
     if (typeof fn !== 'function') {
       throw new Error('Invalid function');
     }
 
-    if (!this.checkWorkers(options?.group)) {
+    if (!this.workerManager.check(options?.group)) {
       throw new Error('No workers set');
     }
 
@@ -53,7 +49,7 @@ export abstract class TaskManager {
       throw new Error('Invalid task');
     }
 
-    const worker = _worker || this.getAvailableWorker(task.group);
+    const worker = _worker || this.workerManager.getAvailable(task.group);
 
     if (worker) {
       worker.busy = true;
@@ -79,7 +75,7 @@ export abstract class TaskManager {
     const queue = [];
 
     this.queue.forEach((task) => {
-      const worker = this.getAvailableWorker(task.group);
+      const worker = this.workerManager.getAvailable(task.group);
 
       if (worker) {
         this.handle(task, worker);

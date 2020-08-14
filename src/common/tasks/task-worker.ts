@@ -1,4 +1,4 @@
-import { ITask } from '../interfaces';
+import { ITask } from '~/common/interfaces';
 
 export abstract class TaskWorker {
   public busy = false;
