@@ -1,8 +1,24 @@
 import { Strategy } from '~/strategies/strategy';
-import { throws } from 'assert';
+import { FtpStrategy } from '~/strategies/ftp';
 
 export class StrategyManager {
+  private static _instance: StrategyManager;
+
   private map = new Map<string, typeof Strategy>();
+
+  public static get instance() {
+    if (!this._instance) {
+      this._instance = new StrategyManager();
+      this._instance.registerDefaultStrategies();
+    }
+
+    return this._instance;
+  }
+
+  private registerDefaultStrategies() {
+    this.register('ftp', FtpStrategy);
+    this.register('ftps', FtpStrategy);
+  }
 
   public register(protocol: string, provider: any) {
     if (!protocol) throw new Error(`Protocol ${protocol} is not provided`);
@@ -11,8 +27,6 @@ export class StrategyManager {
       throw new Error(`Protocol ${protocol} is already registered`);
 
     this.map.set(protocol, provider);
-
-    return this;
   }
 
   public unregister(protocol: string) {
@@ -20,8 +34,6 @@ export class StrategyManager {
       throw new Error(`Protocol ${protocol} not found`);
 
     this.map.delete(protocol);
-
-    return this;
   }
 
   public get(protocol: string) {

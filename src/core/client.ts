@@ -28,8 +28,6 @@ export class Client extends EventEmitter {
 
   private taskFactory = TaskFactory.create(this.taskManager);
 
-  protected strategyManager = new StrategyManager();
-
   /**
    * Previously set config.
    */
@@ -41,13 +39,6 @@ export class Client extends EventEmitter {
     super();
 
     this.options = { pool: 1, ...options };
-    this.registerDefaultStrategies();
-  }
-
-  private registerDefaultStrategies() {
-    this.strategyManager
-      .register('ftp', FtpStrategy)
-      .register('ftps', FtpStrategy);
   }
 
   public async connect(config?: IFtpConfig, options?: IFtpOptions);
@@ -66,7 +57,7 @@ export class Client extends EventEmitter {
       this.options,
       this._config,
       this._connectionOptions,
-      this.strategyManager.get(config.protocol),
+      StrategyManager.instance.get(config.protocol),
     );
 
     await Promise.all(
