@@ -21,3 +21,5 @@ export { FtpStrategy } from './strategies/ftp';
 export { SftpStrategy } from './strategies/sftp';
 
 export { execFunction } from './utils/function';
+
+export * as Tasks from './task-manager';
