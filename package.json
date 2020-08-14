@@ -1,6 +1,6 @@
 {
   "name": "qusly-core",
-  "version": "4.0.3",
+  "version": "4.1.0",
   "description": "Powerful multi-protocol library for file transfer.",
   "keywords": [
     "ftp",
@@ -16,7 +16,6 @@
     "name": "Mikołaj Palkiewicz",
     "email": "xnerhu@gmail.com"
   },
-  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xnerhu/qusly-core.git"
