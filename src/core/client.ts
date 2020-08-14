@@ -11,9 +11,9 @@ import {
   IClientOptions,
 } from '~/interfaces';
 import { StrategyManager } from './strategies/strategy-manager';
-import { FtpStrategy } from '~/core/strategies/strategy-ftp';
 import { TaskManager } from '~/common/tasks/task-manager';
 import { WorkerManagerImpl } from './tasks/worker-manager-impl';
+import { Strategy } from '~/strategies/strategy';
 
 export class Client extends EventEmitter {
   protected _config?: IConfig;
@@ -41,6 +41,10 @@ export class Client extends EventEmitter {
     this.options = { pool: 1, ...options };
   }
 
+  protected getStrategy(protocol: string): typeof Strategy {
+    return StrategyManager.get(protocol);
+  }
+
   public async connect(config?: IFtpConfig, options?: IFtpOptions);
   public async connect(config?: ISFtpConfig, options?: ISFtpOptions);
   public async connect(config?: IConfig, options?: IOptions) {
@@ -57,7 +61,7 @@ export class Client extends EventEmitter {
       this.options,
       this._config,
       this._connectionOptions,
-      StrategyManager.instance.get(config.protocol),
+      this.getStrategy(config.protocol),
     );
 
     await Promise.all(

@@ -1,43 +1,33 @@
 import { Strategy } from '~/strategies/strategy';
 import { FtpStrategy } from '~/strategies/ftp';
 
+interface IStrategyMap {
+  [key: string]: typeof Strategy;
+}
+
 export class StrategyManager {
-  private static _instance: StrategyManager;
+  private static map: IStrategyMap = {
+    ftp: FtpStrategy,
+    ftps: FtpStrategy,
+  };
 
-  private map = new Map<string, typeof Strategy>();
-
-  public static get instance() {
-    if (!this._instance) {
-      this._instance = new StrategyManager();
-      this._instance.registerDefaultStrategies();
-    }
-
-    return this._instance;
-  }
-
-  private registerDefaultStrategies() {
-    this.register('ftp', FtpStrategy);
-    this.register('ftps', FtpStrategy);
-  }
-
-  public register(protocol: string, provider: any) {
+  public static register(protocol: string, provider: any) {
     if (!protocol) throw new Error(`Protocol ${protocol} is not provided`);
     if (!provider) throw new Error('Strategy is not provided');
-    if (this.map.has(protocol))
+    if (this.map[protocol])
       throw new Error(`Protocol ${protocol} is already registered`);
 
-    this.map.set(protocol, provider);
+    this.map[protocol] = provider;
   }
 
-  public unregister(protocol: string) {
-    if (!this.map.has(protocol))
-      throw new Error(`Protocol ${protocol} not found`);
+  public static unregister(protocol: string) {
+    if (!this.map[protocol]) throw new Error(`Protocol ${protocol} not found`);
 
-    this.map.delete(protocol);
+    delete this.map[protocol];
   }
 
-  public get(protocol: string) {
-    const strategy = this.map.get(protocol);
+  public static get(protocol: string) {
+    const strategy = this.map[protocol];
 
     if (!strategy)
       throw new Error(`Strategy for protocol ${protocol} not found`);
