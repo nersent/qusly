@@ -2,13 +2,18 @@ import { WorkerManager } from '~/common/tasks/worker-manager';
 import { TaskWorker } from '~/common/tasks/task-worker';
 import { TaskWorkerImpl } from './task-worker-impl';
 import { Strategy } from '~/strategies/strategy';
-import { IConfig, IOptions, IClientOptions } from '~/interfaces';
+import { IClientOptions } from '~/interfaces';
 import { TaskGroup } from '../constants/task-group';
+import { Client } from '../client';
 
 export class WorkerManagerImpl extends WorkerManager {
   public workers: TaskWorkerImpl[] = [];
 
-  public check(group: number) {
+  constructor(private client: Client) {
+    super();
+  }
+
+  public check() {
     return this.workers.length !== 0;
   }
 
@@ -16,12 +21,9 @@ export class WorkerManagerImpl extends WorkerManager {
     return this.workers.find((r) => r.isAvailable(group));
   }
 
-  public prepare(
-    options: IClientOptions,
-    config: IConfig,
-    connectionOptions: IOptions,
-    strategy: typeof Strategy,
-  ) {
+  public prepare(strategy: typeof Strategy) {
+    const { options, config, connectionOptions } = this.client;
+
     for (let i = 0; i < options.pool; i++) {
       const instance = new (strategy as any)(config, connectionOptions);
       const group = this.determinateWorkerGroup(i, options);

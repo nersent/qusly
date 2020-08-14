@@ -16,17 +16,21 @@ import { WorkerManagerImpl } from './tasks/worker-manager-impl';
 import { Strategy } from '~/strategies/strategy';
 
 export class Client extends EventEmitter {
+  protected _options: IClientOptions;
+
   protected _config?: IConfig;
 
   protected _connectionOptions?: IOptions;
 
-  protected options: IClientOptions;
-
-  private workerManager = new WorkerManagerImpl();
+  private workerManager = new WorkerManagerImpl(this);
 
   private taskManager = new TaskManager(this.workerManager);
 
   private taskFactory = TaskFactory.create(this.taskManager);
+
+  public get options() {
+    return this._options;
+  }
 
   /**
    * Previously set config.
@@ -35,10 +39,14 @@ export class Client extends EventEmitter {
     return this._config;
   }
 
+  public get connectionOptions() {
+    return this._connectionOptions;
+  }
+
   constructor(options?: IClientOptions) {
     super();
 
-    this.options = { pool: 1, ...options };
+    this._options = { pool: 1, ...options };
   }
 
   protected getStrategy(protocol: string): typeof Strategy {
@@ -52,20 +60,21 @@ export class Client extends EventEmitter {
       throw new Error('Config must be provided!');
     }
 
-    // await this.disconnect();
+    await this.disconnect();
 
     if (config) this._config = config;
     if (options) this._connectionOptions = options;
 
-    this.workerManager.prepare(
-      this.options,
-      this._config,
-      this._connectionOptions,
-      this.getStrategy(config.protocol),
-    );
+    this.workerManager.prepare(this.getStrategy(config.protocol));
 
     await Promise.all(
       this.workerManager.workers.map((r) => r.instance.connect()),
+    );
+  }
+
+  public async disconnect() {
+    await Promise.all(
+      this.workerManager.workers.map((r) => r.instance.disconnect()),
     );
   }
 
