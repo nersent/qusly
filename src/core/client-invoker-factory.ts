@@ -6,7 +6,7 @@ import {
 } from '~/common/interfaces';
 import { TaskManager } from '~/common/tasks/task-manager';
 
-export class TaskFactory {
+export class ClientInvokerFactory {
   public static create(taskManager: TaskManager) {
     return <T extends ExtractMethods<Strategy>>(
       fn: T,

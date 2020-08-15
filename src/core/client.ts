@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events';
 
-import { TaskFactory } from './tasks/task-factory';
 import {
   IFtpConfig,
   IFtpOptions,
@@ -14,6 +13,7 @@ import { StrategyManager } from './strategies/strategy-manager';
 import { TaskManager } from '~/common/tasks/task-manager';
 import { WorkerManagerImpl } from './tasks/worker-manager-impl';
 import { Strategy } from '~/strategies/strategy';
+import { ClientInvokerFactory } from './client-invoker-factory';
 
 export class Client extends EventEmitter {
   protected _options: IClientOptions;
@@ -26,7 +26,7 @@ export class Client extends EventEmitter {
 
   private taskManager = new TaskManager(this.workerManager);
 
-  private taskFactory = TaskFactory.create(this.taskManager);
+  private invoker = ClientInvokerFactory.create(this.taskManager);
 
   public get options() {
     return this._options;
@@ -78,5 +78,5 @@ export class Client extends EventEmitter {
     );
   }
 
-  public list = this.taskFactory('list');
+  public list = this.invoker('list');
 }
