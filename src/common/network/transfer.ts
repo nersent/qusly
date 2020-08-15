@@ -2,7 +2,7 @@ import {
   ITransferOptions,
   ITransferProgressListener,
   ITransferInfo,
-} from '~/interfaces';
+} from '~/common/interfaces';
 
 export class Transfer {
   public startTime: number;

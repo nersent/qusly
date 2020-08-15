@@ -6,7 +6,7 @@ import {
   ITransferOptions,
   ITransferProgressListener,
   ITransferInfo,
-} from '~/interfaces';
+} from '~/common/interfaces';
 import { Transfer } from '~/common/network/transfer';
 
 export declare interface Strategy {
@@ -54,6 +54,12 @@ export abstract class Strategy extends EventEmitter {
 
   public abstract download: (
     dest: Writable,
+    info: ITransferInfo,
+    options?: ITransferOptions,
+  ) => Promise<void>;
+
+  public abstract upload: (
+    source: Readable,
     info: ITransferInfo,
     options?: ITransferOptions,
   ) => Promise<void>;

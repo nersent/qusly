@@ -1,5 +1,5 @@
 import { TaskWorker } from '~/common/tasks/task-worker';
-import { Strategy } from '~/strategies/strategy';
+import { Strategy } from '~/common/strategies/strategy';
 import { TaskGroup } from '../constants/task-group';
 
 export class TaskWorkerImpl extends TaskWorker {

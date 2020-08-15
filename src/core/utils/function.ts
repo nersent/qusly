@@ -1,9 +1,9 @@
-import { ITaskResponse } from '~/interfaces';
+import { IFunctionResponse } from '~/core/interfaces';
 
 export const execFunction = async (
   f: Function,
   ...args: any
-): Promise<ITaskResponse> => {
+): Promise<IFunctionResponse> => {
   let data: any;
   let error: Error;
 

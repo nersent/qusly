@@ -1,29 +1,27 @@
 import { EventEmitter } from 'events';
 import { Writable, Readable } from 'stream';
 
-import {
-  IFtpConfig,
-  IFtpOptions,
-  ISFtpConfig,
-  ISFtpOptions,
-  IConfig,
-  IOptions,
-  IClientOptions,
-  ITransfer,
-  ITransferProgress,
-  ITransferDirection,
-  ITransferProgressListener,
-} from '~/interfaces';
 import { StrategyManager } from './strategies/strategy-manager';
 import { TaskManager } from '~/common/tasks/task-manager';
 import { WorkerManagerImpl } from './tasks/worker-manager-impl';
-import { Strategy } from '~/strategies/strategy';
+import { Strategy } from '~/common/strategies/strategy';
 import { ClientInvokerFactory } from './client-invoker-factory';
 import { useWriteStream, useReadStream } from './utils/stream';
 import { TaskWorkerImpl } from './tasks/task-worker-impl';
 import { TaskGroup } from './constants/task-group';
-import { getFileSize } from '~/utils/file';
-import { IClientTransferHandler } from './interfaces';
+import { getFileSize } from '~/core/utils/file';
+import { IClientTransferHandler, IClientOptions } from '~/core/interfaces';
+import {
+  ITransfer,
+  ITransferProgressListener,
+  IConfig,
+  IOptions,
+  IFtpConfig,
+  IFtpOptions,
+  ISFtpConfig,
+  ISFtpOptions,
+  ITransferDirection,
+} from '~/common/interfaces';
 
 type IClientEvents =
   | 'connect'

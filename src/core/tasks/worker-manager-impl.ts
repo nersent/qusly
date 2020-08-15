@@ -1,8 +1,8 @@
 import { WorkerManager } from '~/common/tasks/worker-manager';
 import { TaskWorker } from '~/common/tasks/task-worker';
 import { TaskWorkerImpl } from './task-worker-impl';
-import { Strategy } from '~/strategies/strategy';
-import { IClientOptions } from '~/interfaces';
+import { Strategy } from '~/common/strategies/strategy';
+import { IClientOptions } from '~/core/interfaces';
 import { TaskGroup } from '../constants/task-group';
 import { Client } from '../client';
 
