@@ -52,17 +52,17 @@ export class TaskManager {
     const worker = _worker || this.workerManager.getAvailable(task.group);
 
     if (worker) {
-      worker.busy = true;
+      worker.setTask(task);
 
       try {
-        const res = await worker.handle(task);
+        const res = await worker.handle();
 
         task.resolve(res);
       } catch (err) {
         task.reject(err);
       }
 
-      worker.busy = false;
+      worker.done();
       this.handleNext();
     } else {
       this.queue.push(task);
@@ -86,4 +86,19 @@ export class TaskManager {
 
     this.queue = queue;
   }
+
+  public clear() {
+    this.queue.forEach(this.cancelTask);
+    this.queue = [];
+  }
+
+  public cancelActive() {
+    const workers = this.workerManager.getAllBusy();
+
+    workers.forEach((r) => this.cancelTask(r.task));
+  }
+
+  protected cancelTask = (task: ITask) => {
+    task.resolve(null);
+  };
 }

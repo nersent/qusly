@@ -1,19 +1,41 @@
 import { ITask } from '~/common/interfaces';
 
-export abstract class TaskWorker {
-  public busy = false;
+export class TaskWorker {
+  private _busy = false;
 
   public paused = false;
 
   public group: number;
 
+  private _task: ITask;
+
+  public get busy() {
+    return this._busy;
+  }
+
+  public get task() {
+    return this._task;
+  }
+
+  public setTask(task: ITask) {
+    this._busy = true;
+    this._task = task;
+  }
+
+  public done() {
+    this._busy = false;
+    this._task = null;
+  }
+
   public isAvailable(group: number) {
     return !this.busy && !this.paused && this.checkGroup(group);
   }
 
-  protected abstract checkGroup(group: number);
+  protected checkGroup(group: number) {
+    return true;
+  }
 
-  public async handle(task: ITask) {
-    return task.fn();
+  public async handle() {
+    return this.task.fn();
   }
 }

@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { Writable } from 'stream';
 
 import {
   IFtpConfig,
@@ -14,6 +15,7 @@ import { TaskManager } from '~/common/tasks/task-manager';
 import { WorkerManagerImpl } from './tasks/worker-manager-impl';
 import { Strategy } from '~/strategies/strategy';
 import { ClientInvokerFactory } from './client-invoker-factory';
+import { useWriteStream } from './utils/stream';
 
 export class Client extends EventEmitter {
   protected _options: IClientOptions;
@@ -76,6 +78,14 @@ export class Client extends EventEmitter {
     await Promise.all(
       this.workerManager.workers.map((r) => r.instance.disconnect()),
     );
+  }
+
+  public download(
+    dest: Writable | string,
+    remotePath: string,
+    startAt?: number,
+  ) {
+    const { stream, localPath } = useWriteStream(dest, startAt);
   }
 
   public list = this.invoker('list');

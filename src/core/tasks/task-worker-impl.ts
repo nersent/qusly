@@ -16,7 +16,7 @@ export class TaskWorkerImpl extends TaskWorker {
     );
   }
 
-  public async handle(task: ITask) {
-    return task.fn(this.instance);
+  public async handle() {
+    return this.task.fn(this.instance);
   }
 }

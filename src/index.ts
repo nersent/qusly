@@ -27,3 +27,6 @@
 
 export * from './core/client';
 export * from './interfaces';
+export * from './common/tasks/task-manager';
+export * from './common/tasks/task-worker';
+export * from './common/tasks/worker-manager';

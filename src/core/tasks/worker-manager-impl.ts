@@ -21,6 +21,10 @@ export class WorkerManagerImpl extends WorkerManager {
     return this.workers.find((r) => r.isAvailable(group));
   }
 
+  public getAllBusy() {
+    return this.workers.filter((r) => r.busy);
+  }
+
   public prepare(strategy: typeof Strategy) {
     const { options, config, connectionOptions } = this.client;
 

@@ -4,4 +4,6 @@ export abstract class WorkerManager {
   public abstract check(group: number): boolean;
 
   public abstract getAvailable(group: number): TaskWorker;
+
+  public abstract getAllBusy(): TaskWorker[];
 }
