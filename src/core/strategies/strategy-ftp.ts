@@ -8,8 +8,12 @@ import {
   ITransferOptions,
   IFtpOptions,
   ITransferInfo,
+  ExtractMethods,
+  ArgumentTypes,
+  UnwrapPromise,
 } from '~/common/interfaces';
 import { FtpUtils } from '~/core/utils/ftp';
+import { FtpInvokerFactory } from './ftp-invoker-factory';
 
 export declare interface FtpStrategy {
   config: IFtpConfig;
@@ -17,7 +21,9 @@ export declare interface FtpStrategy {
 }
 
 export class FtpStrategy extends Strategy {
-  protected client: Client;
+  public client: Client;
+
+  protected invoker = FtpInvokerFactory.create(this);
 
   public get connected() {
     return this.client?.closed === false;
@@ -77,14 +83,10 @@ export class FtpStrategy extends Strategy {
   };
 
   list = (path) => {
-    return this.handle<IFile[]>(() =>
-      this.client.list(path).then((r) => r.map(this.formatFile)),
-    );
+    return this.invoker('list')(path).then((r) => r.map(this.formatFile));
   };
 
-  size = (path) => {
-    return this.handle<number>(() => this.client.size(path));
-  };
+  size = this.invoker('size');
 
   exists = async (path: string) => {
     try {
@@ -96,20 +98,24 @@ export class FtpStrategy extends Strategy {
     }
   };
 
-  move = (source, dest) => {
-    return this.handle(() => this.client.rename(source, dest));
+  // move = (source, dest) => {
+  //   return this.handle(() => this.client.rename(source, dest));
+  // };
+
+  move = async (source, dest) => {
+    await this.invoker('rename')(source, dest);
   };
 
-  removeFile = (path) => {
-    return this.handle(() => this.client.remove(path));
+  removeFile = async (path) => {
+    await this.invoker('remove')(path);
   };
 
-  removeEmptyFolder = (path) => {
-    return this.handle(() => this.client.removeEmptyDir(path));
+  removeEmptyFolder = async (path) => {
+    await this.invoker('removeEmptyDir')(path);
   };
 
-  removeFolder = (path) => {
-    return this.handle(() => this.client.removeDir(path));
+  removeFolder = async (path) => {
+    await this.invoker('removeDir')(path);
   };
 
   createFolder = async (path) => {
@@ -121,14 +127,10 @@ export class FtpStrategy extends Strategy {
     // await this.upload(source, { remotePath: path }, { quiet: true });
   };
 
-  pwd = () => {
-    return this.handle<string>(() => this.client.pwd());
-  };
+  pwd = this.invoker('pwd');
 
   send = (command) => {
-    return this.handle<string>(() =>
-      this.client.send(command).then((r) => r.message),
-    );
+    return this.invoker('send')(command).then((r) => r.message);
   };
 
   protected formatFile = (file: FileInfo): IFile => {
@@ -138,7 +140,7 @@ export class FtpStrategy extends Strategy {
     };
   };
 
-  protected handle = async <T = void>(fn: Function): Promise<T> => {
+  protected handle = async (fn: Function) => {
     try {
       return await fn();
     } catch (err) {

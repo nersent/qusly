@@ -34,12 +34,6 @@ export class Transferable extends EventEmitter {
     this.totalBytes = value;
   }
 
-  private update: ITransferListener = (bytes) => {
-    this._bytes = bytes;
-
-    console.log('update');
-  };
-
   public get info(): ITransferProgress {
     const elapsed = (Date.now() - this.startTime) / 1000;
     const speed = elapsed === 0 ? 0 : Math.round(this._bytes / elapsed);
@@ -62,6 +56,12 @@ export class Transferable extends EventEmitter {
   ) {
     super();
   }
+
+  private update: ITransferListener = (bytes) => {
+    this._bytes = bytes;
+
+    console.log('update');
+  };
 
   private check() {
     if (this.active) {
