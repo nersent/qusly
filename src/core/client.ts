@@ -22,29 +22,16 @@ import {
   ISFtpOptions,
   ITransferDirection,
 } from '~/common/interfaces';
+import { Transferable } from './network/transferable';
 
-type IClientEvents =
-  | 'connect'
-  | 'disconnect'
-  | 'transfer-new'
-  | 'transfer-abort'
-  | 'transfer-finish'
-  | 'transfer-progress';
+type IClientEvents = 'connect' | 'disconnect';
 
 export declare interface Client {
   on(event: 'connect', listener: () => void): this;
   on(event: 'disconnect', listener: () => void): this;
-  on(event: 'transfer-new', listener: (e: ITransfer) => void): this;
-  on(event: 'transfer-abort', listener: (...ids: number[]) => void): this;
-  on(event: 'transfer-finish', listener: (e: ITransfer) => void): this;
-  on(event: 'transfer-progress', listener: ITransferProgressListener): this;
 
   once(event: 'connect', listener: () => void): this;
   once(event: 'disconnect', listener: () => void): this;
-  once(event: 'transfer-new', listener: (e: ITransfer) => void): this;
-  once(event: 'transfer-abort', listener: (...ids: number[]) => void): this;
-  once(event: 'transfer-finish', listener: (e: ITransfer) => void): this;
-  once(event: 'transfer-progress', listener: ITransferProgressListener): this;
 
   addListener(event: IClientEvents, listener: Function): this;
   removeListener(event: IClientEvents, listener: Function): this;
@@ -63,7 +50,7 @@ export class Client extends EventEmitter {
 
   private invoker = ClientInvokerFactory.create(this.taskManager);
 
-  private transfers = new Map<number, TaskWorkerImpl>();
+  // private transfers = new Map<number, TaskWorkerImpl>();
 
   public get options() {
     return this._options;
@@ -142,65 +129,28 @@ export class Client extends EventEmitter {
   }
 
   public async abort() {
-    this.emit('transfer-abort', ...this.transfers.keys());
-
-    this.taskManager.clear();
-
-    await Promise.all(
-      this.workerManager.workers.map((r) => r.instance.abort()),
-    );
+    // this.emit('transfer-abort', ...this.transfers.keys());
+    // this.taskManager.clear();
+    // await Promise.all(
+    //   this.workerManager.workers.map((r) => r.instance.abort()),
+    // );
   }
 
   public async abortTransfers(...ids: number[]) {
-    const workers: TaskWorkerImpl[] = [];
-
-    ids.forEach((id) => {
-      const worker = this.transfers.get(id);
-
-      workers.push(worker);
-
-      worker.paused = true;
-    });
-
-    this.taskManager.cancelTasks(...ids);
-
-    await Promise.all(workers.map((r) => r.instance.abort()));
-
-    workers.forEach((r) => (r.paused = false));
-    this.taskManager.handleNext();
+    // const workers: TaskWorkerImpl[] = [];
+    // ids.forEach((id) => {
+    //   const worker = this.transfers.get(id);
+    //   workers.push(worker);
+    //   worker.paused = true;
+    // });
+    // this.taskManager.cancelTasks(...ids);
+    // await Promise.all(workers.map((r) => r.instance.abort()));
+    // workers.forEach((r) => (r.paused = false));
+    // this.taskManager.handleNext();
   }
 
-  public async download(
-    dest: Writable | string,
-    remotePath: string,
-    startAt?: number,
-  ) {
-    const { stream, localPath } = useWriteStream(dest, startAt);
-
-    return this.handleTransfer(
-      async (instance: Strategy, info: ITransfer) => {
-        await instance.download(stream, {
-          ...info,
-          startAt,
-          totalBytes: await instance.size(remotePath),
-        });
-      },
-      { remotePath, localPath },
-    );
-  }
-
-  public upload(source: Readable | string, remotePath: string) {
-    const { stream, localPath } = useReadStream(source);
-
-    return this.handleTransfer(
-      async (instance, info) => {
-        await instance.upload(stream, {
-          ...info,
-          totalBytes: await getFileSize(localPath),
-        });
-      },
-      { remotePath, localPath },
-    );
+  public createTransferable(remotePath: string) {
+    return new Transferable(remotePath, this.taskManager);
   }
 
   public list = this.invoker('list');
@@ -224,31 +174,4 @@ export class Client extends EventEmitter {
   public pwd = this.invoker('pwd');
 
   public send = this.invoker('send');
-
-  protected async handleTransfer(
-    fn: IClientTransferHandler,
-    direction: ITransferDirection,
-  ) {
-    const taskId = this.taskManager.createTaskId();
-    const transfer: ITransfer = { id: taskId, ...direction };
-
-    this.transfers.set(taskId, null);
-    this.emit('transfer-new', transfer);
-
-    try {
-      await this.taskManager.enqueue(
-        async (instance, worker: TaskWorkerImpl) => {
-          this.transfers.set(taskId, worker);
-
-          await fn(instance, transfer);
-        },
-        { id: taskId, group: TaskGroup.Transfer },
-      );
-    } catch (err) {
-      throw err;
-    } finally {
-      this.transfers.delete(taskId);
-      this.emit('transfer-finish', transfer);
-    }
-  }
 }

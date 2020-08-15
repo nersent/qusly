@@ -11,3 +11,14 @@ export const getFileSize = async (path: string) => {
   const { size } = await fs.stat(path);
   return size;
 };
+
+export const fileExists = async (path: string) => {
+  try {
+    await fs.stat(path);
+    return true;
+  } catch (err) {
+    console.log(err);
+  }
+
+  return false;
+};

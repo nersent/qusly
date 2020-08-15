@@ -89,11 +89,11 @@ export class TaskManager {
 
   public clear() {
     this.clearQueue();
-    this.workerManager.getAllBusy().forEach((r) => this._cancelTask(r.task));
+    this.workerManager.getAllBusy().forEach((r) => this.resolveTask(r.task));
   }
 
   public clearQueue() {
-    this.queue.forEach(this._cancelTask);
+    this.queue.forEach(this.resolveTask);
     this.queue = [];
   }
 
@@ -102,7 +102,7 @@ export class TaskManager {
 
     this.queue.forEach((task) => {
       if (ids.includes(task.id)) {
-        this._cancelTask(task);
+        this.resolveTask(task);
       } else {
         queue.push(task);
       }
@@ -111,7 +111,7 @@ export class TaskManager {
     this.queue = queue;
   }
 
-  protected _cancelTask = (task: ITask) => {
+  protected resolveTask = (task: ITask) => {
     task.resolve(null);
   };
 }

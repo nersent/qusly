@@ -43,3 +43,5 @@ export type ITransferProgressListener = (
   transfer: ITransfer,
   progress: ITransferProgress,
 ) => void;
+
+export type ITransferListener = (bytes: number) => void;

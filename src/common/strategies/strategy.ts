@@ -6,8 +6,10 @@ import {
   ITransferOptions,
   ITransferProgressListener,
   ITransferInfo,
+  ITransferListener,
 } from '~/common/interfaces';
-import { Transfer } from '~/common/network/transfer';
+import { Transferable } from '~/core/network/transferable';
+import { ITransferableUpdater } from '~/core/interfaces';
 
 export declare interface Strategy {
   on(event: 'connect', listener: () => void): this;
@@ -22,25 +24,13 @@ export declare interface Strategy {
  * An abstract class, which allows to create a custom protocol.
  */
 export abstract class Strategy extends EventEmitter {
-  private transfer: Transfer;
+  public transferListener: ITransferListener;
 
   constructor(
     protected readonly config: any,
     protected readonly options?: any,
   ) {
     super();
-  }
-
-  protected prepareTransfer(info: ITransferInfo, options?: ITransferOptions) {
-    this.transfer = new Transfer(info, options, (data, progress) => {
-      this.emit('progress', data, progress);
-    });
-
-    return this.transfer.handleProgress;
-  }
-
-  protected finishTransfer() {
-    this.transfer = null;
   }
 
   public abstract connect(): Promise<void>;

@@ -64,27 +64,15 @@ export class FtpStrategy extends Strategy {
     return null;
   };
 
-  download = async (
-    dest: Writable,
-    info: ITransferInfo,
-    options?: ITransferOptions,
-  ) => {
-    return this.handleTransfer(
-      () => this.client.downloadTo(dest, info.remotePath, info.startAt),
-      info,
-      options,
+  download = async (dest: Writable, info: ITransferInfo) => {
+    return this.handleTransfer(() =>
+      this.client.downloadTo(dest, info.remotePath, info.startAt),
     );
   };
 
-  upload = async (
-    source: Readable,
-    info: ITransferInfo,
-    options?: ITransferOptions,
-  ) => {
-    return this.handleTransfer(
-      () => this.client.uploadFrom(source, info.remotePath),
-      info,
-      options,
+  upload = async (source: Readable, info: ITransferInfo) => {
+    return this.handleTransfer(() =>
+      this.client.uploadFrom(source, info.remotePath),
     );
   };
 
@@ -101,11 +89,11 @@ export class FtpStrategy extends Strategy {
   exists = async (path: string) => {
     try {
       await this.client.rename(path, path);
+
+      return true;
     } catch (err) {
       return false;
     }
-
-    return true;
   };
 
   move = (source, dest) => {
@@ -129,9 +117,8 @@ export class FtpStrategy extends Strategy {
   };
 
   createEmptyFile = async (path) => {
-    const source = Readable.from('\n');
-
-    await this.upload(source, { remotePath: path }, { quiet: true });
+    // const source = Readable.from('\n');
+    // await this.upload(source, { remotePath: path }, { quiet: true });
   };
 
   pwd = () => {
@@ -168,18 +155,11 @@ export class FtpStrategy extends Strategy {
     return null;
   };
 
-  protected handleTransfer = async (
-    fn: Function,
-    info: ITransferInfo,
-    options: ITransferOptions,
-  ) => {
-    const handler = this.prepareTransfer(info, options);
-
-    this.client.trackProgress((info) => handler(info.bytes));
+  protected handleTransfer = async (fn: Function) => {
+    this.client.trackProgress((info) => this.transferListener(info.bytes));
 
     await this.handle(fn);
 
     this.client?.trackProgress(undefined);
-    this.finishTransfer();
   };
 }

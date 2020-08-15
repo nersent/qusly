@@ -1,8 +1,10 @@
-import { Writable, Readable } from 'stream';
+import { Writable, Readable, Stream } from 'stream';
 import { createWriteStream, createReadStream } from 'fs';
 
-export const getPathFromStream = (stream: Readable | Writable): string => {
-  return (stream as any).path;
+export const getPathFromStream = (
+  stream: Readable | Writable,
+): string | undefined => {
+  return (stream as any)?.path;
 };
 
 export const useWriteStream = (dest: Writable | string, startAt?: number) => {

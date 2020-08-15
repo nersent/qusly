@@ -19,7 +19,4 @@ export interface IClientOptions {
   transferPool?: boolean;
 }
 
-export type IClientTransferHandler = (
-  instance: Strategy,
-  info: ITransfer,
-) => Promise<void>;
+export type IClientTransferHandler = (instance: Strategy) => Promise<void>;

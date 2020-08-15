@@ -1,6 +1,6 @@
 import { Strategy } from '~/common/strategies/strategy';
 import { FtpStrategy } from '~/core/strategies/strategy-ftp';
-import { SftpStrategy } from '~/core/strategies/strategy-sftp';
+// import { SftpStrategy } from '~/core/strategies/strategy-sftp';
 
 interface IStrategyMap {
   [key: string]: typeof Strategy;
@@ -10,7 +10,7 @@ export class StrategyManager {
   private static map: IStrategyMap = {
     ftp: FtpStrategy,
     ftps: FtpStrategy,
-    sftp: SftpStrategy,
+    // sftp: SftpStrategy,
   };
 
   public static register(protocol: string, provider: any) {
