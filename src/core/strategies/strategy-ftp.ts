@@ -64,6 +64,30 @@ export class FtpStrategy extends Strategy {
     return null;
   };
 
+  download = async (
+    dest: Writable,
+    info: ITransferInfo,
+    options?: ITransferOptions,
+  ) => {
+    return this.handleTransfer(
+      () => this.client.downloadTo(dest, info.remotePath, info.startAt),
+      info,
+      options,
+    );
+  };
+
+  upload = async (
+    source: Readable,
+    info: ITransferInfo,
+    options?: ITransferOptions,
+  ) => {
+    return this.handleTransfer(
+      () => this.client.uploadFrom(source, info.remotePath),
+      info,
+      options,
+    );
+  };
+
   list = (path) => {
     return this.handle<IFile[]>(() =>
       this.client.list(path).then((r) => r.map(this.formatFile)),
@@ -72,6 +96,52 @@ export class FtpStrategy extends Strategy {
 
   size = (path) => {
     return this.handle<number>(() => this.client.size(path));
+  };
+
+  exists = async (path: string) => {
+    try {
+      await this.client.rename(path, path);
+    } catch (err) {
+      return false;
+    }
+
+    return true;
+  };
+
+  move = (source, dest) => {
+    return this.handle(() => this.client.rename(source, dest));
+  };
+
+  removeFile = (path) => {
+    return this.handle(() => this.client.remove(path));
+  };
+
+  removeEmptyFolder = (path) => {
+    return this.handle(() => this.client.removeEmptyDir(path));
+  };
+
+  removeFolder = (path) => {
+    return this.handle(() => this.client.removeDir(path));
+  };
+
+  createFolder = async (path) => {
+    await this.send(`MKD ${path}`);
+  };
+
+  createEmptyFile = async (path) => {
+    const source = Readable.from('\n');
+
+    await this.upload(source, { remotePath: path }, { quiet: true });
+  };
+
+  pwd = () => {
+    return this.handle<string>(() => this.client.pwd());
+  };
+
+  send = (command) => {
+    return this.handle<string>(() =>
+      this.client.send(command).then((r) => r.message),
+    );
   };
 
   protected formatFile = (file: FileInfo): IFile => {
@@ -96,5 +166,20 @@ export class FtpStrategy extends Strategy {
     }
 
     return null;
+  };
+
+  protected handleTransfer = async (
+    fn: Function,
+    info: ITransferInfo,
+    options: ITransferOptions,
+  ) => {
+    const handler = this.prepareTransfer(info, options);
+
+    this.client.trackProgress((info) => handler(info.bytes));
+
+    await this.handle(fn);
+
+    this.client?.trackProgress(undefined);
+    this.finishTransfer();
   };
 }

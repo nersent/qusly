@@ -30,7 +30,7 @@ export class WorkerManagerImpl extends WorkerManager {
 
     for (let i = 0; i < options.pool; i++) {
       const instance = new (strategy as any)(config, connectionOptions);
-      const group = this.determinateWorkerGroup(i, options);
+      const group = this.getWorkerGroup(i, options);
 
       const worker = new TaskWorkerImpl(instance, group);
 
@@ -38,7 +38,7 @@ export class WorkerManagerImpl extends WorkerManager {
     }
   }
 
-  protected determinateWorkerGroup(
+  protected getWorkerGroup(
     index: number,
     { pool, transferPool }: IClientOptions,
   ) {
@@ -47,5 +47,13 @@ export class WorkerManagerImpl extends WorkerManager {
     }
 
     return index === 0 ? TaskGroup.Misc : TaskGroup.Transfer;
+  }
+
+  public connectWorkers() {
+    return Promise.all(this.workers.map((r) => r.instance.connect()));
+  }
+
+  public disconnectWorkers() {
+    return Promise.all(this.workers.map((r) => r.instance.disconnect()));
   }
 }

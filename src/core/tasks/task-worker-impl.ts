@@ -1,6 +1,5 @@
 import { TaskWorker } from '~/common/tasks/task-worker';
 import { Strategy } from '~/strategies/strategy';
-import { ITask } from '~/common/interfaces';
 import { TaskGroup } from '../constants/task-group';
 
 export class TaskWorkerImpl extends TaskWorker {
@@ -17,6 +16,6 @@ export class TaskWorkerImpl extends TaskWorker {
   }
 
   public async handle() {
-    return this.task.fn(this.instance);
+    return this.task.fn(this.instance, this);
   }
 }

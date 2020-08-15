@@ -175,7 +175,9 @@ export class FtpStrategy extends Strategy {
   ) => {
     const handler = this.prepareTransfer(info, options);
 
-    this.client.trackProgress((info) => handler(info.bytes));
+    this.client.trackProgress((info) => {
+      handler(info.bytes);
+    });
 
     await this.handle(fn);
 

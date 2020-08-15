@@ -2,15 +2,15 @@ import { ITask, ITaskCreateOptions } from '~/common/interfaces';
 import { TaskWorker } from './task-worker';
 import { WorkerManager } from './worker-manager';
 
+let taskIdCounter = 0;
+
 export class TaskManager {
   private queue: ITask[] = [];
 
-  private static taskIdCounter = 0;
-
   constructor(protected workerManager: WorkerManager) {}
 
-  protected createTaskId() {
-    return TaskManager.taskIdCounter++;
+  public createTaskId() {
+    return taskIdCounter++;
   }
 
   protected createTask(
@@ -88,17 +88,30 @@ export class TaskManager {
   }
 
   public clear() {
-    this.queue.forEach(this.cancelTask);
+    this.clearQueue();
+    this.workerManager.getAllBusy().forEach((r) => this._cancelTask(r.task));
+  }
+
+  public clearQueue() {
+    this.queue.forEach(this._cancelTask);
     this.queue = [];
   }
 
-  public cancelActive() {
-    const workers = this.workerManager.getAllBusy();
+  public cancelTasks(...ids: number[]) {
+    const queue: ITask[] = [];
 
-    workers.forEach((r) => this.cancelTask(r.task));
+    this.queue.forEach((task) => {
+      if (ids.includes(task.id)) {
+        this._cancelTask(task);
+      } else {
+        queue.push(task);
+      }
+    });
+
+    this.queue = queue;
   }
 
-  protected cancelTask = (task: ITask) => {
+  protected _cancelTask = (task: ITask) => {
     task.resolve(null);
   };
 }
