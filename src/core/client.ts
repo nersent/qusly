@@ -209,6 +209,24 @@ export class Client extends EventEmitter {
 
   public size = this.invoker('size');
 
+  public exists = this.invoker('exists');
+
+  public move = this.invoker('move');
+
+  public removeFile = this.invoker('removeFile');
+
+  public removeEmptyFolder = this.invoker('removeEmptyFolder');
+
+  public removeFolder = this.invoker('removeFolder');
+
+  public createFolder = this.invoker('createFolder');
+
+  public createEmptyFile = this.invoker('createEmptyFile');
+
+  public pwd = this.invoker('pwd');
+
+  public send = this.invoker('send');
+
   protected async handleTransfer(
     fn: IClientTransferHandler,
     direction: ITransferDirection,
