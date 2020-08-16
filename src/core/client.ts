@@ -81,10 +81,6 @@ export class Client extends EventEmitter {
     this.emit('disconnect');
   };
 
-  protected onProgress = (data, progress) => {
-    this.emit('transfer-progress', data, progress);
-  };
-
   protected getStrategy(protocol: string): typeof Strategy {
     return StrategyManager.get(protocol);
   }
@@ -94,7 +90,6 @@ export class Client extends EventEmitter {
 
     instance.on('connect', this.onConnect);
     instance.on('disconnect', this.onDisconnect);
-    instance.on('progress', this.onProgress);
   };
 
   private removeWorkerEvents = (worker: TaskWorkerImpl) => {
@@ -102,7 +97,6 @@ export class Client extends EventEmitter {
 
     instance.removeListener('connect', this.onConnect);
     instance.removeListener('disconnect', this.onDisconnect);
-    instance.removeListener('progress', this.onProgress);
   };
 
   public async connect(config?: IFtpConfig, options?: IFtpOptions);

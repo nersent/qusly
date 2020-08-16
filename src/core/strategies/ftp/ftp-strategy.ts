@@ -1,19 +1,9 @@
-import { Client, FileInfo } from 'basic-ftp';
+import { Client } from 'basic-ftp';
 import { Writable, Readable } from 'stream';
 
 import { Strategy } from '~/common/strategies/strategy';
-import {
-  IFile,
-  IFtpConfig,
-  ITransferOptions,
-  IFtpOptions,
-  ITransferInfo,
-  ExtractMethods,
-  ArgumentTypes,
-  UnwrapPromise,
-} from '~/common/interfaces';
+import { IFtpConfig, IFtpOptions, ITransferInfo } from '~/common/interfaces';
 import { FtpUtils } from './ftp-utils';
-import { FtpInvokerFactory } from './ftp-invoker-factory';
 
 export declare interface FtpStrategy {
   config: IFtpConfig;
@@ -22,8 +12,6 @@ export declare interface FtpStrategy {
 
 export class FtpStrategy extends Strategy {
   public client: Client;
-
-  protected invoker = FtpInvokerFactory.create(this);
 
   public get connected() {
     return this.client?.closed === false;
@@ -83,39 +71,39 @@ export class FtpStrategy extends Strategy {
   };
 
   list = (path) => {
-    return this.invoker('list')(path).then((r) => r.map(FtpUtils.formatFile));
+    return this.handle(() =>
+      this.client.list(path).then((r) => r.map(FtpUtils.formatFile)),
+    );
   };
 
-  size = this.invoker('size');
+  size = (path) => {
+    return this.handle(() => this.client.size(path));
+  };
 
   exists = async (path: string) => {
     try {
       await this.client.rename(path, path);
-
-      return true;
     } catch (err) {
       return false;
     }
+
+    return true;
   };
 
-  // move = (source, dest) => {
-  //   return this.handle(() => this.client.rename(source, dest));
-  // };
-
-  move = async (source, dest) => {
-    await this.invoker('rename')(source, dest);
+  move = (source, dest) => {
+    return this.handle(() => this.client.rename(source, dest));
   };
 
-  removeFile = async (path) => {
-    await this.invoker('remove')(path);
+  removeFile = (path) => {
+    return this.handle(() => this.client.remove(path));
   };
 
-  removeEmptyFolder = async (path) => {
-    await this.invoker('removeEmptyDir')(path);
+  removeEmptyFolder = (path) => {
+    return this.handle(() => this.client.removeEmptyDir(path));
   };
 
-  removeFolder = async (path) => {
-    await this.invoker('removeDir')(path);
+  removeFolder = (path) => {
+    return this.handle(() => this.client.removeDir(path));
   };
 
   createFolder = async (path) => {
@@ -123,14 +111,17 @@ export class FtpStrategy extends Strategy {
   };
 
   createEmptyFile = async (path) => {
-    // const source = Readable.from('\n');
-    // await this.upload(source, { remotePath: path }, { quiet: true });
+    const source = Readable.from('\n');
+
+    return this.handle(() => this.client.uploadFrom(source, path));
   };
 
-  pwd = this.invoker('pwd');
+  pwd = () => {
+    return this.handle(() => this.client.pwd());
+  };
 
   send = (command) => {
-    return this.invoker('send')(command).then((r) => r.message);
+    return this.handle(() => this.client.send(command).then((r) => r.message));
   };
 
   protected handle = async (fn: Function) => {
@@ -146,8 +137,6 @@ export class FtpStrategy extends Strategy {
         throw err;
       }
     }
-
-    return null;
   };
 
   protected handleTransfer = async (fn: Function) => {
