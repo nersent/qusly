@@ -8,6 +8,7 @@ import { getFileSize, fileExists } from '../utils/file';
 import { IClientTransferHandler, ITransferableUpdater } from '../interfaces';
 import { ITransferProgress, ITransferListener } from '~/common/interfaces';
 import { Strategy } from '~/common/strategies/strategy';
+import { NetworkUtils } from '~/common/network/network-utils';
 
 export class Transferable extends EventEmitter {
   private _bytes = 0;
@@ -36,10 +37,9 @@ export class Transferable extends EventEmitter {
 
   public get info(): ITransferProgress {
     const elapsed = (Date.now() - this.startTime) / 1000;
-    const speed = elapsed === 0 ? 0 : Math.round(this._bytes / elapsed);
-    const speedRate = speed === 0 ? null : this._totalBytes / speed;
-    const eta = speedRate == null ? null : Math.round(speedRate - elapsed);
-    const percent = Math.round((this._bytes / this._totalBytes) * 100);
+    const speed = NetworkUtils.getSpeed(elapsed, this._bytes);
+    const eta = NetworkUtils.getEta(elapsed, speed, this._totalBytes);
+    const percent = NetworkUtils.getPercent(this._bytes, this._totalBytes);
 
     return {
       bytes: this._bytes,
