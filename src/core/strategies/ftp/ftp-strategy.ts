@@ -12,7 +12,7 @@ import {
   ArgumentTypes,
   UnwrapPromise,
 } from '~/common/interfaces';
-import { FtpUtils } from '~/core/utils/ftp';
+import { FtpUtils } from './ftp-utils';
 import { FtpInvokerFactory } from './ftp-invoker-factory';
 
 export declare interface FtpStrategy {
@@ -83,7 +83,7 @@ export class FtpStrategy extends Strategy {
   };
 
   list = (path) => {
-    return this.invoker('list')(path).then((r) => r.map(this.formatFile));
+    return this.invoker('list')(path).then((r) => r.map(FtpUtils.formatFile));
   };
 
   size = this.invoker('size');
@@ -131,13 +131,6 @@ export class FtpStrategy extends Strategy {
 
   send = (command) => {
     return this.invoker('send')(command).then((r) => r.message);
-  };
-
-  protected formatFile = (file: FileInfo): IFile => {
-    return {
-      ...FtpUtils.formatFile(file),
-      lastModified: FtpUtils.getValidDate(file.date),
-    };
   };
 
   protected handle = async (fn: Function) => {

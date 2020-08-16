@@ -1,5 +1,5 @@
 import { Strategy } from '~/common/strategies/strategy';
-import { FtpStrategy } from '~/core/strategies/strategy-ftp';
+import { FtpStrategy } from '~/core/strategies/ftp/ftp-strategy';
 // import { SftpStrategy } from '~/core/strategies/strategy-sftp';
 
 interface IStrategyMap {

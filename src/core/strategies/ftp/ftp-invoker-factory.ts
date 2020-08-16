@@ -6,7 +6,7 @@ import {
 } from '~/common/interfaces';
 import { TaskManager } from '~/common/tasks/task-manager';
 import { Client } from 'basic-ftp';
-import { FtpStrategy } from './strategy-ftp';
+import { FtpStrategy } from './ftp-strategy';
 
 export class FtpInvokerFactory {
   public static create(instance: FtpStrategy) {
