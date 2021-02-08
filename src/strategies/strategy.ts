@@ -6,8 +6,8 @@ import {
   ITransferOptions,
   ITransferProgressListener,
   ITransferInfo,
-} from '~/interfaces';
-import { Transfer } from '~/transfer';
+} from '../interfaces';
+import { Transfer } from '../transfer';
 
 export declare interface Strategy {
   on(event: 'connect', listener: () => void): this;
