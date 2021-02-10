@@ -8,8 +8,8 @@ import {
   ITransferOptions,
   IFtpOptions,
   ITransferInfo,
-} from '~/interfaces';
-import { FtpUtils } from '~/utils/ftp';
+} from '../interfaces';
+import { FtpUtils } from '../utils/ftp';
 
 export declare interface FtpStrategy {
   config: IFtpConfig;

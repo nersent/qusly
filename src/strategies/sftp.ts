@@ -12,8 +12,8 @@ import {
   IFtpConfig,
   ISFtpOptions,
   ITransferInfo,
-} from '~/interfaces';
-import { FtpUtils } from '~/utils/ftp';
+} from '../interfaces';
+import { FtpUtils } from '../utils/ftp';
 
 export declare interface SftpStrategy {
   config: IFtpConfig;
